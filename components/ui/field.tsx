@@ -42,10 +42,23 @@ type TextFieldProps = Omit<React.ComponentProps<'input'>, 'size'> & {
   mono?: boolean;
   multiline?: boolean;
   rows?: number;
+  /** For `multiline`: the textarea element, e.g. to insert text at the cursor. */
+  textareaRef?: React.Ref<HTMLTextAreaElement>;
 };
 
 /** Labelled text input; `multiline` for a textarea, `mono` for code and limits. */
-function TextField({ label, hint, error, mono, multiline, rows = 4, className, id, ...props }: TextFieldProps) {
+function TextField({
+  label,
+  hint,
+  error,
+  mono,
+  multiline,
+  rows = 4,
+  className,
+  id,
+  textareaRef,
+  ...props
+}: TextFieldProps) {
   const generated = React.useId();
   const fieldId = id ?? generated;
   const shared = {
@@ -57,7 +70,7 @@ function TextField({ label, hint, error, mono, multiline, rows = 4, className, i
   return (
     <FieldFrame id={fieldId} label={label} hint={hint} error={error} className={className}>
       {multiline ? (
-        <textarea rows={rows} {...shared} {...(props as React.ComponentProps<'textarea'>)} />
+        <textarea ref={textareaRef} rows={rows} {...shared} {...(props as React.ComponentProps<'textarea'>)} />
       ) : (
         <input {...shared} {...props} />
       )}

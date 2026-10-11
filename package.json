@@ -20,20 +20,27 @@
     "contracts:check": "scripts/contracts.sh verify && node scripts/contracts-check.mjs"
   },
   "dependencies": {
+    "@monaco-editor/react": "4.7.0",
     "class-variance-authority": "0.7.1",
     "clsx": "2.1.1",
+    "katex": "0.16.22",
     "lucide-react": "0.562.0",
     "next": "16.1.4",
     "openapi-fetch": "0.15.0",
     "radix-ui": "1.4.3",
     "react": "19.2.3",
     "react-dom": "19.2.3",
+    "react-markdown": "10.1.0",
+    "rehype-katex": "7.0.1",
+    "remark-gfm": "4.0.1",
+    "remark-math": "6.0.0",
     "tailwind-merge": "3.4.0"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "4.1.17",
     "@testing-library/react": "16.3.0",
     "@testing-library/user-event": "14.6.7",
+    "@types/katex": "0.16.7",
     "@types/node": "22.19.3",
     "@types/react": "19.2.7",
     "@types/react-dom": "19.2.3",

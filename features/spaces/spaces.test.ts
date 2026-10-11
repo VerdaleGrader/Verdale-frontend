@@ -18,6 +18,25 @@ describe('abilitiesOf (what to show; Core decides what is allowed)', () => {
       canManageMembers: false,
       canViewMembers: false,
       canLeave: false,
+      canAuthorProblems: false,
+      canCreateProblems: false,
+    });
+  });
+
+  it('owners and editors author problems; solvers do not; an archived Space is read-only', () => {
+    for (const role of ['owner', 'editor'] as const) {
+      expect(abilitiesOf({ ...base, my_role: role })).toMatchObject({
+        canAuthorProblems: true,
+        canCreateProblems: true,
+      });
+      expect(abilitiesOf({ ...base, my_role: role, archived_at: '2026-10-11T00:00:00Z' })).toMatchObject({
+        canAuthorProblems: true,
+        canCreateProblems: false,
+      });
+    }
+    expect(abilitiesOf({ ...base, my_role: 'solver' })).toMatchObject({
+      canAuthorProblems: false,
+      canCreateProblems: false,
     });
   });
 

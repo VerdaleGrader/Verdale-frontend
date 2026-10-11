@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { ApiError } from '@/lib/api';
 
 export type QueryState<T> =
@@ -44,4 +44,32 @@ export function useApiQuery<T>(load: () => Promise<T>, key: string) {
 
 export function isUnauthorized(error: Error | undefined): boolean {
   return error instanceof ApiError && error.status === 401;
+}
+
+/**
+ * Like useApiQuery, plus refetch(): fetch again and swap the new data in without
+ * going back to "loading". Use it where the page below holds state that a
+ * loading screen would throw away (chosen files, an open dialog, typed text).
+ */
+export function useRefreshableQuery<T>(load: () => Promise<T>, key: string) {
+  const query = useApiQuery(load, key);
+  const latest = useRef(load);
+  const [fresh, setFresh] = useState<{ source: unknown; data: T } | null>(null);
+
+  useEffect(() => {
+    latest.current = load;
+  });
+
+  const source = query.status === 'success' ? query.data : undefined;
+  const refetch = useCallback(async (): Promise<T> => {
+    const data = await latest.current();
+    setFresh({ source, data });
+    return data;
+  }, [source]);
+
+  // A newer copy wins until the query itself loads something else.
+  if (query.status === 'success' && fresh && fresh.source === query.data) {
+    return { ...query, data: fresh.data, refetch };
+  }
+  return { ...query, refetch };
 }
