@@ -1,6 +1,7 @@
 @import 'tailwindcss';
 @import 'tw-animate-css';
 @import './tokens.css';
+@import './components.css';
 
 @custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
@@ -84,6 +85,14 @@
   --color-verdict-ce-soft: var(--verdict-ce-soft);
   --color-verdict-pending: var(--verdict-pending);
   --color-verdict-pending-soft: var(--verdict-pending-soft);
+
+  /* Code highlighting: text-syntax-keyword, text-syntax-string, ... */
+  --color-syntax-keyword: var(--syntax-keyword);
+  --color-syntax-string: var(--syntax-string);
+  --color-syntax-number: var(--syntax-number);
+  --color-syntax-comment: var(--syntax-comment);
+  --color-syntax-function: var(--syntax-function);
+  --color-syntax-type: var(--syntax-type);
 
   --radius-sm: 4px;
   --radius-md: 6px;
