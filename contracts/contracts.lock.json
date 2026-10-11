@@ -1,0 +1,9 @@
+{
+  "version": "0.1.0",
+  "source": "Verdale-core-service/contracts",
+  "files": {
+    "core-public.openapi.yaml": "07d25e9de68113b97caa06eaf81a22762d9b7b5f462eb140921a6f41a0271fc8",
+    "VERSION": "e9dd8507f4bf0c6f42458e41aea833ad0bd3f6127272335eee9bf4d58541ed67",
+    "CHANGELOG.md": "1c21c9f5d0c7e50d37213b95cc72b39fd9905aadff7962febf48c36a420fa314"
+  }
+}

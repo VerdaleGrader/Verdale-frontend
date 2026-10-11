@@ -1,0 +1,111 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@import './tokens.css';
+
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+/*
+ * shadcn/ui variables point at Verdale tokens (design system README,
+ * "Using it with Tailwind and shadcn/ui"), so stock components inherit the
+ * brand. Never write raw hex in components: use these classes.
+ */
+:root {
+  --background: var(--bg);
+  --foreground: var(--text);
+  --card: var(--surface);
+  --card-foreground: var(--text);
+  --popover: var(--surface);
+  --popover-foreground: var(--text);
+  --primary-foreground: var(--on-primary);
+  --secondary: var(--surface-sunken);
+  --secondary-foreground: var(--text);
+  --muted: var(--surface-sunken);
+  --muted-foreground: var(--text-muted);
+  --accent-shadcn: var(--surface-hover);
+  --destructive: var(--danger);
+  --input: var(--border-strong);
+  --ring: var(--focus-ring);
+  --radius: var(--radius-md);
+}
+
+@theme inline {
+  --font-sans: var(--font-plex-sans), var(--font-plex-thai), system-ui, sans-serif;
+  --font-mono: var(--font-plex-mono), ui-monospace, Menlo, monospace;
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent-shadcn);
+  --color-accent-foreground: var(--text);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  /* Verdale names, e.g. bg-surface text-text-muted text-verdict-ac bg-verdict-wa-soft */
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-sunken: var(--surface-sunken);
+  --color-surface-hover: var(--surface-hover);
+  --color-border-strong: var(--border-strong);
+  --color-text: var(--text);
+  --color-text-muted: var(--text-muted);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-pressed: var(--primary-pressed);
+  --color-primary-soft: var(--primary-soft);
+  --color-brand-text: var(--brand-text);
+  --color-on-primary: var(--on-primary);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-info: var(--info);
+  --color-info-soft: var(--info-soft);
+  --color-verdict-ac: var(--verdict-ac);
+  --color-verdict-ac-soft: var(--verdict-ac-soft);
+  --color-verdict-wa: var(--verdict-wa);
+  --color-verdict-wa-soft: var(--verdict-wa-soft);
+  --color-verdict-tle: var(--verdict-tle);
+  --color-verdict-tle-soft: var(--verdict-tle-soft);
+  --color-verdict-mle: var(--verdict-mle);
+  --color-verdict-mle-soft: var(--verdict-mle-soft);
+  --color-verdict-re: var(--verdict-re);
+  --color-verdict-re-soft: var(--verdict-re-soft);
+  --color-verdict-ce: var(--verdict-ce);
+  --color-verdict-ce-soft: var(--verdict-ce-soft);
+  --color-verdict-pending: var(--verdict-pending);
+  --color-verdict-pending-soft: var(--verdict-pending-soft);
+
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --shadow-overlay: var(--shadow-overlay);
+}
+
+@layer base {
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-sans);
+    font-size: 14px;
+    line-height: 20px;
+  }
+  ::selection {
+    background: var(--selection);
+  }
+  :focus-visible {
+    outline: none;
+    box-shadow:
+      0 0 0 2px var(--bg),
+      0 0 0 4px var(--focus-ring);
+  }
+}
