@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { TestProgress } from '@/components/grader/test-progress';
 import { VerdictBadge } from '@/components/grader/verdict-badge';
+import { VerdictInfo } from '@/components/grader/verdict-info';
 import { VERDICTS } from '@/components/grader/verdict';
 import { formatMemory, formatTime } from '@/lib/format';
 import type { Submission } from '../api/submissions.api';
@@ -31,7 +32,10 @@ export function LiveStatus({
     <div className="flex flex-col gap-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <span className="flex flex-wrap items-center gap-3">
-          <VerdictBadge verdict={verdict} detail={finished ? outcomeLine(submission) : undefined} />
+          <span className="flex items-center gap-1">
+            <VerdictBadge verdict={verdict} detail={finished ? outcomeLine(submission) : undefined} />
+            <VerdictInfo current={verdict} />
+          </span>
           {!finished && (
             <span className="text-small text-text-muted" aria-live="polite">
               {outcomeLine(submission)}

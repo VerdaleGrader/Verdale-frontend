@@ -46,7 +46,7 @@ describe('outcomeLine', () => {
   it('keeps AC, CE and ISE plain', () => {
     expect(outcomeLine({ ...base, status: 'completed', verdict: 'AC', results: [result(1, 'AC')] })).toBe('Accepted');
     expect(outcomeLine({ ...base, status: 'completed', verdict: 'CE', results: [] })).toBe('Compilation error');
-    expect(outcomeLine({ ...base, status: 'completed', verdict: 'ISE', results: [] })).toBe('System error');
+    expect(outcomeLine({ ...base, status: 'completed', verdict: 'ISE', results: [] })).toBe('Internal error');
   });
 });
 
