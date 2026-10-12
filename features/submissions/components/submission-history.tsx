@@ -2,22 +2,25 @@
 
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { useState } from 'react';
 import { PageContainer, PageHeader } from '@/components/layout/page';
 import { SubmissionTable, type SubmissionRow } from '@/components/grader/submission-table';
 import { EmptyState, ErrorState, Loading } from '@/components/states/states';
 import { buttonVariants } from '@/components/ui/button';
-import { Select } from '@/components/ui/field';
+import { Dropdown } from '@/components/ui/dropdown';
 import { Pagination } from '@/components/ui/pagination';
 import { useAuth } from '@/features/auth/hooks/auth-provider';
 import { LANGUAGE_LABELS } from '@/features/problems/types';
 import { useSpace } from '@/features/spaces/components/space-shell';
 import { timeAgo } from '@/lib/format';
 import { useApiQuery } from '@/lib/use-api-query';
+import { param, useUrlQuery } from '@/lib/use-url-query';
 import { submissionsApi, type SubmissionSummary } from '../api/submissions.api';
 import { displayVerdict, outcomeLine } from '../verdicts';
 
 const PAGE_SIZE = 20;
+
+// Scope and page live in the URL (?scope=all&page=2); defaults are left out.
+const QUERY = { scope: param.oneOf(['mine', 'all'] as const, 'mine'), page: param.page() };
 
 export function toRow(submission: SubmissionSummary, base: string, now?: Date): SubmissionRow {
   return {
@@ -40,8 +43,10 @@ export function SubmissionHistory() {
   const params = useParams<{ problemSlug: string }>();
   const { space, abilities } = useSpace();
   const { auth } = useAuth();
-  const [page, setPage] = useState(1);
-  const [scope, setScope] = useState<'mine' | 'all'>('mine');
+  const { values, set } = useUrlQuery(QUERY);
+  // Only people who can see everyone's submissions may ask for them.
+  const scope = abilities.canAuthorProblems ? values.scope : 'mine';
+  const { page } = values;
   const target = { slug: space.slug, problemSlug: params.problemSlug };
   const base = `/spaces/${space.slug}/problems/${params.problemSlug}`;
   const list = useApiQuery(
@@ -65,17 +70,14 @@ export function SubmissionHistory() {
         }
       />
       {abilities.canAuthorProblems && (
-        <Select
+        <Dropdown
           label="Show"
           value={scope}
           options={[
             { value: 'mine', label: 'My submissions' },
             { value: 'all', label: 'Everyone’s submissions' },
           ]}
-          onChange={(event) => {
-            setScope(event.target.value as 'mine' | 'all');
-            setPage(1);
-          }}
+          onValueChange={(next) => set({ scope: next as 'mine' | 'all' })}
           className="w-64"
         />
       )}
@@ -95,7 +97,12 @@ export function SubmissionHistory() {
         ) : (
           <>
             <SubmissionTable rows={list.data.items.map((item) => toRow(item, base))} />
-            <Pagination page={page} pageSize={PAGE_SIZE} total={list.data.total} onPage={setPage} />
+            <Pagination
+              page={page}
+              pageSize={PAGE_SIZE}
+              total={list.data.total}
+              onPage={(next) => set({ page: next })}
+            />
           </>
         ))}
     </PageContainer>
