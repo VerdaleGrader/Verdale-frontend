@@ -25,6 +25,8 @@ export const config = {
     '/spaces/:slug/progress',
     '/spaces/:slug/settings',
     '/spaces/:slug/members',
+    '/spaces/:slug/submissions/:path*',
+    '/spaces/:slug/submissions',
     '/spaces/:slug/problems/new',
     '/spaces/:slug/problems/:problemSlug/edit/:path*',
     '/spaces/:slug/problems/:problemSlug/submissions/:path*',
