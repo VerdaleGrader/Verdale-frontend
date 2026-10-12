@@ -30,7 +30,7 @@ import {
   moveId,
   useOrderedSave,
   type SortableItem,
-} from '@/components/ui/sortable-list';
+} from '@/components/ui/ordered-rows';
 import { cn } from '@/lib/utils';
 
 const SELECTED_ZONE = 'transfer-selected-zone';
