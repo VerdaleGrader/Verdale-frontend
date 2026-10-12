@@ -1,4 +1,5 @@
-import { render } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { ToastProvider } from '@/components/ui/toast';
 import { AuthProvider, type AuthState } from '@/features/auth/hooks/auth-provider';
 import type { Problem, ProblemConstraints, ProblemEditor } from '@/features/problems/types';
@@ -29,6 +30,7 @@ export const USER = {
   email: 'sol@example.com',
   username: 'sol',
   display_name: 'Sol',
+  avatar_url: null,
   created_at: '2026-10-11T00:00:00Z',
 };
 
@@ -58,13 +60,15 @@ export function makeProblem(overrides: Partial<Problem> = {}): Problem {
     space: { name: 'Team', slug: 'team' },
     title: 'Sum of two numbers',
     statement: '## Task\n\nRead $a$ and $b$ and print $a + b$.',
+    statement_mode: 'markdown',
+    statement_pdf: null,
     version_number: 1,
     time_limit_ms: 1000,
     memory_limit_kb: 262144,
     allowed_languages: ['c', 'cpp', 'python'],
     samples: [{ position: 1, input: '1 2\n', output: '3\n' }],
     accepts_submissions: true,
-    created_by: { username: 'edith', display_name: 'Edith' },
+    created_by: { username: 'edith', display_name: 'Edith', avatar_url: null },
     published_at: '2026-10-11T00:00:00Z',
     ...overrides,
   };
@@ -86,6 +90,7 @@ export const CONSTRAINTS: ProblemConstraints = {
   images: { max_bytes: 2097152, content_types: ['image/png', 'image/jpeg', 'image/webp'] },
   solutions: { max_count: 5 },
   source_max_bytes: 65536,
+  statement_pdf: { max_bytes: 10485760, max_pages: 10 },
 };
 
 export function makeEditor(overrides: Partial<ProblemEditor> = {}): ProblemEditor {
@@ -100,6 +105,8 @@ export function makeEditor(overrides: Partial<ProblemEditor> = {}): ProblemEdito
       status: 'draft',
       title: 'Sum of two numbers',
       statement: 'Read $a$ and $b$.',
+      statement_mode: 'markdown',
+      statement_pdf: null,
       time_limit_ms: 1000,
       memory_limit_kb: 262144,
       allowed_languages: ['c', 'cpp', 'python'],
@@ -108,10 +115,10 @@ export function makeEditor(overrides: Partial<ProblemEditor> = {}): ProblemEdito
       published_at: null,
     },
     editable: true,
-    created_by: { username: 'edith', display_name: 'Edith' },
+    created_by: { username: 'edith', display_name: 'Edith', avatar_url: null },
     created_at: '2026-10-11T00:00:00Z',
     updated_at: '2026-10-11T00:00:00Z',
-    tests: { count: 2, sample_count: 1, total_bytes: 20 },
+    tests: { count: 2, sample_count: 1, missing_output_count: 0, total_bytes: 20 },
     solutions: { count: 1, has_primary: true },
     publish_checks: [
       { key: 'statement', ok: true, message: 'The statement is written.' },
@@ -131,7 +138,7 @@ export function makeSubmission(overrides: Partial<Submission> = {}): Submission 
     id: 's1',
     problem: { slug: 'sum', title: 'Sum of two numbers' },
     space: { name: 'Team', slug: 'team' },
-    author: { username: 'sol', display_name: 'Sol' },
+    author: { username: 'sol', display_name: 'Sol', avatar_url: null },
     language: 'cpp',
     status: 'queued',
     verdict: null,
@@ -200,4 +207,11 @@ export class FakeEventSource {
   static get last() {
     return FakeEventSource.instances[FakeEventSource.instances.length - 1]!;
   }
+}
+
+/** Open a Dropdown by its accessible name and pick an option by its name. */
+export async function chooseOption(name: string | RegExp, option: string | RegExp) {
+  const user = userEvent.setup();
+  await user.click(await screen.findByRole('combobox', { name }));
+  await user.click(await screen.findByRole('option', { name: option }));
 }

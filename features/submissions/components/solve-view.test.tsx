@@ -2,9 +2,11 @@ import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiError } from '@/lib/api';
+import { LANGUAGE_LABELS } from '@/features/problems/types';
 import {
   ANONYMOUS,
   FakeEventSource,
+  chooseOption,
   makeProblem,
   makeSpace,
   makeSubmission,
@@ -60,9 +62,11 @@ describe('the problem page (GRD-48)', () => {
   it('offers only the languages the problem allows, starting from a template', async () => {
     problemsApi.get.mockResolvedValue(makeProblem({ allowed_languages: ['python', 'cpp'] }));
     renderInApp(<SolveView />);
-    const select = (await screen.findByRole('combobox', { name: 'Language' })) as HTMLSelectElement;
-    expect([...select.options].map((option) => option.value)).toEqual(['python', 'cpp']);
-    expect(select.value).toBe('python');
+    const select = await screen.findByRole('combobox', { name: 'Language' });
+    expect(select.textContent).toBe('Python 3');
+    await userEvent.click(select);
+    expect((await screen.findAllByRole('option')).map((option) => option.textContent)).toEqual(['Python 3', 'C++']);
+    await userEvent.keyboard('{Escape}');
     expect((await editorBox()).value).toContain('import sys');
   });
 
@@ -73,13 +77,13 @@ describe('the problem page (GRD-48)', () => {
     fireEvent.change(await editorBox(), { target: { value: 'int main(void) { /* c draft */ }' } });
     await act(async () => vi.advanceTimersByTime(700));
     // another language has its own code
-    fireEvent.change(screen.getByRole('combobox', { name: 'Language' }), { target: { value: 'python' } });
+    await chooseOption('Language', LANGUAGE_LABELS.python);
     expect((await editorBox()).value).toContain('import sys');
     fireEvent.change(await editorBox(), { target: { value: 'print("py draft")' } });
     await act(async () => vi.advanceTimersByTime(700));
-    fireEvent.change(screen.getByRole('combobox', { name: 'Language' }), { target: { value: 'cpp' } });
+    await chooseOption('Language', LANGUAGE_LABELS.cpp);
     expect((await editorBox()).value).toContain('#include <iostream>');
-    fireEvent.change(screen.getByRole('combobox', { name: 'Language' }), { target: { value: 'c' } });
+    await chooseOption('Language', LANGUAGE_LABELS.c);
     expect((await editorBox()).value).toBe('int main(void) { /* c draft */ }');
     first.unmount();
     vi.useRealTimers();
@@ -87,7 +91,7 @@ describe('the problem page (GRD-48)', () => {
     renderInApp(<SolveView />);
     // it comes back on the language it was last on, with its code
     expect((await editorBox()).value).toBe('int main(void) { /* c draft */ }');
-    fireEvent.change(screen.getByRole('combobox', { name: 'Language' }), { target: { value: 'python' } });
+    await chooseOption('Language', LANGUAGE_LABELS.python);
     expect((await editorBox()).value).toBe('print("py draft")');
   });
 
@@ -152,6 +156,38 @@ describe('the problem page (GRD-48)', () => {
     await act(async () => finish(summary));
   });
 
+  it('stays clickable after an Accepted result, so the same code can be submitted again', async () => {
+    submissionsApi.list.mockResolvedValue({
+      items: [{ ...summary, id: 'old', status: 'completed', verdict: 'AC', tests_passed: 2 }],
+      page: 1,
+      page_size: 1,
+      total: 1,
+    });
+    submissionsApi.get.mockResolvedValue(makeSubmission({ id: 'old', status: 'completed', verdict: 'AC' }));
+    submissionsApi.create.mockResolvedValue({ ...summary, id: 'again' });
+    renderInApp(<SolveView />);
+    await screen.findAllByText('Accepted');
+    const button = screen.getByRole('button', { name: 'Submit' }) as HTMLButtonElement;
+    expect(button.disabled).toBe(false);
+    await userEvent.click(button);
+    await waitFor(() => expect(submissionsApi.create).toHaveBeenCalledTimes(1));
+  });
+
+  it('is disabled only while the submission waits to be judged', async () => {
+    submissionsApi.create.mockResolvedValue({ ...summary, id: 's9' });
+    renderInApp(<SolveView />);
+    await editorBox();
+    await userEvent.click(screen.getByRole('button', { name: 'Submit' }));
+    const waiting = await screen.findByRole('button', { name: 'Waiting for the result…' });
+    expect((waiting as HTMLButtonElement).disabled).toBe(true);
+    await waitFor(() => expect(FakeEventSource.last.url).toBe('/api/v1/submissions/s9/events'));
+    act(() =>
+      FakeEventSource.last.push(makeSubmission({ id: 's9', status: 'completed', verdict: 'WA', tests_passed: 1 }))
+    );
+    const again = (await screen.findByRole('button', { name: 'Submit' })) as HTMLButtonElement;
+    expect(again.disabled).toBe(false);
+  });
+
   it('shows the latest submission of mine when the page opens', async () => {
     submissionsApi.list.mockResolvedValue({
       items: [{ ...summary, id: 'old', status: 'completed', verdict: 'WA', tests_passed: 1 }],
@@ -178,7 +214,7 @@ describe('the problem page (GRD-48)', () => {
       const alert = await submitAndFail(
         new ApiError(429, 'RATE_LIMITED', 'Too many submissions. Try again in 42 seconds.')
       );
-      expect(alert.textContent).toBe('You are submitting too quickly. Too many submissions. Try again in 42 seconds.');
+      expect(alert.textContent).toBe('You can submit at most 10 times a minute. Try again in 42 seconds.');
       expect(((await editorBox()) as HTMLTextAreaElement).value).toBe('my code');
       expect((screen.getByRole('button', { name: 'Submit' }) as HTMLButtonElement).disabled).toBe(false);
     });
@@ -227,15 +263,22 @@ describe('the problem page (GRD-48)', () => {
     problemsApi.get.mockResolvedValue(makeProblem({ status: 'archived', accepts_submissions: false }));
     renderInApp(<SolveView />);
     expect(await screen.findByText(/archived\. You can read it/)).toBeTruthy();
-    expect((screen.getByRole('button', { name: 'Submit' }) as HTMLButtonElement).disabled).toBe(true);
+    expect((screen.getByRole('button', { name: 'Submit' }) as HTMLButtonElement).disabled).toBe(false);
     expect(screen.getByText('Submissions are closed.')).toBeTruthy();
+    await userEvent.click(screen.getByRole('button', { name: 'Submit' }));
+    expect((await screen.findByRole('alert')).textContent).toBe(
+      'This problem is archived and no longer accepts submissions.'
+    );
+    expect(submissionsApi.create).not.toHaveBeenCalled();
   });
 
   it('closes submissions in an archived Space', async () => {
     problemsApi.get.mockResolvedValue(makeProblem({ accepts_submissions: false }));
     renderInApp(<SolveView />, { space: makeSpace('solver', { archived_at: '2026-10-11T00:00:00Z' }) });
     expect(await screen.findByText(/This Space is archived, so nothing can be submitted/)).toBeTruthy();
-    expect((screen.getByRole('button', { name: 'Submit' }) as HTMLButtonElement).disabled).toBe(true);
+    await userEvent.click(screen.getByRole('button', { name: 'Submit' }));
+    expect((await screen.findByRole('alert')).textContent).toBe('This Space is archived, so nothing can be submitted.');
+    expect(submissionsApi.create).not.toHaveBeenCalled();
   });
 
   it('shows an author a draft as a preview that cannot be submitted', async () => {
@@ -245,7 +288,9 @@ describe('the problem page (GRD-48)', () => {
     expect(screen.getByRole('link', { name: 'Edit problem' }).getAttribute('href')).toBe(
       '/spaces/team/problems/sum/edit'
     );
-    expect((screen.getByRole('button', { name: 'Submit' }) as HTMLButtonElement).disabled).toBe(true);
+    await userEvent.click(screen.getByRole('button', { name: 'Submit' }));
+    expect((await screen.findByRole('alert')).textContent).toMatch(/This problem is a draft/);
+    expect(submissionsApi.create).not.toHaveBeenCalled();
   });
 
   it('shows the edit link to authors only', async () => {
@@ -271,6 +316,20 @@ describe('the problem page (GRD-48)', () => {
     expect(await screen.findByRole('heading', { name: 'Sum of two numbers' })).toBeTruthy();
   });
 
+  it('a problem outside every Track you can open is a 404, with the way to your earlier submissions for people who are logged in', async () => {
+    problemsApi.get.mockRejectedValue(new ApiError(404, 'NOT_FOUND', 'Problem not found.'));
+    const signedIn = renderInApp(<SolveView />);
+    expect(await screen.findByText('Problem not found')).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'Your earlier submissions' }).getAttribute('href')).toBe(
+      '/spaces/team/problems/sum/submissions'
+    );
+    expect(screen.queryByRole('textbox')).toBeNull();
+    signedIn.unmount();
+    renderInApp(<SolveView />, { auth: ANONYMOUS });
+    expect(await screen.findByText('Problem not found')).toBeTruthy();
+    expect(screen.queryByRole('link', { name: 'Your earlier submissions' })).toBeNull();
+  });
+
   it('on a small screen it says writing code is easier on a larger one, and still works', async () => {
     renderInApp(<SolveView />);
     await editorBox();
@@ -284,7 +343,14 @@ describe('helpers', () => {
   });
 
   it.each([
-    [new ApiError(429, 'RATE_LIMITED', 'Try later.'), 'You are submitting too quickly. Try later.'],
+    [
+      new ApiError(429, 'RATE_LIMITED', 'Too many requests. Try again in 7 seconds.'),
+      'You can submit at most 10 times a minute. Try again in 7 seconds.',
+    ],
+    [
+      new ApiError(429, 'RATE_LIMITED', 'Slow down.'),
+      'You can submit at most 10 times a minute. Wait a moment and try again.',
+    ],
     [new ApiError(409, 'PROBLEM_NOT_OPEN', 'Closed.'), 'Closed.'],
     [new ApiError(403, 'FORBIDDEN', 'Archived Space.'), 'Archived Space.'],
     [
