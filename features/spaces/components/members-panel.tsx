@@ -133,8 +133,8 @@ export function MembersPanel() {
                       <tr key={member.username}>
                         <td>
                           <span className="vd-inline">
-                            <Avatar name={member.display_name} size="md" />
-                            <span className="flex flex-col leading-tight">
+                            <Avatar name={member.display_name} src={member.avatar_url ?? undefined} size="md" />
+                            <span className="flex flex-col gap-1">
                               <span className="text-body-strong">{member.display_name}</span>
                               <span className="text-mono-label text-text-muted">
                                 {member.username}

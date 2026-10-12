@@ -1,5 +1,5 @@
 import { coreApi } from '@/lib/api-client';
-import { unwrap } from '@/lib/api';
+import { ApiError, unwrap } from '@/lib/api';
 import type { components } from '@/lib/contracts/core-public.gen';
 import type { Language, UpdateProblemRequest } from '../types';
 
@@ -31,12 +31,76 @@ function formData(parts: Record<string, Blob | string | undefined>, fileNames: R
   return form;
 }
 
+/** Where the PDF statement is served from. `draft` asks owners and editors for the draft's file. */
+export const statementPdfUrl = (target: Target, options: { draft?: boolean } = {}) =>
+  `/api/v1/spaces/${encodeURIComponent(target.slug)}/problems/${encodeURIComponent(target.problemSlug)}/statement/pdf${
+    options.draft ? '?draft=true' : ''
+  }`;
+
+/**
+ * Uploads the PDF statement with progress. fetch cannot report upload progress, so this one call uses
+ * XMLHttpRequest; the answer is handled like any other call (ApiError for a refusal).
+ */
+function uploadStatementPdf(
+  target: Target,
+  file: File,
+  onProgress: (fraction: number) => void,
+  signal?: AbortSignal
+): Promise<Schemas['ProblemEditor']> {
+  return new Promise((resolve, reject) => {
+    const request = new XMLHttpRequest();
+    request.open('PUT', statementPdfUrl(target));
+    request.withCredentials = true;
+    request.responseType = 'json';
+    request.upload.onprogress = (event) => {
+      if (event.lengthComputable && event.total > 0) onProgress(event.loaded / event.total);
+    };
+    request.onerror = () =>
+      reject(new ApiError(0, 'NETWORK', 'Could not reach the server. Check your connection and try again.'));
+    request.onabort = () => reject(new ApiError(0, 'ABORTED', 'The upload was cancelled.'));
+    request.onload = () => {
+      const body: unknown = request.response;
+      if (request.status >= 200 && request.status < 300 && body) {
+        onProgress(1);
+        resolve(body as Schemas['ProblemEditor']);
+      } else if (typeof body === 'object' && body !== null && 'error_code' in body) {
+        const failure = body as Schemas['ErrorResponse'];
+        reject(new ApiError(failure.status, failure.error_code, failure.message, failure.details, failure.request_id));
+      } else {
+        reject(new ApiError(request.status, 'UNKNOWN', 'Something went wrong. Try again.'));
+      }
+    };
+    signal?.addEventListener('abort', () => request.abort());
+    request.send(formData({ file }));
+  });
+}
+
 /** Where a test file can be downloaded from (a plain link, so the browser saves it). */
 export const testFileUrl = (target: Target, testId: string, side: 'input' | 'output') =>
   `/api/v1/spaces/${encodeURIComponent(target.slug)}/problems/${encodeURIComponent(target.problemSlug)}/tests/${testId}/${side}`;
 
+/** The most problems one request returns (Core caps `page_size`). */
+const MAX_PAGE_SIZE = 50;
+/** Safety stop for "load everything": 20 pages is 1 000 problems, far past what a Space is meant to hold. */
+const MAX_PAGES = 20;
+
 /** Repository: pure calls to Core for problems, tests and reference solutions. Errors are ApiError (lib/api.ts). */
 export const problemsApi = {
+  /** Every problem of the Space, any status (owners and editors), fetched page by page. */
+  listAll: async (slug: string) => {
+    const items: Schemas['ProblemSummary'][] = [];
+    for (let page = 1; page <= MAX_PAGES; page++) {
+      const result = await unwrap(
+        coreApi.GET('/api/v1/spaces/{slug}/problems', {
+          params: { path: { slug }, query: { status: 'all', page, page_size: MAX_PAGE_SIZE } },
+        })
+      );
+      items.push(...result.items);
+      if (items.length >= result.total || result.items.length === 0) break;
+    }
+    return items;
+  },
+
   list: (slug: string, { q, status, mine, page, pageSize }: ProblemListParams) =>
     unwrap(
       coreApi.GET('/api/v1/spaces/{slug}/problems', {
@@ -77,6 +141,11 @@ export const problemsApi = {
         bodySerializer: () => formData({ file }),
       })
     ),
+
+  uploadStatementPdf,
+
+  /** The limits the editor must respect, for the create page (no problem exists yet to carry them). */
+  constraints: () => unwrap(coreApi.GET('/api/v1/problem-constraints')),
 
   // --- tests -------------------------------------------------------------
 

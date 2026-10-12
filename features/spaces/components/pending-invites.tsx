@@ -26,8 +26,8 @@ export function PendingInvites({ onJoined }: { onJoined?: () => void }) {
         const joined = await spacesApi.acceptMyInvite(id);
         toast({
           tone: 'success',
-          title: `Joined ${joined.space.name}`,
-          description: `You are ${ROLE_LABELS[joined.role].toLowerCase()}.`,
+          title: joined.track ? `Joined the Track ${joined.track.name}` : `Joined ${joined.space.name}`,
+          description: `You are ${ROLE_LABELS[joined.role].toLowerCase()} in ${joined.space.name}.`,
         });
         onJoined?.();
         router.refresh();
@@ -61,7 +61,8 @@ export function PendingInvites({ onJoined }: { onJoined?: () => void }) {
           <li key={invite.id} className="flex flex-wrap items-center justify-between gap-3 py-2 first:pt-0 last:pb-0">
             <span className="flex min-w-0 flex-col">
               <span className="text-body-strong break-words">
-                {invite.invited_by.username} invited you to {invite.space.name}
+                {invite.invited_by.username} invited you to{' '}
+                {invite.track ? `the Track ${invite.track.name} in ${invite.space.name}` : invite.space.name}
               </span>
               <span className="text-small text-text-muted">
                 As {ROLE_LABELS[invite.role].toLowerCase()} · {timeAgo(invite.created_at)}

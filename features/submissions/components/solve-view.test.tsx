@@ -271,6 +271,45 @@ describe('the problem page (GRD-48)', () => {
     expect(await screen.findByRole('heading', { name: 'Sum of two numbers' })).toBeTruthy();
   });
 
+  describe('a problem outside every Track the person can see (GRD-81, GRD-84)', () => {
+    const notFound = () => problemsApi.get.mockRejectedValue(new ApiError(404, 'NOT_FOUND', 'Problem not found.'));
+
+    it('looks the same as a missing problem to someone who never submitted to it', async () => {
+      notFound();
+      renderInApp(<SolveView />);
+      expect(await screen.findByText('Problem not found')).toBeTruthy();
+      expect(screen.getByText(/may not be in a Track you can see/)).toBeTruthy();
+      expect(screen.queryByRole('table')).toBeNull();
+    });
+
+    it('still shows the history of someone who submitted before it was taken out, with new submissions closed', async () => {
+      notFound();
+      submissionsApi.list.mockResolvedValue({
+        items: [makeSummary({ id: 's9', status: 'completed', verdict: 'AC' })],
+        page: 1,
+        page_size: 20,
+        total: 1,
+      });
+      renderInApp(<SolveView />);
+      expect(await screen.findByText(/no longer in any Track you can see/)).toBeTruthy();
+      const table = screen.getByRole('table', { name: 'Submissions' });
+      expect(within(table).getByText('Accepted')).toBeTruthy();
+      expect(within(table).getByRole('link', { name: 'Sum of two numbers' }).getAttribute('href')).toBe(
+        '/spaces/team/problems/sum/submissions/s9'
+      );
+      const submit = screen.getByRole('button', { name: 'Submit' }) as HTMLButtonElement;
+      expect(submit.disabled).toBe(true);
+      expect(screen.queryByRole('textbox', { name: /source code/ })).toBeNull();
+    });
+
+    it('does not even look for a history when the person is not logged in', async () => {
+      notFound();
+      renderInApp(<SolveView />, { auth: ANONYMOUS });
+      expect(await screen.findByText('Problem not found')).toBeTruthy();
+      expect(submissionsApi.list).not.toHaveBeenCalled();
+    });
+  });
+
   it('on a small screen it says writing code is easier on a larger one, and still works', async () => {
     renderInApp(<SolveView />);
     await editorBox();

@@ -188,7 +188,7 @@ function ProblemTable({
                 <Link href={problemHref(spaceSlug, problem, author)} className="vd-link">
                   {problem.title}
                 </Link>
-                <span className="text-mono-label text-text-muted block">{problem.slug}</span>
+                <span className="text-mono-label text-text-muted vd-cell-sub">{problem.slug}</span>
               </td>
               {author && (
                 <td>

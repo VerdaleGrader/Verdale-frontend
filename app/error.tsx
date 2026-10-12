@@ -1,9 +1,14 @@
 'use client';
 
+import { useEffect } from 'react';
 import { PageContainer } from '@/components/layout/page';
 import { ErrorState } from '@/components/states/states';
 
 export default function RouteError({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
+  // The page shows a friendly message; the real cause goes to the console for whoever is debugging.
+  useEffect(() => {
+    console.error(error);
+  }, [error]);
   return (
     <PageContainer narrow>
       <ErrorState

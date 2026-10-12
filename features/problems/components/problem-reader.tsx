@@ -3,6 +3,7 @@
 import { ProblemStatement } from '@/components/grader/problem-statement';
 import { SampleIO } from '@/components/grader/sample-io';
 import { MarkdownView } from '@/components/markdown/markdown-view';
+import { PdfViewer } from '@/components/pdf/pdf-viewer';
 import { kilobytesToMegabytes } from '../types';
 
 export interface ProblemReaderProps {
@@ -12,6 +13,9 @@ export interface ProblemReaderProps {
   timeLimitMs: number;
   memoryLimitKb: number;
   statement: string;
+  /** `pdf` shows the uploaded file instead of the Markdown. The samples below are the same in both modes. */
+  statementMode?: 'markdown' | 'pdf';
+  statementPdf?: { url: string; pages: number } | null;
   samples: Array<{ position: number; input: string; output: string }>;
   /** Shown instead of the examples while they are loading. */
   samplesNote?: string;
@@ -28,6 +32,8 @@ export function ProblemReader({
   timeLimitMs,
   memoryLimitKb,
   statement,
+  statementMode = 'markdown',
+  statementPdf = null,
   samples,
   samplesNote,
 }: ProblemReaderProps) {
@@ -39,7 +45,13 @@ export function ProblemReader({
         author={author}
         limits={{ timeMs: timeLimitMs, memoryMb: kilobytesToMegabytes(memoryLimitKb) }}
       >
-        {statement.trim() ? (
+        {statementMode === 'pdf' ? (
+          statementPdf ? (
+            <PdfViewer url={statementPdf.url} title={title || 'Untitled problem'} />
+          ) : (
+            <p className="text-text-muted">The PDF statement is not available.</p>
+          )
+        ) : statement.trim() ? (
           <MarkdownView source={statement} />
         ) : (
           <p className="text-text-muted">The statement is empty.</p>
