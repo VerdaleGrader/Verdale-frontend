@@ -294,6 +294,13 @@
   bottom: auto;
   top: calc(100% + 6px);
 }
+.vd-tip--wide .vd-tip__bubble {
+  left: 0;
+  transform: none;
+  width: max-content;
+  max-width: min(20rem, 80vw);
+  white-space: normal;
+}
 .vd-tip:hover .vd-tip__bubble,
 .vd-tip:focus-within .vd-tip__bubble,
 .vd-tip.is-open .vd-tip__bubble {

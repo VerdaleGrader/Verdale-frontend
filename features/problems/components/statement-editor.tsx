@@ -163,18 +163,28 @@ export function StatementEditor() {
         }
       />
 
-      <StatementFormat
-        mode={shownMode}
-        pdf={editor.version.statement_pdf}
-        readOnly={readOnly}
-        busy={busy}
-        onMode={changeMode}
-      />
-
       {shownMode === 'pdf' ? (
-        <PdfStatementPanel />
+        <>
+          <StatementFormat
+            mode={shownMode}
+            pdf={editor.version.statement_pdf}
+            readOnly={readOnly}
+            busy={busy}
+            onMode={changeMode}
+          />
+          <PdfStatementPanel />
+        </>
       ) : (
         <MarkdownStatementField
+          format={
+            <StatementFormat
+              mode={shownMode}
+              pdf={editor.version.statement_pdf}
+              readOnly={readOnly}
+              busy={busy}
+              onMode={changeMode}
+            />
+          }
           statement={draft.statement}
           constraints={constraints}
           readOnly={readOnly}
