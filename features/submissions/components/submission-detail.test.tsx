@@ -44,7 +44,7 @@ describe('the result of a submission (GRD-49)', () => {
   it('shows verdict, time, memory and tests passed, with the verdict explained in words', async () => {
     submissionsApi.get.mockResolvedValue(judged());
     renderInApp(<SubmissionDetail />);
-    expect((await screen.findAllByText('Wrong answer on test 2')).length).toBeGreaterThan(0);
+    expect((await screen.findAllByText('Wrong answer on testcase 2')).length).toBeGreaterThan(0);
     // the slowest test, in the summary and again in that test's row
     expect(screen.getAllByText('40 ms')).toHaveLength(2);
     expect(screen.getAllByText('4.0 MB')).toHaveLength(2);
@@ -53,7 +53,7 @@ describe('the result of a submission (GRD-49)', () => {
   });
 
   it.each([
-    ['AC', /printed the expected output for every test/],
+    ['AC', /printed the expected output for every testcase/],
     ['TLE', /took longer than the time limit/],
     ['MLE', /used more memory than the limit/],
     ['RE', /crashed while running/],
@@ -71,7 +71,7 @@ describe('the result of a submission (GRD-49)', () => {
   it('lists every test: sample ones and hidden ones, hidden ones with a verdict, time and memory only', async () => {
     submissionsApi.get.mockResolvedValue(judged());
     renderInApp(<SubmissionDetail />);
-    const table = await screen.findByRole('table', { name: 'Test results' });
+    const table = await screen.findByRole('table', { name: 'Testcase results' });
     const rows = within(table).getAllByRole('row').slice(1);
     expect(rows).toHaveLength(3);
     expect(within(rows[0]!).getByText('Sample')).toBeTruthy();
@@ -107,9 +107,9 @@ describe('the result of a submission (GRD-49)', () => {
       })
     );
     renderInApp(<SubmissionDetail />);
-    expect(await screen.findByText('Sample test 1')).toBeTruthy();
+    expect(await screen.findByText('Sample testcase 1')).toBeTruthy();
     expect(screen.getByText('line 1: expected "3", got "4"')).toBeTruthy();
-    expect(screen.queryByText(/Sample test 2/)).toBeNull();
+    expect(screen.queryByText(/Sample testcase 2/)).toBeNull();
     // Core never sends it; and even if it did, it is not shown for a test that is not a sample.
     expect(screen.queryByText(/HIDDEN-LEAK/)).toBeNull();
   });
@@ -154,7 +154,7 @@ describe('the result of a submission (GRD-49)', () => {
     act(() => FakeEventSource.last.push(makeSubmission({ status: 'running' })));
     expect(await screen.findByText('Running your solution')).toBeTruthy();
     act(() => FakeEventSource.last.push({ ...judged(), source: undefined } as never));
-    expect((await screen.findAllByText('Wrong answer on test 2')).length).toBeGreaterThan(0);
+    expect((await screen.findAllByText('Wrong answer on testcase 2')).length).toBeGreaterThan(0);
     // the code is kept although the events do not carry it
     expect(screen.getByText('int main() { return 0; }')).toBeTruthy();
     expect(FakeEventSource.last.closed).toBe(true);
@@ -216,6 +216,6 @@ describe('the result of a submission (GRD-49)', () => {
     submissionsApi.get.mockResolvedValue(judged());
     renderInApp(<SubmissionDetail />);
     await userEvent.click(await screen.findByRole('button', { name: 'Try again' }));
-    expect((await screen.findAllByText('Wrong answer on test 2')).length).toBeGreaterThan(0);
+    expect((await screen.findAllByText('Wrong answer on testcase 2')).length).toBeGreaterThan(0);
   });
 });

@@ -165,7 +165,7 @@ export default function DesignPage() {
               author: 'grace',
               language: 'Python',
               verdict: 'WA',
-              detail: 'Wrong answer on test 4',
+              detail: 'Wrong answer on testcase 4',
               timeMs: 85,
               memoryKb: 9216,
             },

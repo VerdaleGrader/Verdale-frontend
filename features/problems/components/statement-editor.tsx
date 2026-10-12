@@ -238,7 +238,7 @@ export function StatementEditor() {
             inputMode="numeric"
             value={draft.timeLimitMs}
             disabled={readOnly}
-            hint={`Per test, ${constraints.time_limit_ms.min} to ${constraints.time_limit_ms.max} ms.`}
+            hint={`Per testcase, ${constraints.time_limit_ms.min} to ${constraints.time_limit_ms.max} ms.`}
             error={error('timeLimitMs')}
             onChange={(event) => set('timeLimitMs', event.target.value)}
           />
@@ -248,7 +248,7 @@ export function StatementEditor() {
             inputMode="numeric"
             value={draft.memoryLimitMb}
             disabled={readOnly}
-            hint={`Per test, ${Math.ceil(constraints.memory_limit_kb.min / 1024)} to ${Math.floor(constraints.memory_limit_kb.max / 1024)} MB.`}
+            hint={`Per testcase, ${Math.ceil(constraints.memory_limit_kb.min / 1024)} to ${Math.floor(constraints.memory_limit_kb.max / 1024)} MB.`}
             error={error('memoryLimitMb')}
             onChange={(event) => set('memoryLimitMb', event.target.value)}
           />
@@ -359,8 +359,8 @@ export function StatementEditor() {
             Delete this draft
           </h2>
           <p className="text-small text-text-muted">
-            Removes the draft with its tests and reference solutions. This cannot be undone. Once a problem is published
-            it can only be archived.
+            Removes the draft with its testcases and reference solutions. This cannot be undone. Once a problem is
+            published it can only be archived.
           </p>
           <div>
             <Button variant="destructive" onClick={() => setDeleting(true)} disabled={busy}>
@@ -371,7 +371,7 @@ export function StatementEditor() {
             open={deleting}
             onClose={() => setDeleting(false)}
             title={`Delete “${editor.version.title}”?`}
-            description="The draft, its tests and its reference solutions are removed for good."
+            description="The draft, its testcases and its reference solutions are removed for good."
             footer={
               <>
                 <Button onClick={() => setDeleting(false)} disabled={busy}>
@@ -434,7 +434,9 @@ function SolverPreview({ draft, editor }: { draft: StatementDraft; editor: Probl
       statement={draft.statement}
       samples={samples ?? []}
       samplesNote={
-        samples === null ? 'Loading examples…' : 'Mark a test as a sample on the Tests tab to show an example here.'
+        samples === null
+          ? 'Loading examples…'
+          : 'Mark a testcase as a sample on the Testcases tab to show an example here.'
       }
     />
   );

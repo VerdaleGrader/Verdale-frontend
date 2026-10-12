@@ -59,7 +59,7 @@ export function TestManager() {
   const [replacing, setReplacing] = useState<TestCase | null>(null);
   const [removing, setRemoving] = useState<TestCase | null>(null);
 
-  if (loaded.status === 'loading') return <Loading label="Loading tests" />;
+  if (loaded.status === 'loading') return <Loading label="Loading testcases" />;
   if (loaded.status === 'error') return <ErrorState error={loaded.error} onRetry={loaded.reload} />;
   const data: TestCaseList = loaded.data;
   // Fetch again quietly: the upload list below must survive it.
@@ -90,7 +90,7 @@ export function TestManager() {
     <div className="flex flex-col gap-6">
       <section aria-label="Totals" className="flex flex-wrap gap-6">
         <Meter
-          label="Tests"
+          label="Testcases"
           value={data.summary.count}
           max={data.limits.max_count}
           text={`${data.summary.count} of ${data.limits.max_count}`}
@@ -120,21 +120,21 @@ export function TestManager() {
 
       <section aria-labelledby="tests-heading" className="flex flex-col gap-3">
         <h2 id="tests-heading" className="text-h2">
-          Tests in judging order
+          Testcases in judging order
         </h2>
         {data.items.length === 0 ? (
           <EmptyState
-            title="No tests yet"
+            title="No testcases yet"
             description={
               data.editable
-                ? 'Add at least one sample test (shown to solvers) and the hidden tests that decide the verdict.'
-                : 'This version has no tests.'
+                ? 'Add at least one sample testcase (shown to solvers) and the hidden testcases that decide the verdict.'
+                : 'This version has no testcases.'
             }
           />
         ) : (
           <div className="vd-tablewrap">
             <table className="vd-table">
-              <caption className="vd-sr">Tests of this problem</caption>
+              <caption className="vd-sr">Testcases of this problem</caption>
               <thead>
                 <tr>
                   <th scope="col" className="is-num">
@@ -162,7 +162,7 @@ export function TestManager() {
                           type="checkbox"
                           checked={test.is_sample}
                           disabled={!data.editable || busy !== null}
-                          aria-label={`Test ${test.position} is a sample`}
+                          aria-label={`Testcase ${test.position} is a sample`}
                           onChange={(event) =>
                             void run(
                               `sample-${test.id}`,
@@ -179,7 +179,7 @@ export function TestManager() {
                         {formatBytes(test.input_size_bytes)}
                         <Download
                           className="ml-1 inline size-3.5"
-                          aria-label={`Download input of test ${test.position}`}
+                          aria-label={`Download input of testcase ${test.position}`}
                         />
                       </a>
                     </td>
@@ -188,7 +188,7 @@ export function TestManager() {
                         {formatBytes(test.output_size_bytes ?? 0)}
                         <Download
                           className="ml-1 inline size-3.5"
-                          aria-label={`Download output of test ${test.position}`}
+                          aria-label={`Download output of testcase ${test.position}`}
                         />
                       </a>
                     </td>
@@ -198,7 +198,7 @@ export function TestManager() {
                           <Button
                             size="icon"
                             variant="ghost"
-                            aria-label={`Move test ${test.position} up`}
+                            aria-label={`Move testcase ${test.position} up`}
                             disabled={index === 0 || busy !== null}
                             onClick={() => move(index, -1)}
                           >
@@ -207,7 +207,7 @@ export function TestManager() {
                           <Button
                             size="icon"
                             variant="ghost"
-                            aria-label={`Move test ${test.position} down`}
+                            aria-label={`Move testcase ${test.position} down`}
                             disabled={index === data.items.length - 1 || busy !== null}
                             onClick={() => move(index, 1)}
                           >
@@ -216,7 +216,7 @@ export function TestManager() {
                           <Button
                             size="sm"
                             variant="ghost"
-                            aria-label={`Replace files of test ${test.position}`}
+                            aria-label={`Replace files of testcase ${test.position}`}
                             disabled={busy !== null}
                             onClick={() => setReplacing(test)}
                           >
@@ -226,7 +226,7 @@ export function TestManager() {
                           <Button
                             size="icon"
                             variant="ghost"
-                            aria-label={`Delete test ${test.position}`}
+                            aria-label={`Delete testcase ${test.position}`}
                             disabled={busy !== null}
                             onClick={() => setRemoving(test)}
                           >
@@ -253,14 +253,14 @@ export function TestManager() {
           await problemsApi.replaceTest(target, test.id, files);
           setReplacing(null);
           await reload();
-          toast({ tone: 'success', title: `Test ${test.position} updated` });
+          toast({ tone: 'success', title: `Testcase ${test.position} updated` });
         }}
       />
       <Dialog
         open={removing !== null}
         onClose={() => setRemoving(null)}
-        title={`Delete test ${removing?.position ?? ''}?`}
-        description="The tests after it move up by one. The files stay in storage in case another test uses them."
+        title={`Delete testcase ${removing?.position ?? ''}?`}
+        description="The testcases after it move up by one. The files stay in storage in case another testcase uses them."
         footer={
           <>
             <Button onClick={() => setRemoving(null)} disabled={busy !== null}>
@@ -275,11 +275,11 @@ export function TestManager() {
                 await run(
                   `delete-${test.id}`,
                   () => problemsApi.removeTest(target, test.id),
-                  'Could not delete the test'
+                  'Could not delete the testcase'
                 );
               }}
             >
-              Delete test
+              Delete testcase
             </Button>
           </>
         }
@@ -369,7 +369,7 @@ function AddTests({
     setUploading(false);
     if (added > 0) {
       await onChanged();
-      toast({ tone: 'success', title: added === 1 ? 'Added 1 test' : `Added ${added} tests` });
+      toast({ tone: 'success', title: added === 1 ? 'Added 1 testcase' : `Added ${added} testcases` });
       setPairs((current) => current.filter((item) => item.status !== 'done'));
     }
   }
@@ -383,10 +383,10 @@ function AddTests({
       className="border-border bg-surface flex flex-col gap-4 rounded-md border p-4"
     >
       <h2 id="add-heading" className="text-h3">
-        Add tests
+        Add testcases
       </h2>
       <Tabs defaultValue="files" className="flex flex-col gap-4">
-        <TabsList aria-label="How to add tests">
+        <TabsList aria-label="How to add testcases">
           <TabsTrigger value="files">Upload files</TabsTrigger>
           <TabsTrigger value="paste">Paste text</TabsTrigger>
         </TabsList>
@@ -441,7 +441,7 @@ function AddTests({
               multiple
               className="vd-sr"
               tabIndex={-1}
-              aria-label="Choose a folder of tests"
+              aria-label="Choose a folder of testcases"
               {...({ webkitdirectory: '' } as Record<string, string>)}
               onChange={(event) => {
                 addFiles(Array.from(event.target.files ?? []));
@@ -467,7 +467,7 @@ function AddTests({
             <>
               <div className="vd-tablewrap">
                 <table className="vd-table">
-                  <caption className="vd-sr">Tests ready to upload</caption>
+                  <caption className="vd-sr">Testcases ready to upload</caption>
                   <thead>
                     <tr>
                       <th scope="col">Name</th>
@@ -541,7 +541,7 @@ function AddTests({
               <div className="flex flex-wrap items-center gap-3">
                 <Button onClick={uploadAll} disabled={uploading || waiting === 0}>
                   <Upload aria-hidden />
-                  {uploading ? 'Uploading…' : waiting === 1 ? 'Upload 1 test' : `Upload ${waiting} tests`}
+                  {uploading ? 'Uploading…' : waiting === 1 ? 'Upload 1 testcase' : `Upload ${waiting} testcases`}
                 </Button>
                 <Button variant="ghost" onClick={() => setPairs([])} disabled={uploading}>
                   Clear list
@@ -586,10 +586,10 @@ function PasteTest({ samplesSoFar, onAdded }: { samplesSoFar: number; onAdded: (
       setOutput('');
       setSample(false);
       await onAdded();
-      toast({ tone: 'success', title: 'Added 1 test' });
+      toast({ tone: 'success', title: 'Added 1 testcase' });
     } catch (caught) {
       if (caught instanceof ApiError && caught.status === 400) setError(caught);
-      else toast({ tone: 'danger', title: 'Could not add the test', description: uploadFailureMessage(caught) });
+      else toast({ tone: 'danger', title: 'Could not add the testcase', description: uploadFailureMessage(caught) });
     } finally {
       setSaving(false);
     }
@@ -623,7 +623,7 @@ function PasteTest({ samplesSoFar, onAdded }: { samplesSoFar: number; onAdded: (
       </label>
       <div>
         <Button onClick={add} disabled={saving || (input === '' && output === '')}>
-          {saving ? 'Adding…' : 'Add test'}
+          {saving ? 'Adding…' : 'Add testcase'}
         </Button>
       </div>
     </div>
@@ -650,7 +650,7 @@ function ReplaceDialog({
     <Dialog
       open={test !== null}
       onClose={onClose}
-      title={`Replace files of test ${position ?? ''}`}
+      title={`Replace files of testcase ${position ?? ''}`}
       description="Choose a new input, a new output, or both. The position and the sample setting stay."
       footer={
         <>

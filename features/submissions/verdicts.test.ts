@@ -38,10 +38,10 @@ describe('outcomeLine', () => {
         verdict: 'WA',
         results: [result(1, 'AC'), result(2, 'WA'), result(3, 'SKIPPED')],
       })
-    ).toBe('Wrong answer on test 2');
+    ).toBe('Wrong answer on testcase 2');
     expect(
       outcomeLine({ ...base, status: 'completed', verdict: 'TLE', results: [result(1, 'AC'), result(2, 'TLE')] })
-    ).toBe('Time limit exceeded on test 2');
+    ).toBe('Time limit exceeded on testcase 2');
   });
   it('keeps AC, CE and ISE plain', () => {
     expect(outcomeLine({ ...base, status: 'completed', verdict: 'AC', results: [result(1, 'AC')] })).toBe('Accepted');

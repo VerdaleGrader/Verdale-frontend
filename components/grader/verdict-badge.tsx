@@ -9,7 +9,7 @@ export function VerdictBadge({
   className,
 }: {
   verdict: Verdict;
-  /** Replaces the label, e.g. "Wrong answer on test 4". */
+  /** Replaces the label, e.g. "Wrong answer on testcase 4". */
   detail?: string;
   /** Icon and code only; the label stays for screen readers and in a title. */
   compact?: boolean;

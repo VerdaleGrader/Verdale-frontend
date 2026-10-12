@@ -143,7 +143,7 @@ function emptyDescription(query: string, status: StatusFilter, canCreate: boolea
   if (query) return 'Try a shorter or different word.';
   if (archived) return 'This Space was archived without problems.';
   if (status === 'published' && canCreate) {
-    return 'Start a draft, add tests and a reference solution, then publish it for others to solve.';
+    return 'Start a draft, add testcases and a reference solution, then publish it for others to solve.';
   }
   if (status === 'published') return 'Problems published in this Space will appear here.';
   return 'Nothing to show for this filter.';

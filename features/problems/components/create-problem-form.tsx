@@ -52,7 +52,7 @@ export function CreateProblemForm() {
     setError(null);
     try {
       const problem = await problemsApi.create(space.slug, { slug, title, statement: '' });
-      toast({ tone: 'success', title: 'Draft created', description: 'Write the statement, then add tests.' });
+      toast({ tone: 'success', title: 'Draft created', description: 'Write the statement, then add testcases.' });
       router.push(`/spaces/${space.slug}/problems/${problem.slug}/edit`);
     } catch (caught) {
       if (caught instanceof ApiError && (caught.status === 400 || caught.status === 409)) setError(caught);

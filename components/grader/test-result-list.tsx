@@ -12,14 +12,14 @@ export interface TestResultRow {
 }
 
 /** Per-test results of one submission. Hidden tests say "Hidden" and never show their data. */
-export function TestResultList({ rows, caption = 'Test results' }: { rows: TestResultRow[]; caption?: string }) {
+export function TestResultList({ rows, caption = 'Testcase results' }: { rows: TestResultRow[]; caption?: string }) {
   return (
     <div className="vd-tablewrap">
       <table className="vd-table">
         <caption className="vd-sr">{caption}</caption>
         <thead>
           <tr>
-            <th scope="col">Test</th>
+            <th scope="col">Testcase</th>
             <th scope="col">Verdict</th>
             <th scope="col" className="is-num">
               Time
