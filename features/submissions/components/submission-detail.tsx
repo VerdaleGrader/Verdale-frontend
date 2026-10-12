@@ -8,6 +8,7 @@ import { CopyButton } from '@/components/grader/sample-io';
 import { TestResultList } from '@/components/grader/test-result-list';
 import { VERDICT_EXPLANATIONS } from '@/components/grader/verdict';
 import { EmptyState, ErrorState, Loading } from '@/components/states/states';
+import { Avatar } from '@/components/ui/avatar';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { useToast } from '@/components/ui/toast';
 import { useAuth } from '@/features/auth/hooks/auth-provider';
@@ -105,7 +106,10 @@ function ResultView({ initial, back }: { initial: Submission; back: string }) {
         <h1 className="text-h1">Result</h1>
         <p className="text-small text-text-muted">
           {LANGUAGE_LABELS[submission.language]} · submitted {timeAgo(submission.created_at)} by{' '}
-          {submission.author.display_name}
+          <span className="vd-inline align-middle">
+            <Avatar name={submission.author.display_name} src={submission.author.avatar_url} size="sm" />
+            {submission.author.display_name}
+          </span>
         </p>
       </header>
 

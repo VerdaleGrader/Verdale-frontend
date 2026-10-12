@@ -139,6 +139,7 @@ function ProblemPage({ problem, target }: { problem: Problem; target: ProblemTar
             title={problem.title}
             spaceName={space.name}
             author={problem.created_by.display_name}
+            authorAvatarUrl={problem.created_by.avatar_url}
             timeLimitMs={problem.time_limit_ms}
             memoryLimitKb={problem.memory_limit_kb}
             statement={problem.statement}

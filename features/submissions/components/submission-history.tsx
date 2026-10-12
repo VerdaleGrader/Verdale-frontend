@@ -26,6 +26,7 @@ export function toRow(submission: SubmissionSummary, base: string, now?: Date): 
     problem: submission.problem.title,
     href: `${base}/submissions/${submission.id}`,
     author: submission.author.display_name,
+    authorAvatarUrl: submission.author.avatar_url,
     language: LANGUAGE_LABELS[submission.language],
     verdict: displayVerdict(submission),
     detail: submission.status === 'completed' ? outcomeLine({ ...submission, results: [] }) : undefined,

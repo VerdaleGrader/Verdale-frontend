@@ -9,6 +9,7 @@ export interface ProblemReaderProps {
   title: string;
   spaceName?: string;
   author?: string;
+  authorAvatarUrl?: string | null;
   timeLimitMs: number;
   memoryLimitKb: number;
   statement: string;
@@ -25,6 +26,7 @@ export function ProblemReader({
   title,
   spaceName,
   author,
+  authorAvatarUrl,
   timeLimitMs,
   memoryLimitKb,
   statement,
@@ -37,6 +39,7 @@ export function ProblemReader({
         title={title || 'Untitled problem'}
         space={spaceName}
         author={author}
+        authorAvatarUrl={authorAvatarUrl}
         limits={{ timeMs: timeLimitMs, memoryMb: kilobytesToMegabytes(memoryLimitKb) }}
       >
         {statement.trim() ? (

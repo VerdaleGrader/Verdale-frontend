@@ -427,6 +427,7 @@ function SolverPreview({ draft, editor }: { draft: StatementDraft; editor: Probl
       title={draft.title}
       spaceName={space.name}
       author={editor.created_by.display_name}
+      authorAvatarUrl={editor.created_by.avatar_url}
       timeLimitMs={Number.isFinite(time) && time > 0 ? time : editor.version.time_limit_ms}
       memoryLimitKb={
         Number.isFinite(memory) && memory > 0 ? megabytesToKilobytes(memory) : editor.version.memory_limit_kb

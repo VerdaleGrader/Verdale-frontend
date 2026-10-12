@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Star, Trash2 } from 'lucide-react';
 import { CodeEditor } from '@/components/code/code-editor';
 import { EmptyState, ErrorState, Loading } from '@/components/states/states';
+import { Avatar } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Dialog } from '@/components/ui/dialog';
@@ -81,7 +82,11 @@ export function SolutionsPanel() {
                       Primary
                     </Badge>
                   )}
-                  <span className="text-small text-text-muted">added by {solution.created_by.display_name}</span>
+                  <span className="text-small text-text-muted vd-inline">
+                    added by
+                    <Avatar name={solution.created_by.display_name} src={solution.created_by.avatar_url} size="sm" />
+                    {solution.created_by.display_name}
+                  </span>
                 </span>
                 {editor.editable && (
                   <span className="flex flex-wrap gap-1">

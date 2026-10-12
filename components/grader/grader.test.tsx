@@ -94,6 +94,23 @@ describe('SubmissionTable', () => {
   });
 });
 
+describe('SubmissionTable authors', () => {
+  const row = { id: 1, when: 'now', problem: 'Two sum', language: 'C++', verdict: 'AC' as const };
+
+  it('shows the picture of the author, or the initials without one', () => {
+    render(
+      <SubmissionTable
+        rows={[
+          { ...row, author: 'Ada Lovelace', authorAvatarUrl: 'https://example.com/ada.png' },
+          { ...row, id: 2, author: 'Grace Hopper', authorAvatarUrl: null },
+        ]}
+      />
+    );
+    expect(screen.getByRole('img', { name: 'Ada Lovelace' }).getAttribute('src')).toBe('https://example.com/ada.png');
+    expect(screen.getByRole('img', { name: 'Grace Hopper' }).textContent).toBe('GH');
+  });
+});
+
 describe('ProblemStatement and SampleIO', () => {
   it('shows limits and the statement', () => {
     render(
