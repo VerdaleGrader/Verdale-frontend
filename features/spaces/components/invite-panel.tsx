@@ -4,20 +4,21 @@ import { Check, Copy } from 'lucide-react';
 import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Dropdown } from '@/components/ui/dropdown';
-import { TextField } from '@/components/ui/field';
+import { Select, TextField } from '@/components/ui/field';
 import { useToast } from '@/components/ui/toast';
 import { EmptyState, ErrorState, Loading } from '@/components/states/states';
 import { ApiError, errorMessage } from '@/lib/api';
 import { timeAgo } from '@/lib/format';
 import { useApiQuery } from '@/lib/use-api-query';
 import { spacesApi } from '../api/spaces.api';
-import { canAssignRole } from '../abilities';
-import { roleOptions } from '../role-options';
-import { ROLE_LABELS, type AssignableRole, type Invite } from '../types';
+import { ROLE_LABELS, type Invite } from '../types';
 import { useSpace } from './space-shell';
 
-export const EXPIRY = [
+const INVITE_ROLES = [
+  { value: 'editor', label: 'Editor: creates and edits problems' },
+  { value: 'solver', label: 'Solver: views problems and submits' },
+];
+const EXPIRY = [
   { value: '1', label: '1 day' },
   { value: '3', label: '3 days' },
   { value: '7', label: '7 days' },
@@ -25,16 +26,16 @@ export const EXPIRY = [
   { value: '30', label: '30 days' },
 ];
 
-export function absoluteLink(path: string): string {
+function absoluteLink(path: string): string {
   return `${window.location.origin}${path}`;
 }
 
-/** Invite by username (they answer in their own list) or create a one-time link. Owners and administrators. */
+/** Invite by username (they answer in their own list) or create a one-time link. Owners only. */
 export function InvitePanel() {
   const { space } = useSpace();
   const toast = useToast();
   const invites = useApiQuery(() => spacesApi.invites(space.slug), `invites-${space.slug}`);
-  const [role, setRole] = useState<AssignableRole>('solver');
+  const [role, setRole] = useState<'editor' | 'solver'>('solver');
   const [username, setUsername] = useState('');
   const [days, setDays] = useState('7');
   const [creating, setCreating] = useState(false);
@@ -106,13 +107,18 @@ export function InvitePanel() {
             error={error?.status === 404 || error?.status === 409 ? error.message : error?.fieldError('username')}
             onChange={(event) => setUsername(event.target.value)}
           />
-          <Dropdown
+          <Select
             label="Role"
             value={role}
-            options={roleOptions(space.my_role, null)}
-            onValueChange={(next) => setRole(next as AssignableRole)}
+            options={INVITE_ROLES}
+            onChange={(event) => setRole(event.target.value as 'editor' | 'solver')}
           />
-          <Dropdown label="Expires after" value={days} options={EXPIRY} onValueChange={setDays} />
+          <Select
+            label="Expires after"
+            value={days}
+            options={EXPIRY}
+            onChange={(event) => setDays(event.target.value)}
+          />
         </div>
         <div>
           <Button type="submit" disabled={creating}>
@@ -167,17 +173,14 @@ export function InvitePanel() {
                       })}
                     </span>
                   </span>
-                  {/* An administrator cannot withdraw an invitation to administrator (Core refuses it). */}
-                  {canAssignRole(space.my_role, null, invite.role) && (
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => revoke(invite)}
-                      aria-label={`Revoke invitation ${invite.invited_user ? `for ${invite.invited_user.username}` : 'link'}`}
-                    >
-                      Revoke
-                    </Button>
-                  )}
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => revoke(invite)}
+                    aria-label={`Revoke invitation ${invite.invited_user ? `for ${invite.invited_user.username}` : 'link'}`}
+                  >
+                    Revoke
+                  </Button>
                 </li>
               ))}
             </ul>

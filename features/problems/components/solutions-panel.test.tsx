@@ -2,7 +2,7 @@ import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiError } from '@/lib/api';
-import { chooseOption, makeEditor, renderInApp } from '@/features/test-support';
+import { makeEditor, renderInApp } from '@/features/test-support';
 import type { ReferenceSolution } from '../types';
 import { WorkspaceContext } from './problem-workspace';
 
@@ -25,7 +25,7 @@ const solution = (id: string, overrides: Partial<ReferenceSolution> = {}): Refer
   source: 'int main(){}',
   source_bytes: 12,
   is_primary: false,
-  created_by: { username: 'edith', display_name: 'Edith', avatar_url: null },
+  created_by: { username: 'edith', display_name: 'Edith' },
   created_at: '2026-10-11T00:00:00Z',
   updated_at: '2026-10-11T00:00:00Z',
   ...overrides,
@@ -70,10 +70,8 @@ describe('reference solutions', () => {
     api.addSolution.mockResolvedValue(solution('new', { is_primary: true }));
     renderPanel([]);
     const form = (await screen.findByRole('heading', { name: 'Add a reference solution' })).closest('form')!;
-    expect(
-      within(form).getByRole('checkbox', { name: 'Make this the primary solution' }).getAttribute('aria-checked')
-    ).toBe('true');
-    await chooseOption('Language', 'Python 3');
+    expect(within(form).getByLabelText('Make this the primary solution')).toHaveProperty('checked', true);
+    await userEvent.selectOptions(within(form).getByLabelText('Language'), 'python');
     fireEvent.change(within(form).getByLabelText('Reference solution source code'), { target: { value: 'print(3)' } });
     await userEvent.click(within(form).getByRole('button', { name: 'Add solution' }));
     await waitFor(() =>
@@ -88,9 +86,7 @@ describe('reference solutions', () => {
   it('offers nothing to add until there is code', async () => {
     renderPanel([solution('a', { is_primary: true })]);
     const form = (await screen.findByRole('heading', { name: 'Add a reference solution' })).closest('form')!;
-    expect(
-      within(form).getByRole('checkbox', { name: 'Make this the primary solution' }).getAttribute('aria-checked')
-    ).toBe('false');
+    expect(within(form).getByLabelText('Make this the primary solution')).toHaveProperty('checked', false);
     expect((within(form).getByRole('button', { name: 'Add solution' }) as HTMLButtonElement).disabled).toBe(true);
   });
 

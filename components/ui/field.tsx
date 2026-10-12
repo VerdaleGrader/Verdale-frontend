@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { CircleAlert } from 'lucide-react';
+import { ChevronDown, CircleAlert } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface FieldFrameProps {
@@ -11,7 +11,6 @@ interface FieldFrameProps {
   children: React.ReactNode;
 }
 
-/** Label, control and hint or error message: the frame every field shares. */
 function FieldFrame({ id, label, hint, error, className, children }: FieldFrameProps) {
   return (
     <div className={cn('vd-field', className)}>
@@ -79,4 +78,42 @@ function TextField({
   );
 }
 
-export { TextField, FieldFrame };
+interface SelectOption {
+  value: string;
+  label: string;
+}
+
+type SelectProps = Omit<React.ComponentProps<'select'>, 'size'> & {
+  label?: string;
+  hint?: string;
+  options: SelectOption[];
+  size?: 'sm' | 'md';
+};
+
+/** Native select styled like TextField, for short fixed lists (role, visibility, language). */
+function Select({ label, hint, options, size = 'md', className, id, ...props }: SelectProps) {
+  const generated = React.useId();
+  const fieldId = id ?? generated;
+  return (
+    <FieldFrame id={fieldId} label={label} hint={hint} className={className}>
+      <div className={cn('vd-select', size === 'sm' && 'vd-select--sm')}>
+        <select
+          id={fieldId}
+          aria-describedby={hint ? `${fieldId}-message` : undefined}
+          className="vd-input vd-select__control"
+          {...props}
+        >
+          {options.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+        <ChevronDown className="vd-select__chev vd-icon size-4" strokeWidth={1.75} aria-hidden />
+      </div>
+    </FieldFrame>
+  );
+}
+
+export { TextField, Select };
+export type { SelectOption };

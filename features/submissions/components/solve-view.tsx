@@ -30,11 +30,7 @@ export function fromSummary(summary: SubmissionSummary): Submission {
 /** What to tell the person when Core refuses a submission, in words that say what to do. */
 export function submitErrorMessage(error: unknown): string {
   if (error instanceof ApiError) {
-    if (error.status === 429) {
-      // Core's message ends with "Try again in N seconds."; the limit itself is in the contract.
-      const seconds = /(\d+) seconds?/.exec(error.message)?.[1];
-      return `You can submit at most 10 times a minute. ${seconds ? `Try again in ${seconds} seconds.` : 'Wait a moment and try again.'}`;
-    }
+    if (error.status === 429) return `You are submitting too quickly. ${error.message}`;
     if (error.status === 400) return error.fieldError('source') ?? error.fieldError('language') ?? error.message;
     if (
       error.status === 409 &&
@@ -75,22 +71,11 @@ export function SolveView() {
         {notFound ? (
           <EmptyState
             title="Problem not found"
-            description="It may not exist, may not be published yet, may not be in a Track you can open, or may be in a private Space you are not a member of."
+            description="It may not exist, may not be published yet, or may be in a private Space you are not a member of."
             action={
-              <span className="flex flex-wrap justify-center gap-2">
-                <Link href={`/spaces/${space.slug}`} className={buttonVariants({ variant: 'secondary' })}>
-                  Back to {space.name}
-                </Link>
-                {/* A problem taken out of its last Track closes for solving, but the history of your submissions stays. */}
-                {auth.status === 'authenticated' && (
-                  <Link
-                    href={`/spaces/${space.slug}/problems/${target.problemSlug}/submissions`}
-                    className={buttonVariants({ variant: 'secondary' })}
-                  >
-                    Your earlier submissions
-                  </Link>
-                )}
-              </span>
+              <Link href={`/spaces/${space.slug}`} className={buttonVariants({ variant: 'secondary' })}>
+                Back to {space.name}
+              </Link>
             }
           />
         ) : (
@@ -107,7 +92,7 @@ function ProblemPage({ problem, target }: { problem: Problem; target: ProblemTar
   const { auth } = useAuth();
   const base = `/spaces/${space.slug}/problems/${problem.slug}`;
   return (
-    <PageContainer tight className="max-w-7xl">
+    <PageContainer className="max-w-7xl">
       <nav aria-label="Breadcrumb" className="text-small text-text-muted flex flex-wrap items-center gap-1.5">
         <Link href={`/spaces/${space.slug}`} className="vd-link">
           {space.name}
@@ -150,21 +135,9 @@ function ProblemPage({ problem, target }: { problem: Problem; target: ProblemTar
             title={problem.title}
             spaceName={space.name}
             author={problem.created_by.display_name}
-            authorAvatarUrl={problem.created_by.avatar_url}
             timeLimitMs={problem.time_limit_ms}
             memoryLimitKb={problem.memory_limit_kb}
             statement={problem.statement}
-            statementMode={problem.statement_mode}
-            pdf={
-              problem.statement_pdf
-                ? {
-                    target,
-                    draft: problem.status === 'draft',
-                    version: String(problem.version_number),
-                    sizeBytes: problem.statement_pdf.size_bytes,
-                  }
-                : null
-            }
             samples={problem.samples}
           />
         </div>
@@ -178,17 +151,8 @@ function ProblemPage({ problem, target }: { problem: Problem; target: ProblemTar
 
 const SAVE_DELAY_MS = 500;
 
-/** Why nothing can be submitted, said after the click instead of by a disabled button. */
-function closedMessage(problem: Problem, spaceArchived: boolean): string {
-  if (problem.status === 'draft') return 'This problem is a draft. Nothing can be submitted until it is published.';
-  if (problem.status === 'archived') return 'This problem is archived and no longer accepts submissions.';
-  if (spaceArchived) return 'This Space is archived, so nothing can be submitted.';
-  return 'Submissions are closed for this problem.';
-}
-
 function SolvePanel({ problem, target }: { problem: Problem; target: ProblemTarget }) {
   const { auth, expire } = useAuth();
-  const { space } = useSpace();
   const router = useRouter();
   const pathname = usePathname();
   const roomy = useMediaQuery('(min-width: 768px)');
@@ -240,9 +204,6 @@ function SolvePanel({ problem, target }: { problem: Problem; target: ProblemTarg
   }, [loggedIn, target]);
 
   const live = useSubmissionLive(current?.id ?? null, current);
-  const submission = live.submission ?? current;
-  // The button is the same in every state except while a submission is on its way or being judged.
-  const waiting = submission !== undefined && submission.status !== 'completed';
 
   const changeLanguage = useCallback(
     (next: Language) => {
@@ -260,11 +221,7 @@ function SolvePanel({ problem, target }: { problem: Problem; target: ProblemTarg
       router.push(`/login?next=${encodeURIComponent(pathname)}`);
       return;
     }
-    if (submitting || waiting) return;
-    if (!open) {
-      setError(closedMessage(problem, space.archived_at !== null));
-      return;
-    }
+    if (!open || submitting) return;
     setSubmitting(true);
     setError(null);
     try {
@@ -280,21 +237,20 @@ function SolvePanel({ problem, target }: { problem: Problem; target: ProblemTarg
     } finally {
       setSubmitting(false);
     }
-  }, [loggedIn, open, submitting, waiting, problem, space.archived_at, target, language, router, pathname, expire]);
+  }, [loggedIn, open, submitting, target, language, router, pathname, expire]);
 
+  const submission = live.submission ?? current;
   const base = `/spaces/${target.slug}/problems/${target.problemSlug}`;
   return (
     <div className="flex flex-col gap-3">
       <CodeEditorFrame
         languages={languages.map((value) => ({ value, label: LANGUAGE_LABELS[value] }))}
         language={language}
-        onLanguageChange={(next) => changeLanguage(next as Language)}
+        onLanguageChange={(event) => changeLanguage(event.target.value as Language)}
         onSubmit={() => void submit()}
         submitting={submitting}
-        submitLabel={
-          waiting ? 'Waiting for the result…' : loggedIn || auth.status === 'loading' ? 'Submit' : 'Log in to submit'
-        }
-        submitDisabled={waiting}
+        submitLabel={loggedIn || auth.status === 'loading' ? 'Submit' : 'Log in to submit'}
+        submitDisabled={!open && loggedIn}
         status={
           <div className="flex flex-col gap-3">
             {error && (

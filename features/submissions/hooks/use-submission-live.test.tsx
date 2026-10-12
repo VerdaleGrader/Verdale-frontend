@@ -42,7 +42,7 @@ const submission = (overrides: Partial<Submission> = {}): Submission => ({
   id: 's1',
   problem: { slug: 'sum', title: 'Sum' },
   space: { name: 'Team', slug: 'team' },
-  author: { username: 'sol', display_name: 'Sol', avatar_url: null },
+  author: { username: 'sol', display_name: 'Sol' },
   language: 'cpp',
   status: 'queued',
   verdict: null,

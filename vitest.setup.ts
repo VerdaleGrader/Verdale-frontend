@@ -23,15 +23,3 @@ if (!window.matchMedia) {
     }),
   });
 }
-
-// jsdom lacks a few DOM APIs that Radix (Select, Dialog, DropdownMenu) calls.
-const elementPrototype = window.HTMLElement.prototype as unknown as Record<string, unknown>;
-elementPrototype.hasPointerCapture ??= () => false;
-elementPrototype.setPointerCapture ??= () => undefined;
-elementPrototype.releasePointerCapture ??= () => undefined;
-elementPrototype.scrollIntoView ??= () => undefined;
-globalThis.ResizeObserver ??= class {
-  observe() {}
-  unobserve() {}
-  disconnect() {}
-};

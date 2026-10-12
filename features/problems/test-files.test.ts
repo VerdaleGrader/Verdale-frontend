@@ -22,8 +22,8 @@ describe('classify', () => {
   });
 
   it('reads the folder when the name does not say', () => {
-    expect(classify(file('1.txt', 'testcases/in/1.txt'))).toEqual({ side: 'input', stem: '1' });
-    expect(classify(file('1.txt', 'testcases/Output/1.txt'))).toEqual({ side: 'output', stem: '1' });
+    expect(classify(file('1.txt', 'tests/in/1.txt'))).toEqual({ side: 'input', stem: '1' });
+    expect(classify(file('1.txt', 'tests/Output/1.txt'))).toEqual({ side: 'output', stem: '1' });
   });
 
   it.each(['notes.txt', 'README.md', 'data.csv', 'index.html', 'main.cpp', 'outline.md', 'inside.txt'])(
@@ -88,10 +88,10 @@ describe('pairTestFiles', () => {
 
   it('pairs a folder of in/ and out/ files', () => {
     const { pairs } = pairTestFiles([
-      file('1.txt', 'testcases/in/1.txt'),
-      file('1.txt', 'testcases/out/1.txt'),
-      file('2.txt', 'testcases/in/2.txt'),
-      file('2.txt', 'testcases/out/2.txt'),
+      file('1.txt', 'tests/in/1.txt'),
+      file('1.txt', 'tests/out/1.txt'),
+      file('2.txt', 'tests/in/2.txt'),
+      file('2.txt', 'tests/out/2.txt'),
     ]);
     expect(pairs.map((pair) => pair.name)).toEqual(['1', '2']);
   });

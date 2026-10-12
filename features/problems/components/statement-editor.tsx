@@ -3,10 +3,8 @@
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ImagePlus } from 'lucide-react';
-import { RadioGroup } from '@/components/ui/radio-group';
 import { Button } from '@/components/ui/button';
 import { Dialog } from '@/components/ui/dialog';
-import { Checkbox } from '@/components/ui/checkbox';
 import { TextField } from '@/components/ui/field';
 import { useToast } from '@/components/ui/toast';
 import { useSpace } from '@/features/spaces/components/space-shell';
@@ -23,14 +21,12 @@ import {
   type ProblemEditor,
 } from '../types';
 import { ProblemReader } from './problem-reader';
-import { StatementPdfPanel } from './statement-pdf-panel';
 import { useProblemWorkspace } from './problem-workspace';
 
 /** What the form holds. Numbers stay text while they are being typed. */
 export interface StatementDraft {
   title: string;
   statement: string;
-  mode: 'markdown' | 'pdf';
   timeLimitMs: string;
   memoryLimitMb: string;
   languages: Language[];
@@ -41,7 +37,6 @@ export function draftOf(editor: ProblemEditor): StatementDraft {
   return {
     title: version.title,
     statement: version.statement,
-    mode: version.statement_mode,
     timeLimitMs: String(version.time_limit_ms),
     memoryLimitMb: String(kilobytesToMegabytes(version.memory_limit_kb)),
     languages: [...version.allowed_languages].sort(),
@@ -78,7 +73,6 @@ export function patchOf(draft: StatementDraft, saved: StatementDraft) {
   return {
     ...(draft.title.trim() !== saved.title ? { title: draft.title.trim() } : {}),
     ...(draft.statement !== saved.statement ? { statement: draft.statement } : {}),
-    ...(draft.mode !== saved.mode ? { statement_mode: draft.mode } : {}),
     ...(draft.timeLimitMs !== saved.timeLimitMs ? { time_limit_ms: Number(draft.timeLimitMs) } : {}),
     ...(draft.memoryLimitMb !== saved.memoryLimitMb
       ? { memory_limit_kb: megabytesToKilobytes(Number(draft.memoryLimitMb)) }
@@ -90,7 +84,6 @@ export function patchOf(draft: StatementDraft, saved: StatementDraft) {
 const SERVER_FIELDS: Record<string, keyof DraftErrors | 'statement'> = {
   title: 'title',
   statement: 'statement',
-  statement_mode: 'statement',
   time_limit_ms: 'timeLimitMs',
   memory_limit_kb: 'memoryLimitMb',
   allowed_languages: 'languages',
@@ -245,7 +238,7 @@ export function StatementEditor() {
             inputMode="numeric"
             value={draft.timeLimitMs}
             disabled={readOnly}
-            hint={`Per testcase, ${constraints.time_limit_ms.min} to ${constraints.time_limit_ms.max} ms.`}
+            hint={`Per test, ${constraints.time_limit_ms.min} to ${constraints.time_limit_ms.max} ms.`}
             error={error('timeLimitMs')}
             onChange={(event) => set('timeLimitMs', event.target.value)}
           />
@@ -255,7 +248,7 @@ export function StatementEditor() {
             inputMode="numeric"
             value={draft.memoryLimitMb}
             disabled={readOnly}
-            hint={`Per testcase, ${Math.ceil(constraints.memory_limit_kb.min / 1024)} to ${Math.floor(constraints.memory_limit_kb.max / 1024)} MB.`}
+            hint={`Per test, ${Math.ceil(constraints.memory_limit_kb.min / 1024)} to ${Math.floor(constraints.memory_limit_kb.max / 1024)} MB.`}
             error={error('memoryLimitMb')}
             onChange={(event) => set('memoryLimitMb', event.target.value)}
           />
@@ -264,12 +257,14 @@ export function StatementEditor() {
           <legend className="vd-label">Allowed languages</legend>
           <div className="flex flex-wrap gap-4">
             {LANGUAGE_OPTIONS.filter((option) => constraints.languages.includes(option.value)).map((option) => (
-              <Checkbox
-                key={option.value}
-                label={option.label}
-                checked={draft.languages.includes(option.value)}
-                onCheckedChange={() => toggleLanguage(option.value)}
-              />
+              <label key={option.value} className="text-body flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={draft.languages.includes(option.value)}
+                  onChange={() => toggleLanguage(option.value)}
+                />
+                {option.label}
+              </label>
             ))}
           </div>
           {error('languages') && (
@@ -281,117 +276,81 @@ export function StatementEditor() {
       </section>
 
       <section aria-labelledby="statement-heading" className="flex flex-col gap-3">
-        <h2 id="statement-heading" className="text-h2">
-          Statement
-        </h2>
-        <RadioGroup
-          aria-label="Statement format"
-          value={draft.mode}
-          disabled={readOnly}
-          onValueChange={(value) => set('mode', value === 'pdf' ? 'pdf' : 'markdown')}
-          options={[
-            { value: 'markdown', label: 'Markdown', description: 'Write the statement here, with maths and images.' },
-            { value: 'pdf', label: 'PDF', description: 'Upload a PDF. Solvers read it on the problem page.' },
-          ]}
-        />
-        {error('statement') && draft.mode === 'pdf' && (
-          <p className="vd-hint vd-hint--error" role="alert">
-            {error('statement')}
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 id="statement-heading" className="text-h2">
+            Statement
+          </h2>
+          <div className="flex items-center gap-2">
+            <div className="flex gap-1 lg:hidden" role="group" aria-label="Editor view">
+              <Button
+                size="sm"
+                variant={view === 'write' ? 'primary' : 'secondary'}
+                aria-pressed={view === 'write'}
+                onClick={() => setView('write')}
+              >
+                Write
+              </Button>
+              <Button
+                size="sm"
+                variant={view === 'preview' ? 'primary' : 'secondary'}
+                aria-pressed={view === 'preview'}
+                onClick={() => setView('preview')}
+              >
+                Preview
+              </Button>
+            </div>
+            <Button size="sm" disabled={readOnly} onClick={() => fileInput.current?.click()}>
+              <ImagePlus aria-hidden />
+              Insert image
+            </Button>
+            <input
+              ref={fileInput}
+              type="file"
+              accept={constraints.images.content_types.join(',')}
+              className="vd-sr"
+              tabIndex={-1}
+              aria-label="Choose an image to insert"
+              onChange={(event) => {
+                const file = event.target.files?.[0];
+                if (file) void insertImage(file);
+              }}
+            />
+          </div>
+        </div>
+        {imageError && (
+          <p role="alert" className="vd-hint vd-hint--error">
+            {imageError}
           </p>
         )}
-        {draft.mode === 'pdf' ? (
-          <>
-            <StatementPdfPanel readOnly={readOnly} onChanged={() => setEdits((current) => omitKey(current, 'mode'))} />
-            <p className="text-small text-text-muted">
-              Examples come from the sample testcases and are shown below the PDF. Mark testcases as samples on the
-              Testcases tab.
-            </p>
-            <div
-              className="border-border bg-surface min-w-0 rounded-md border p-4"
-              aria-label="Preview as a solver sees it"
-            >
-              <SolverPreview draft={draft} editor={editor} />
-            </div>
-          </>
-        ) : (
-          <>
-            {editor.version.statement_pdf && (
-              <p className="text-small text-text-muted">
-                A PDF is still attached to this draft. Choose PDF to use it again.
-              </p>
+        <p className="text-small text-text-muted">
+          Markdown with maths: write <code className="vd-mono">$a + b$</code> inline or{' '}
+          <code className="vd-mono">$$ … $$</code> on its own lines. Images come from “Insert image” (PNG, JPEG or WebP,
+          up to {Math.round(constraints.images.max_bytes / (1024 * 1024))} MB).
+        </p>
+        <div className="grid gap-4 lg:grid-cols-2">
+          <div className={cn(view === 'write' ? 'block' : 'hidden', 'min-w-0 lg:block')}>
+            <TextField
+              label="Statement (Markdown)"
+              multiline
+              rows={22}
+              mono
+              value={draft.statement}
+              disabled={readOnly}
+              error={error('statement')}
+              onChange={(event) => set('statement', event.target.value)}
+              textareaRef={textarea}
+            />
+          </div>
+          <div
+            className={cn(
+              view === 'preview' ? 'block' : 'hidden',
+              'border-border bg-surface min-w-0 rounded-md border p-4 lg:block'
             )}
-            <div className="flex flex-wrap items-center justify-end gap-2">
-              <div className="flex gap-1 lg:hidden" role="group" aria-label="Editor view">
-                <Button
-                  size="sm"
-                  variant={view === 'write' ? 'primary' : 'secondary'}
-                  aria-pressed={view === 'write'}
-                  onClick={() => setView('write')}
-                >
-                  Write
-                </Button>
-                <Button
-                  size="sm"
-                  variant={view === 'preview' ? 'primary' : 'secondary'}
-                  aria-pressed={view === 'preview'}
-                  onClick={() => setView('preview')}
-                >
-                  Preview
-                </Button>
-              </div>
-              <Button size="sm" disabled={readOnly} onClick={() => fileInput.current?.click()}>
-                <ImagePlus aria-hidden />
-                Insert image
-              </Button>
-              <input
-                ref={fileInput}
-                type="file"
-                accept={constraints.images.content_types.join(',')}
-                className="vd-sr"
-                tabIndex={-1}
-                aria-label="Choose an image to insert"
-                onChange={(event) => {
-                  const file = event.target.files?.[0];
-                  if (file) void insertImage(file);
-                }}
-              />
-            </div>
-            {imageError && (
-              <p role="alert" className="vd-hint vd-hint--error">
-                {imageError}
-              </p>
-            )}
-            <p className="text-small text-text-muted">
-              Markdown with maths: write <code className="vd-mono">$a + b$</code> inline or{' '}
-              <code className="vd-mono">$$ … $$</code> on its own lines. Images come from “Insert image” (PNG, JPEG or
-              WebP, up to {Math.round(constraints.images.max_bytes / (1024 * 1024))} MB).
-            </p>
-            <div className="grid gap-4 lg:grid-cols-2">
-              <div className={cn(view === 'write' ? 'block' : 'hidden', 'min-w-0 lg:block')}>
-                <TextField
-                  label="Statement (Markdown)"
-                  multiline
-                  rows={22}
-                  mono
-                  value={draft.statement}
-                  disabled={readOnly}
-                  error={error('statement')}
-                  onChange={(event) => set('statement', event.target.value)}
-                  textareaRef={textarea}
-                />
-              </div>
-              <div
-                className={cn(
-                  view === 'preview' ? 'block' : 'hidden',
-                  'border-border bg-surface min-w-0 rounded-md border p-4 lg:block'
-                )}
-                aria-label="Preview as a solver sees it"
-              >
-                <SolverPreview draft={draft} editor={editor} />
-              </div>
-            </div>
-          </>
-        )}
+            aria-label="Preview as a solver sees it"
+          >
+            <SolverPreview draft={draft} editor={editor} />
+          </div>
+        </div>
       </section>
 
       {editor.status === 'draft' && editor.editable && (
@@ -400,8 +359,8 @@ export function StatementEditor() {
             Delete this draft
           </h2>
           <p className="text-small text-text-muted">
-            Removes the draft with its testcases and reference solutions. This cannot be undone. Once a problem is
-            published it can only be archived.
+            Removes the draft with its tests and reference solutions. This cannot be undone. Once a problem is published
+            it can only be archived.
           </p>
           <div>
             <Button variant="destructive" onClick={() => setDeleting(true)} disabled={busy}>
@@ -412,7 +371,7 @@ export function StatementEditor() {
             open={deleting}
             onClose={() => setDeleting(false)}
             title={`Delete “${editor.version.title}”?`}
-            description="The draft, its testcases and its reference solutions are removed for good."
+            description="The draft, its tests and its reference solutions are removed for good."
             footer={
               <>
                 <Button onClick={() => setDeleting(false)} disabled={busy}>
@@ -433,15 +392,10 @@ export function StatementEditor() {
 const SERVER_FIELD_BY_DRAFT: Record<keyof StatementDraft, string> = {
   title: 'title',
   statement: 'statement',
-  mode: 'statement',
   timeLimitMs: 'timeLimitMs',
   memoryLimitMb: 'memoryLimitMb',
   languages: 'languages',
 };
-
-function omitKey<T extends object>(value: T, key: keyof T): Partial<T> {
-  return Object.fromEntries(Object.entries(value).filter(([name]) => name !== key)) as Partial<T>;
-}
 
 function omit(record: Record<string, string>, key: string) {
   return Object.fromEntries(Object.entries(record).filter(([name]) => name !== key));
@@ -473,28 +427,14 @@ function SolverPreview({ draft, editor }: { draft: StatementDraft; editor: Probl
       title={draft.title}
       spaceName={space.name}
       author={editor.created_by.display_name}
-      authorAvatarUrl={editor.created_by.avatar_url}
       timeLimitMs={Number.isFinite(time) && time > 0 ? time : editor.version.time_limit_ms}
       memoryLimitKb={
         Number.isFinite(memory) && memory > 0 ? megabytesToKilobytes(memory) : editor.version.memory_limit_kb
       }
       statement={draft.statement}
-      statementMode={draft.mode}
-      pdf={
-        editor.version.statement_pdf
-          ? {
-              target,
-              draft: true,
-              version: editor.version.statement_pdf.sha256,
-              sizeBytes: editor.version.statement_pdf.size_bytes,
-            }
-          : null
-      }
       samples={samples ?? []}
       samplesNote={
-        samples === null
-          ? 'Loading examples…'
-          : 'Mark a testcase as a sample on the Testcases tab to show an example here.'
+        samples === null ? 'Loading examples…' : 'Mark a test as a sample on the Tests tab to show an example here.'
       }
     />
   );

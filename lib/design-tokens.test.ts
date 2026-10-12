@@ -34,7 +34,7 @@ describe('WCAG 2.2 AA contrast, both themes', () => {
     });
 
     it('every verdict is readable on its soft background (4.5:1)', () => {
-      for (const verdict of ['ac', 'wa', 'tle', 'mle', 're', 'ce', 'ole', 'ise', 'pending']) {
+      for (const verdict of ['ac', 'wa', 'tle', 'mle', 're', 'ce', 'pending']) {
         expect({ verdict, ratio: ratio(`verdict-${verdict}`, `verdict-${verdict}-soft`) }).toEqual({
           verdict,
           ratio: expect.toSatisfy((value: number) => value >= 4.5),

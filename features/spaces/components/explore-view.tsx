@@ -1,25 +1,31 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { PageContainer, PageHeader } from '@/components/layout/page';
 import { EmptyState, ErrorState, Loading } from '@/components/states/states';
 import { TextField } from '@/components/ui/field';
 import { Pagination } from '@/components/ui/pagination';
 import { useApiQuery } from '@/lib/use-api-query';
-import { param, useDebouncedText, useUrlQuery } from '@/lib/use-url-query';
 import { spacesApi } from '../api/spaces.api';
 import { SpaceGrid } from './space-card';
 
 const PAGE_SIZE = 20;
-
-// Search and page live in the URL (?q=…&page=…); defaults are left out.
-const QUERY = { q: param.text(), page: param.page() };
+const DEBOUNCE_MS = 300;
 
 /** Search public Spaces by name. Works without an account; private Spaces never appear. */
 export function ExploreView() {
-  const { values, set } = useUrlQuery(QUERY);
-  const { q: query, page } = values;
-  // The URL follows typing only after a pause, so Core is not asked on every key.
-  const [input, setInput] = useDebouncedText(query, (text) => set({ q: text }));
+  const [input, setInput] = useState('');
+  const [query, setQuery] = useState('');
+  const [page, setPage] = useState(1);
+
+  // Wait for a pause in typing before asking Core.
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setQuery(input.trim());
+      setPage(1);
+    }, DEBOUNCE_MS);
+    return () => window.clearTimeout(timer);
+  }, [input]);
 
   const spaces = useApiQuery(
     () => spacesApi.listPublic({ q: query, page, pageSize: PAGE_SIZE }),
@@ -53,12 +59,7 @@ export function ExploreView() {
         ) : (
           <>
             <SpaceGrid spaces={spaces.data.items} />
-            <Pagination
-              page={page}
-              pageSize={PAGE_SIZE}
-              total={spaces.data.total}
-              onPage={(next) => set({ page: next })}
-            />
+            <Pagination page={page} pageSize={PAGE_SIZE} total={spaces.data.total} onPage={setPage} />
           </>
         ))}
     </PageContainer>
