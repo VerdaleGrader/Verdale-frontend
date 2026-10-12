@@ -35,6 +35,62 @@ function formData(parts: Record<string, Blob | string | undefined>, fileNames: R
 export const testFileUrl = (target: Target, testId: string, side: 'input' | 'output') =>
   `/api/v1/spaces/${encodeURIComponent(target.slug)}/problems/${encodeURIComponent(target.problemSlug)}/tests/${testId}/${side}`;
 
+/** Where the PDF statement is served from. `draft` is for staff previewing the draft they are editing. */
+export const statementPdfUrl = (target: Target, draft = false) =>
+  `/api/v1/spaces/${encodeURIComponent(target.slug)}/problems/${encodeURIComponent(target.problemSlug)}/statement.pdf${draft ? '?draft=true' : ''}`;
+
+const NETWORK_ERROR = () =>
+  new ApiError(0, 'NETWORK', 'Could not reach the server. Check your connection and try again.');
+
+/** An ApiError from the standard error body of a response that is not ok. */
+function apiErrorOf(status: number, body: unknown): ApiError {
+  const error = typeof body === 'object' && body !== null ? (body as Partial<Schemas['ErrorResponse']>) : {};
+  return new ApiError(
+    status,
+    error.error_code ?? 'UNKNOWN',
+    error.message ?? 'Something went wrong. Try again.',
+    error.details,
+    error.request_id
+  );
+}
+
+/** The bytes of the PDF statement, fetched with the session cookie through the same /api proxy as everything else. */
+async function fetchStatementPdf(target: Target, draft: boolean): Promise<ArrayBuffer> {
+  let response: Response;
+  try {
+    response = await fetch(statementPdfUrl(target, draft), { credentials: 'include' });
+  } catch {
+    throw NETWORK_ERROR();
+  }
+  if (response.ok) return response.arrayBuffer();
+  throw apiErrorOf(response.status, await response.json().catch(() => undefined));
+}
+
+/**
+ * PUT the PDF. fetch cannot report upload progress, so this uses XMLHttpRequest;
+ * the request still goes through the /api proxy with the session cookie.
+ */
+function uploadStatementPdf(target: Target, file: File, onProgress?: (percent: number) => void) {
+  return new Promise<Schemas['ProblemEditor']>((resolve, reject) => {
+    const request = new XMLHttpRequest();
+    request.open(
+      'PUT',
+      `/api/v1/spaces/${encodeURIComponent(target.slug)}/problems/${encodeURIComponent(target.problemSlug)}/statement-pdf`
+    );
+    request.withCredentials = true;
+    request.responseType = 'json';
+    request.upload.onprogress = (event) => {
+      if (event.lengthComputable) onProgress?.((event.loaded / event.total) * 100);
+    };
+    request.onerror = () => reject(NETWORK_ERROR());
+    request.onload = () => {
+      if (request.status >= 200 && request.status < 300) resolve(request.response as Schemas['ProblemEditor']);
+      else reject(apiErrorOf(request.status, request.response));
+    };
+    request.send(formData({ file }));
+  });
+}
+
 /** Does the Space already have a problem with this slug? Asked by owners and editors before they save a new one. */
 async function problemSlugTaken(slug: string, problemSlug: string): Promise<boolean> {
   try {
@@ -92,6 +148,17 @@ export const problemsApi = {
         bodySerializer: () => formData({ file }),
       })
     ),
+
+  /** Replaces the PDF of the draft; Core switches the draft to PDF mode. */
+  uploadStatementPdf,
+
+  /** Takes the PDF off the draft; Core switches back to Markdown. */
+  removeStatementPdf: (target: Target) =>
+    unwrap(
+      coreApi.DELETE('/api/v1/spaces/{slug}/problems/{problemSlug}/statement-pdf', { params: { path: path(target) } })
+    ),
+
+  statementPdf: fetchStatementPdf,
 
   // --- tests -------------------------------------------------------------
 
