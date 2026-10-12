@@ -25,7 +25,7 @@ const solution = (id: string, overrides: Partial<ReferenceSolution> = {}): Refer
   source: 'int main(){}',
   source_bytes: 12,
   is_primary: false,
-  created_by: { username: 'edith', display_name: 'Edith' },
+  created_by: { username: 'edith', display_name: 'Edith', avatar_url: null },
   created_at: '2026-10-11T00:00:00Z',
   updated_at: '2026-10-11T00:00:00Z',
   ...overrides,

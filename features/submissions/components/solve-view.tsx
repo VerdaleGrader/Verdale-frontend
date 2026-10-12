@@ -5,9 +5,10 @@ import { useParams, usePathname, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { CodeEditorFrame } from '@/components/grader/code-editor-frame';
 import { CodeEditor } from '@/components/code/code-editor';
-import { PageContainer } from '@/components/layout/page';
+import { PageContainer, PageHeader } from '@/components/layout/page';
+import { SubmissionTable } from '@/components/grader/submission-table';
 import { EmptyState, ErrorState, Loading } from '@/components/states/states';
-import { buttonVariants } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { useAuth } from '@/features/auth/hooks/auth-provider';
 import { problemsApi, type ProblemTarget } from '@/features/problems/api/problems.api';
 import { ProblemReader } from '@/features/problems/components/problem-reader';
@@ -21,6 +22,7 @@ import { submissionsApi, type Submission, type SubmissionSummary } from '../api/
 import { STARTER_CODE, codeStorageKey, languageStorageKey } from '../code-templates';
 import { useSubmissionLive } from '../hooks/use-submission-live';
 import { LiveStatus } from './live-status';
+import { toRow } from './submission-history';
 
 /** A summary (what creating or listing returns) in the shape the live view works with. */
 export function fromSummary(summary: SubmissionSummary): Submission {
@@ -66,25 +68,74 @@ export function SolveView() {
   }
   if (problem.status === 'error') {
     const notFound = problem.error instanceof ApiError && problem.error.status === 404;
-    return (
+    return notFound ? (
+      <ProblemNotAvailable target={target} />
+    ) : (
       <PageContainer narrow>
-        {notFound ? (
-          <EmptyState
-            title="Problem not found"
-            description="It may not exist, may not be published yet, or may be in a private Space you are not a member of."
-            action={
-              <Link href={`/spaces/${space.slug}`} className={buttonVariants({ variant: 'secondary' })}>
-                Back to {space.name}
-              </Link>
-            }
-          />
-        ) : (
-          <ErrorState error={problem.error} onRetry={problem.reload} />
-        )}
+        <ErrorState error={problem.error} onRetry={problem.reload} />
       </PageContainer>
     );
   }
   return <ProblemPage problem={problem.data} target={target} />;
+}
+
+/**
+ * A problem Core answers 404 for: it does not exist, is not published, or is in no Track this
+ * person can see (GRD-81, GRD-84). Someone who submitted to it before it was taken out of its last
+ * Track still gets their history, with new submissions closed; everyone else sees plain "not found",
+ * exactly as for a problem that does not exist.
+ */
+function ProblemNotAvailable({ target }: { target: ProblemTarget }) {
+  const { space } = useSpace();
+  const { auth } = useAuth();
+  const base = `/spaces/${space.slug}/problems/${target.problemSlug}`;
+  const loggedIn = auth.status === 'authenticated';
+  const history = useApiQuery(
+    () => (loggedIn ? submissionsApi.list(target, { scope: 'mine', page: 1, pageSize: 20 }) : Promise.resolve(null)),
+    `removed-history-${target.slug}-${target.problemSlug}-${auth.status}`
+  );
+  if (history.status === 'loading') {
+    return (
+      <PageContainer narrow>
+        <Loading label="Looking for your submissions" />
+      </PageContainer>
+    );
+  }
+  const items = history.status === 'success' ? (history.data?.items ?? []) : [];
+  if (items.length === 0) {
+    return (
+      <PageContainer narrow>
+        <EmptyState
+          title="Problem not found"
+          description="It may not exist, may not be published yet, or may not be in a Track you can see."
+          action={
+            <Link href={`/spaces/${space.slug}`} className={buttonVariants({ variant: 'secondary' })}>
+              Back to {space.name}
+            </Link>
+          }
+        />
+      </PageContainer>
+    );
+  }
+  return (
+    <PageContainer>
+      <PageHeader
+        title={items[0]!.problem.title}
+        description="This problem is no longer in any Track you can see. You can still read your submissions, but new ones are closed."
+        actions={
+          <>
+            <Button disabled title="This problem is not in a Track you can see">
+              Submit
+            </Button>
+            <Link href={`/spaces/${space.slug}`} className={buttonVariants({ variant: 'secondary' })}>
+              Back to {space.name}
+            </Link>
+          </>
+        }
+      />
+      <SubmissionTable rows={items.map((item) => toRow(item, base))} />
+    </PageContainer>
+  );
 }
 
 function ProblemPage({ problem, target }: { problem: Problem; target: ProblemTarget }) {
@@ -92,7 +143,7 @@ function ProblemPage({ problem, target }: { problem: Problem; target: ProblemTar
   const { auth } = useAuth();
   const base = `/spaces/${space.slug}/problems/${problem.slug}`;
   return (
-    <PageContainer className="max-w-7xl">
+    <PageContainer wide>
       <nav aria-label="Breadcrumb" className="text-small text-text-muted flex flex-wrap items-center gap-1.5">
         <Link href={`/spaces/${space.slug}`} className="vd-link">
           {space.name}
@@ -138,6 +189,8 @@ function ProblemPage({ problem, target }: { problem: Problem; target: ProblemTar
             timeLimitMs={problem.time_limit_ms}
             memoryLimitKb={problem.memory_limit_kb}
             statement={problem.statement}
+            statementMode={problem.statement_mode}
+            statementPdf={problem.statement_pdf}
             samples={problem.samples}
           />
         </div>

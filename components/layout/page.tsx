@@ -1,22 +1,30 @@
 import { cn } from '@/lib/utils';
 
-/** Page gutter space-6 on mobile and space-8 from md up; max width for working pages. */
+/**
+ * Page gutter space-6 on mobile and space-8 from md up; max width for working pages.
+ * `wide` is for pages that want the room (the problem page and the problem editor, GRD-71):
+ * the same narrower gutter and the larger maximum on both, so they line up.
+ */
 export function PageContainer({
   children,
   className,
   narrow,
+  wide,
 }: {
   children: React.ReactNode;
   className?: string;
   /** Reading width (72ch) instead of the full working width. */
   narrow?: boolean;
+  /** Working width with a narrow gutter: the problem page and the problem editor. */
+  wide?: boolean;
 }) {
   return (
     <main
       id="main"
       className={cn(
-        'mx-auto flex w-full flex-col gap-6 px-6 py-8 md:px-8',
-        narrow ? 'max-w-[var(--measure)]' : 'max-w-5xl',
+        'mx-auto flex w-full flex-col gap-6 py-8',
+        wide ? 'max-w-7xl px-4 md:px-4' : 'px-6 md:px-8',
+        !wide && (narrow ? 'max-w-[var(--measure)]' : 'max-w-5xl'),
         className
       )}
     >

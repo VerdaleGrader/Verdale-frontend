@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
@@ -123,6 +124,23 @@ export function SpaceSettings() {
           </div>
         )}
       </form>
+
+      <section aria-labelledby="tracks-heading" className="border-border flex flex-col gap-2 border-t pt-6">
+        <h2 id="tracks-heading" className="text-h3">
+          Tracks and progress
+        </h2>
+        <p className="text-small text-text-muted">
+          Solvers reach problems through Tracks. Set them up, and see how far each member has got.
+        </p>
+        <p className="flex flex-wrap gap-4">
+          <Link href={`/spaces/${space.slug}/manage`} className="vd-link">
+            Manage Tracks and Collections
+          </Link>
+          <Link href={`/spaces/${space.slug}/progress`} className="vd-link">
+            Member progress
+          </Link>
+        </p>
+      </section>
 
       {!readOnly && (
         <section aria-labelledby="archive-heading" className="border-border flex flex-col gap-3 border-t pt-6">

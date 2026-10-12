@@ -51,6 +51,48 @@ afterEach(() => vi.useRealTimers());
 
 const settle = () => act(async () => vi.advanceTimersByTime(1600));
 
+describe('the statement editor: slug and format (GRD-72, GRD-74)', () => {
+  it('shows the slug locked, with the reason', async () => {
+    renderInApp(<Harness initial={makeEditor()} />, { space: makeSpace('editor') });
+    const slug = (await screen.findByLabelText('Slug')) as HTMLInputElement;
+    expect(slug.value).toBe('sum');
+    expect(slug.readOnly).toBe(true);
+    expect(slug.disabled).toBe(true);
+    expect(screen.getByText(/cannot be changed, because links and submissions point at it/)).toBeTruthy();
+  });
+
+  it('starts in Markdown mode and switches to PDF by saving the mode', async () => {
+    const withPdf = updated(makeEditor(), {
+      statement_pdf: { sha256: 'a'.repeat(64), size_bytes: 2048, pages: 2 },
+    });
+    api.update.mockResolvedValue(updated(withPdf, { statement_mode: 'pdf' }));
+    renderInApp(<Harness initial={withPdf} />, { space: makeSpace('editor') });
+    expect(((await screen.findByLabelText('Markdown text')) as HTMLInputElement).checked).toBe(true);
+    expect(screen.getByLabelText('Statement (Markdown)')).toBeTruthy();
+    await userEvent.click(screen.getByLabelText('PDF file'));
+    await waitFor(() =>
+      expect(api.update).toHaveBeenCalledWith({ slug: 'team', problemSlug: 'sum' }, { statement_mode: 'pdf' })
+    );
+    expect(await screen.findByRole('heading', { name: 'Statement (PDF)' })).toBeTruthy();
+    expect(screen.queryByLabelText('Statement (Markdown)')).toBeNull();
+    // The details stay either way.
+    expect(screen.getByLabelText('Time limit (ms)')).toBeTruthy();
+  });
+
+  it('opens the upload panel on choosing PDF without a file, and asks Core for nothing yet', async () => {
+    renderInApp(<Harness initial={makeEditor()} />, { space: makeSpace('editor') });
+    await userEvent.click(await screen.findByLabelText('PDF file'));
+    expect(await screen.findByText('Upload PDF')).toBeTruthy();
+    expect(api.update).not.toHaveBeenCalled();
+  });
+
+  it('a published version keeps its format fixed', async () => {
+    renderInApp(<Harness initial={{ ...makeEditor(), editable: false }} />, { space: makeSpace('editor') });
+    const radio = await screen.findByLabelText('PDF file');
+    expect(radio.matches(':disabled')).toBe(true);
+  });
+});
+
 describe('the statement editor (GRD-28)', () => {
   it('shows the details and the statement, with limits in friendly units and the allowed ranges', async () => {
     renderInApp(<Harness initial={makeEditor()} />, { space: makeSpace('editor') });

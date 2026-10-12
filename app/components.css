@@ -549,9 +549,15 @@
 }
 .vd-table td {
   height: var(--row-compact);
-  padding: 0 var(--space-3);
+  /* Rows with a second line (a title over its slug) need air above and below (GRD-70). */
+  padding: var(--space-2) var(--space-3);
   border-bottom: 1px solid var(--border);
   white-space: nowrap;
+}
+/* The small line under a name in a cell: a slug under a title, a username under a display name. */
+.vd-cell-sub {
+  display: block;
+  margin-top: var(--space-1);
 }
 .vd-table tbody tr:last-child td {
   border-bottom: 0;
@@ -971,5 +977,192 @@
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+}
+
+/* Sortable list and transfer lists (GRD-86) */
+.vd-sortable {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.vd-sortable[aria-busy='true'] {
+  opacity: 0.7;
+}
+.vd-sortable__row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--row-compact);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+}
+.vd-sortable__row.is-dragging {
+  position: relative;
+  z-index: 1;
+  border-color: var(--primary);
+  background: var(--primary-soft);
+}
+.vd-sortable__row.is-selected {
+  background: var(--primary-soft);
+}
+.vd-sortable__handle {
+  display: inline-grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: var(--control-sm);
+  height: var(--control-sm);
+  border: 0;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: grab;
+  /* A finger on the handle drags the row instead of scrolling the page. */
+  touch-action: none;
+}
+.vd-sortable__handle:hover {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+.vd-sortable__handle:active {
+  cursor: grabbing;
+}
+.vd-sortable__position {
+  flex-shrink: 0;
+  min-width: 2ch;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  text-align: right;
+}
+.vd-sortable__body {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.vd-sortable__moves {
+  display: inline-flex;
+  flex-shrink: 0;
+  gap: 2px;
+}
+.vd-transfer {
+  display: grid;
+  gap: var(--space-4);
+  grid-template-columns: minmax(0, 1fr);
+}
+@media (min-width: 768px) {
+  .vd-transfer {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+}
+.vd-transfer__col {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+  padding: var(--space-3);
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-lg);
+  background: var(--surface-sunken);
+}
+.vd-transfer__col.is-over {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+}
+.vd-transfer__scroll {
+  max-height: 28rem;
+  overflow-y: auto;
+}
+
+/* Progress bar (GRD-84): a track and a fill; the numbers are always written next to it, never colour alone. */
+.vd-progress {
+  display: block;
+  width: 100%;
+  height: 6px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--surface-sunken);
+  border: 1px solid var(--border);
+}
+.vd-progress__fill {
+  display: block;
+  height: 100%;
+  background: var(--primary);
+}
+.vd-trackcard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  color: inherit;
+  text-decoration: none;
+}
+a.vd-trackcard:hover {
+  border-color: var(--border-strong);
+  background: var(--surface-hover);
+}
+.vd-problemrow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: var(--row-compact);
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--border);
+}
+.vd-problemrow:last-child {
+  border-bottom: 0;
+}
+
+/* PDF statements (GRD-74) */
+.vd-pdf {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+}
+.vd-pdf__bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+.vd-pdf__scroll {
+  max-height: 80vh;
+  overflow: auto;
+  padding: var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-sunken);
+}
+.vd-pdf__pages {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  /* Pages wider than the box scroll sideways instead of being squeezed. */
+  width: max-content;
+  min-width: 100%;
+  align-items: center;
+}
+.vd-pdf__canvas {
+  display: block;
+  max-width: none;
+  border: 1px solid var(--border);
+  /* pdf.js paints the page itself, white like paper; the dark theme inverts it below. */
+  background: var(--surface);
+}
+/* Dark theme: invert the page and turn the hue back, so text is light on dark and pictures keep their colours. */
+:root[data-theme='dark'] .vd-pdf__canvas {
+  filter: invert(1) hue-rotate(180deg);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .vd-pdf__canvas {
+    filter: invert(1) hue-rotate(180deg);
   }
 }

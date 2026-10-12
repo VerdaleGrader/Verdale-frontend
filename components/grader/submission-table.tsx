@@ -11,6 +11,7 @@ export interface SubmissionRow {
   problem: string;
   href?: string;
   author: string;
+  authorAvatar?: string | null;
   language: string;
   verdict: Verdict;
   detail?: string;
@@ -56,7 +57,7 @@ export function SubmissionTable({ rows }: { rows: SubmissionRow[] }) {
               </td>
               <td>
                 <span className="vd-inline">
-                  <Avatar name={row.author} size="sm" />
+                  <Avatar name={row.author} src={row.authorAvatar} size="sm" />
                   {row.author}
                 </span>
               </td>

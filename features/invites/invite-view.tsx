@@ -35,10 +35,12 @@ export function InviteView({ token }: { token: string }) {
         const joined = await spacesApi.acceptInvite(token);
         toast({
           tone: 'success',
-          title: `Joined ${joined.space.name}`,
-          description: `You are ${ROLE_LABELS[joined.role].toLowerCase()}.`,
+          title: joined.track ? `Joined the Track ${joined.track.name}` : `Joined ${joined.space.name}`,
+          description: `You are ${ROLE_LABELS[joined.role].toLowerCase()} in ${joined.space.name}.`,
         });
-        router.push(`/spaces/${joined.space.slug}`);
+        router.push(
+          joined.track ? `/spaces/${joined.space.slug}/tracks/${joined.track.slug}` : `/spaces/${joined.space.slug}`
+        );
       } else {
         await spacesApi.declineInvite(token);
         toast({ tone: 'neutral', title: 'Invitation declined' });
@@ -100,11 +102,20 @@ export function InviteView({ token }: { token: string }) {
     <PageContainer narrow>
       <section className="border-border bg-surface flex flex-col gap-4 rounded-lg border p-5">
         <header className="flex flex-col gap-1">
-          <p className="text-small text-text-muted">{data.invited_by.display_name} invited you to join</p>
-          <h1 className="text-h1 break-words">{data.space.name}</h1>
-          <p className="text-prose">
-            As <strong>{ROLE_LABELS[data.role].toLowerCase()}</strong>. {ROLE_HINTS[data.role]}
+          <p className="text-small text-text-muted">
+            {data.invited_by.display_name} invited you to join{data.track ? ' the Track' : ''}
           </p>
+          <h1 className="text-h1 break-words">{data.track ? data.track.name : data.space.name}</h1>
+          {data.track ? (
+            <p className="text-prose">
+              It is part of <strong>{data.space.name}</strong>. You will join {data.space.name} as a{' '}
+              <strong>solver</strong> if you are not a member yet, and keep your role if you are. {ROLE_HINTS.solver}
+            </p>
+          ) : (
+            <p className="text-prose">
+              As <strong>{ROLE_LABELS[data.role].toLowerCase()}</strong>. {ROLE_HINTS[data.role]}
+            </p>
+          )}
         </header>
         {auth.status === 'authenticated' ? (
           <div className="flex gap-2">

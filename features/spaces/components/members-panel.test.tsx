@@ -39,6 +39,7 @@ function space(role: Role | null, overrides: Partial<Space> = {}): Space {
 const member = (username: string, role: Role): Member => ({
   username,
   display_name: username,
+  avatar_url: null,
   role,
   joined_at: '2026-10-11T00:00:00Z',
 });
@@ -46,7 +47,14 @@ const member = (username: string, role: Role): Member => ({
 function renderPanel(current: Space, members: Member[], me = 'ada') {
   api.members.mockResolvedValue(members);
   api.invites.mockResolvedValue([]);
-  const user = { id: 'u', email: 'a@x.io', username: me, display_name: me, created_at: '2026-10-11T00:00:00Z' };
+  const user = {
+    id: 'u',
+    email: 'a@x.io',
+    username: me,
+    display_name: me,
+    avatar_url: null,
+    created_at: '2026-10-11T00:00:00Z',
+  };
   return render(
     <AuthProvider initial={{ status: 'authenticated', user }}>
       <ToastProvider>
