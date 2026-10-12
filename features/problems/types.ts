@@ -12,6 +12,12 @@ export type ProblemConstraints = Schemas['ProblemConstraints'];
 export type PublishCheck = Schemas['PublishCheck'];
 export type TestCase = Schemas['TestCase'];
 export type TestCaseList = Schemas['TestCaseList'];
+export type TestLimits = Schemas['TestLimits'];
+export type TextSlice = Schemas['TextSlice'];
+export type StagedFile = Schemas['StagedFile'];
+export type GenerateJob = Schemas['GenerateJob'];
+export type GenerateRun = Schemas['GenerateRun'];
+export type SaveTestCasesRequest = Schemas['SaveTestCasesRequest'];
 export type ReferenceSolution = Schemas['ReferenceSolution'];
 export type UpdateProblemRequest = Schemas['UpdateProblemRequest'];
 
