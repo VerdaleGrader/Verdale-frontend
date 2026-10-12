@@ -1,4 +1,4 @@
-import type { Space } from './types';
+import type { Role, Space } from './types';
 
 export interface SpaceAbilities {
   isMember: boolean;
@@ -47,4 +47,26 @@ export function abilitiesOf(space: Pick<Space, 'my_role' | 'archived_at' | 'is_p
     canCreateProblems: writes && !archived,
     canReviewSubmissions: reads,
   };
+}
+
+/**
+ * Who may move a member from `from` (null: not a member yet, i.e. inviting) to `to`.
+ * Mirrors canAssignRole in Core: the owner can do anything to anyone else; an
+ * administrator only moves editors, observers and solvers among those three.
+ */
+export function canAssignRole(actorRole: Role | null, from: Role | null, to: Role): boolean {
+  if (actorRole === 'owner') return from !== 'owner' && to !== 'owner';
+  if (actorRole === 'administrator') {
+    const below = (role: Role | null) => role === null || role === 'editor' || role === 'observer' || role === 'solver';
+    return below(from) && below(to);
+  }
+  return false;
+}
+
+/** Who may remove a member (never themselves: leaving is a separate action). Mirrors canRemoveMember in Core. */
+export function canRemoveMember(actorRole: Role | null, targetRole: Role): boolean {
+  if (actorRole === 'owner') return targetRole !== 'owner';
+  if (actorRole === 'administrator')
+    return targetRole === 'editor' || targetRole === 'observer' || targetRole === 'solver';
+  return false;
 }

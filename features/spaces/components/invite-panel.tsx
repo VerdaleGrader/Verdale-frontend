@@ -12,13 +12,10 @@ import { ApiError, errorMessage } from '@/lib/api';
 import { timeAgo } from '@/lib/format';
 import { useApiQuery } from '@/lib/use-api-query';
 import { spacesApi } from '../api/spaces.api';
-import { ROLE_LABELS, type Invite } from '../types';
+import { roleOptions } from '../role-options';
+import { ROLE_LABELS, type AssignableRole, type Invite } from '../types';
 import { useSpace } from './space-shell';
 
-const INVITE_ROLES = [
-  { value: 'editor', label: 'Editor: creates and edits problems' },
-  { value: 'solver', label: 'Solver: views problems and submits' },
-];
 const EXPIRY = [
   { value: '1', label: '1 day' },
   { value: '3', label: '3 days' },
@@ -31,12 +28,12 @@ function absoluteLink(path: string): string {
   return `${window.location.origin}${path}`;
 }
 
-/** Invite by username (they answer in their own list) or create a one-time link. Owners only. */
+/** Invite by username (they answer in their own list) or create a one-time link. Owners and administrators. */
 export function InvitePanel() {
   const { space } = useSpace();
   const toast = useToast();
   const invites = useApiQuery(() => spacesApi.invites(space.slug), `invites-${space.slug}`);
-  const [role, setRole] = useState<'editor' | 'solver'>('solver');
+  const [role, setRole] = useState<AssignableRole>('solver');
   const [username, setUsername] = useState('');
   const [days, setDays] = useState('7');
   const [creating, setCreating] = useState(false);
@@ -111,8 +108,8 @@ export function InvitePanel() {
           <Dropdown
             label="Role"
             value={role}
-            options={INVITE_ROLES}
-            onValueChange={(next) => setRole(next as 'editor' | 'solver')}
+            options={roleOptions(space.my_role, null)}
+            onValueChange={(next) => setRole(next as AssignableRole)}
           />
           <Dropdown label="Expires after" value={days} options={EXPIRY} onValueChange={setDays} />
         </div>

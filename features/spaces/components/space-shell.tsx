@@ -94,7 +94,9 @@ export function SpaceChrome({ children }: { children: React.ReactNode }) {
   const tabs = [
     { href: base, label: 'Overview' },
     ...(abilities.canViewMembers ? [{ href: `${base}/members`, label: 'Members', count: data.member_count }] : []),
-    ...(data.my_role === 'owner' ? [{ href: `${base}/settings`, label: 'Settings' }] : []),
+    ...(data.my_role === 'owner' || data.my_role === 'administrator'
+      ? [{ href: `${base}/settings`, label: 'Settings' }]
+      : []),
   ];
 
   return (

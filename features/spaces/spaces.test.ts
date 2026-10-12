@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { abilitiesOf } from './abilities';
+import { abilitiesOf, canAssignRole, canRemoveMember } from './abilities';
 import { suggestSlug } from './slug';
 import { visibilityWarning } from './components/space-settings';
 import type { Space } from './types';
@@ -113,5 +113,43 @@ describe('visibilityWarning', () => {
   });
   it('says who will see it when going public', () => {
     expect(visibilityWarning('private', 'public', 'Team')).toMatch(/visitors who are not logged in/);
+  });
+});
+
+describe('canAssignRole and canRemoveMember (mirror Core)', () => {
+  it('lets the owner assign any role to anyone but the owner, and never "owner" (that is a handover)', () => {
+    for (const from of [null, 'administrator', 'editor', 'observer', 'solver'] as const) {
+      for (const to of ['administrator', 'editor', 'observer', 'solver'] as const) {
+        expect(canAssignRole('owner', from, to)).toBe(true);
+      }
+      expect(canAssignRole('owner', from, 'owner')).toBe(false);
+    }
+    expect(canAssignRole('owner', 'owner', 'editor')).toBe(false);
+  });
+
+  it('keeps administrators among editors, observers and solvers', () => {
+    for (const from of [null, 'editor', 'observer', 'solver'] as const) {
+      for (const to of ['editor', 'observer', 'solver'] as const) {
+        expect(canAssignRole('administrator', from, to)).toBe(true);
+      }
+      expect(canAssignRole('administrator', from, 'administrator')).toBe(false);
+    }
+    expect(canAssignRole('administrator', 'administrator', 'editor')).toBe(false);
+    expect(canAssignRole('administrator', 'owner', 'editor')).toBe(false);
+  });
+
+  it('gives everybody else nothing', () => {
+    for (const actor of ['editor', 'observer', 'solver', null] as const) {
+      expect(canAssignRole(actor, 'solver', 'editor')).toBe(false);
+      expect(canRemoveMember(actor, 'solver')).toBe(false);
+    }
+  });
+
+  it('removes: the owner anyone else, an administrator only editors, observers and solvers', () => {
+    expect(canRemoveMember('owner', 'administrator')).toBe(true);
+    expect(canRemoveMember('owner', 'owner')).toBe(false);
+    expect(canRemoveMember('administrator', 'editor')).toBe(true);
+    expect(canRemoveMember('administrator', 'administrator')).toBe(false);
+    expect(canRemoveMember('administrator', 'owner')).toBe(false);
   });
 });

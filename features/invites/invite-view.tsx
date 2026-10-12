@@ -10,7 +10,7 @@ import { Button, buttonVariants } from '@/components/ui/button';
 import { useToast } from '@/components/ui/toast';
 import { useAuth } from '@/features/auth/hooks/auth-provider';
 import { spacesApi } from '@/features/spaces/api/spaces.api';
-import { ROLE_HINTS, ROLE_LABELS } from '@/features/spaces/types';
+import { ROLE_DESCRIPTIONS, ROLE_LABELS } from '@/features/spaces/types';
 import { ApiError, errorMessage } from '@/lib/api';
 import { useApiQuery } from '@/lib/use-api-query';
 
@@ -107,7 +107,7 @@ export function InviteView({ token }: { token: string }) {
           </p>
           <h1 className="text-h1 break-words">{data.space.name}</h1>
           <p className="text-prose">
-            As <strong>{ROLE_LABELS[data.role].toLowerCase()}</strong>. {ROLE_HINTS[data.role]}
+            As <strong>{ROLE_LABELS[data.role].toLowerCase()}</strong>. {ROLE_DESCRIPTIONS[data.role]}
           </p>
         </header>
         {auth.status === 'authenticated' ? (
