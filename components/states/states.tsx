@@ -1,4 +1,4 @@
-import { CircleAlert, Inbox, LoaderCircle } from 'lucide-react';
+import { CircleAlert, Inbox, LoaderCircle, TriangleAlert } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ApiError } from '@/lib/api';
 import { cn } from '@/lib/utils';
@@ -31,16 +31,41 @@ export function ErrorState({
   title = 'Something went wrong',
   onRetry,
   reference,
+  centered,
+  description,
 }: {
   error?: unknown;
   title?: string;
   onRetry?: () => void;
+  /** The large centred card for a list or page that could not load (primary retry button), instead of the inline box. */
+  centered?: boolean;
+  /** Replaces the error's own message. */
+  description?: string;
   /** Request id to quote to the Space owner. Defaults to the id Core sent with the error. */
   reference?: string;
 }) {
   const requestId = reference ?? (error instanceof ApiError ? error.requestId : undefined);
   const message =
-    error instanceof ApiError || error instanceof Error ? error.message : 'An unexpected error occurred. Try again.';
+    description ??
+    (error instanceof ApiError || error instanceof Error ? error.message : 'An unexpected error occurred. Try again.');
+  if (centered) {
+    return (
+      <div
+        role="alert"
+        className="border-border bg-surface flex flex-col items-center gap-3 rounded-md border px-6 py-12 text-center"
+      >
+        <TriangleAlert className="text-danger size-7" strokeWidth={1.75} aria-hidden />
+        <h2 className="text-h3">{title}</h2>
+        <p className="text-text-muted max-w-[44ch]">{message}</p>
+        {onRetry && (
+          <Button variant="primary" onClick={onRetry}>
+            Try again
+          </Button>
+        )}
+        {requestId && <span className="vd-mono text-text-muted">Reference: {requestId}</span>}
+      </div>
+    );
+  }
   return (
     <div role="alert" className="border-border bg-danger-soft flex flex-col items-start gap-3 rounded-lg border p-4">
       <div className="text-danger flex items-center gap-2">
