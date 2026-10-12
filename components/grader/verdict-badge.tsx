@@ -20,7 +20,7 @@ export function VerdictBadge({
   className,
 }: {
   verdict: Verdict;
-  /** Replaces the full name, e.g. "Wrong answer on test 4". The short form keeps the code and carries this in its title. */
+  /** Replaces the full name, e.g. "Wrong answer on testcase 4". The short form keeps the code and carries this in its title. */
   detail?: string;
   format?: VerdictFormat;
   /** @deprecated Use `format="short"`. */

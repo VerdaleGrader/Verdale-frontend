@@ -135,4 +135,15 @@ describe('MembersPanel', () => {
     expect(screen.queryByRole('button', { name: /^Remove/ })).toBeNull();
     expect(screen.queryByRole('heading', { name: 'Invite people' })).toBeNull();
   });
+
+  it('shows the picture of a member, and the initials when there is none', async () => {
+    renderPanel(space('solver'), [
+      { ...member('ada', 'owner'), display_name: 'Ada Lovelace', avatar_url: 'https://example.com/ada.png' },
+      { ...member('grace', 'solver'), display_name: 'Grace Hopper' },
+    ]);
+    expect((await screen.findByRole('img', { name: 'Ada Lovelace' })).getAttribute('src')).toBe(
+      'https://example.com/ada.png'
+    );
+    expect(screen.getByRole('img', { name: 'Grace Hopper' }).textContent).toBe('GH');
+  });
 });

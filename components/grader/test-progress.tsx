@@ -1,14 +1,14 @@
 import { VERDICTS, type Verdict } from './verdict';
 import { cn } from '@/lib/utils';
 
-/** Words for the status line: "Running test 3 of 20", "Wrong answer on test 7", "Accepted". */
+/** Words for the status line: "Running testcase 3 of 20", "Wrong answer on testcase 7", "Accepted". */
 export function progressSummary(results: Verdict[]): string {
   const total = results.length;
-  if (total === 0) return 'No tests yet';
+  if (total === 0) return 'No testcases yet';
   const failedAt = results.findIndex((verdict) => !['AC', 'QUEUED', 'RUNNING', 'SKIPPED'].includes(verdict));
-  if (failedAt >= 0) return `${VERDICTS[results[failedAt]!].label} on test ${failedAt + 1}`;
+  if (failedAt >= 0) return `${VERDICTS[results[failedAt]!].label} on testcase ${failedAt + 1}`;
   const runningAt = results.indexOf('RUNNING');
-  if (runningAt >= 0) return `Running test ${runningAt + 1} of ${total}`;
+  if (runningAt >= 0) return `Running testcase ${runningAt + 1} of ${total}`;
   if (results.every((verdict) => verdict === 'AC')) return 'Accepted';
   const done = results.filter((verdict) => verdict === 'AC').length;
   return done === 0 ? 'Queued' : `Passed ${done} of ${total}`;
@@ -55,7 +55,7 @@ export function TestProgress({
           <span
             key={index}
             className={cn('vd-cell', `vd-cell--${VERDICTS[verdict].cell}`)}
-            title={`Test ${index + 1}: ${VERDICTS[verdict].label}`}
+            title={`Testcase ${index + 1}: ${VERDICTS[verdict].label}`}
           />
         ))}
       </div>

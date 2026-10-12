@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { PageContainer } from '@/components/layout/page';
 import { EmptyState, ErrorState, Loading } from '@/components/states/states';
+import { Avatar } from '@/components/ui/avatar';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { useToast } from '@/components/ui/toast';
 import { useAuth } from '@/features/auth/hooks/auth-provider';
@@ -100,7 +101,10 @@ export function InviteView({ token }: { token: string }) {
     <PageContainer narrow>
       <section className="border-border bg-surface flex flex-col gap-4 rounded-lg border p-5">
         <header className="flex flex-col gap-1">
-          <p className="text-small text-text-muted">{data.invited_by.display_name} invited you to join</p>
+          <p className="text-small text-text-muted vd-inline">
+            <Avatar name={data.invited_by.display_name} src={data.invited_by.avatar_url} size="sm" />
+            {data.invited_by.display_name} invited you to join
+          </p>
           <h1 className="text-h1 break-words">{data.space.name}</h1>
           <p className="text-prose">
             As <strong>{ROLE_LABELS[data.role].toLowerCase()}</strong>. {ROLE_HINTS[data.role]}

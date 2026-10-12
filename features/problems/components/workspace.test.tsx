@@ -39,7 +39,7 @@ describe('the authoring workspace', () => {
     expect(within(tabs).getByRole('link', { name: 'Statement' }).getAttribute('href')).toBe(
       '/spaces/team/problems/sum/edit'
     );
-    expect(within(tabs).getByRole('link', { name: /Tests/ }).textContent).toContain('2');
+    expect(within(tabs).getByRole('link', { name: /Testcases/ }).textContent).toContain('2');
     expect(
       within(tabs)
         .getByRole('link', { name: /Solutions/ })
@@ -122,7 +122,7 @@ describe('publishing', () => {
           {
             key: 'sample_test',
             ok: false,
-            message: 'Mark at least one test as a sample so solvers can see an example.',
+            message: 'Mark at least one testcase as a sample so solvers can see an example.',
           },
           { key: 'solution', ok: false, message: 'Attach a reference solution and mark it as primary.' },
         ],
@@ -130,7 +130,7 @@ describe('publishing', () => {
     );
     expect(await screen.findByRole('heading', { name: 'Before you publish (3 of 5 ready)' })).toBeTruthy();
     expect((screen.getByRole('button', { name: 'Publish' }) as HTMLButtonElement).disabled).toBe(true);
-    expect(screen.getByText('Mark at least one test as a sample so solvers can see an example.')).toBeTruthy();
+    expect(screen.getByText('Mark at least one testcase as a sample so solvers can see an example.')).toBeTruthy();
     expect(screen.getAllByLabelText('Still to do')).toHaveLength(2);
     expect(screen.getAllByLabelText('Done')).toHaveLength(3);
   });

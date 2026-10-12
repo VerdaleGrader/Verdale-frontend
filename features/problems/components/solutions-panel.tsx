@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Star, Trash2 } from 'lucide-react';
 import { CodeEditor } from '@/components/code/code-editor';
 import { EmptyState, ErrorState, Loading } from '@/components/states/states';
+import { Avatar } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Dialog } from '@/components/ui/dialog';
@@ -54,7 +55,7 @@ export function SolutionsPanel() {
   return (
     <div className="flex flex-col gap-6">
       <p className="text-small text-text-muted max-w-[var(--measure)]">
-        A reference solution proves the problem and its tests are right, and is needed before you can publish. Only
+        A reference solution proves the problem and its testcases are right, and is needed before you can publish. Only
         owners and editors of this Space can see it. The primary solution is the one that is checked first.
       </p>
 
@@ -82,7 +83,11 @@ export function SolutionsPanel() {
                       Primary
                     </Badge>
                   )}
-                  <span className="text-small text-text-muted">added by {solution.created_by.display_name}</span>
+                  <span className="text-small text-text-muted vd-inline">
+                    added by
+                    <Avatar name={solution.created_by.display_name} src={solution.created_by.avatar_url} size="sm" />
+                    {solution.created_by.display_name}
+                  </span>
                 </span>
                 {editor.editable && (
                   <span className="flex flex-wrap gap-1">

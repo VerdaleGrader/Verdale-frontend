@@ -82,6 +82,8 @@ describe('the problems of a Space', () => {
     expect(screen.getAllByRole('link', { name: /New problem/ })[0]!.getAttribute('href')).toBe(
       '/spaces/team/problems/new'
     );
+    expect(screen.getAllByRole('combobox', { name: 'Show' })).toHaveLength(1);
+    expect(api.list).toHaveBeenCalledWith('team', expect.objectContaining({ status: 'all' }));
     await chooseOption('Show', 'Drafts');
     await waitFor(() =>
       expect(api.list).toHaveBeenLastCalledWith('team', expect.objectContaining({ status: 'draft', page: 1 }))
@@ -115,7 +117,7 @@ describe('the problems of a Space', () => {
     api.list.mockResolvedValue(page([]));
     const editor = renderInApp(<ProblemList />, { space: makeSpace('editor') });
     expect(await screen.findByText('No problems yet')).toBeTruthy();
-    expect(screen.getByText(/Start a draft, add tests and a reference solution/)).toBeTruthy();
+    expect(screen.getByText(/Start a draft, add testcases and a reference solution/)).toBeTruthy();
     editor.unmount();
     const solver = renderInApp(<ProblemList />, { space: makeSpace('solver') });
     expect(await screen.findByText(/Problems published in this Space will appear here/)).toBeTruthy();
@@ -173,7 +175,7 @@ describe('filters in the URL', () => {
     resetNavigation('/spaces/team?status=bogus&page=-3');
     renderInApp(<ProblemList />, { space: makeSpace('editor') });
     await waitFor(() =>
-      expect(api.list).toHaveBeenCalledWith('team', { q: '', status: 'published', page: 1, pageSize: 20 })
+      expect(api.list).toHaveBeenCalledWith('team', { q: '', status: 'all', page: 1, pageSize: 20 })
     );
   });
 

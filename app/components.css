@@ -629,7 +629,8 @@
 }
 .vd-table td {
   height: var(--row-compact);
-  padding: 0 var(--space-3);
+  /* Rows with two lines (name over slug or username) must not touch the row edges. */
+  padding: var(--space-2) var(--space-3);
   border-bottom: 1px solid var(--border);
   white-space: nowrap;
 }

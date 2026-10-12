@@ -54,27 +54,27 @@ describe('VerdictBadge', () => {
   });
 
   it('detail replaces the label', () => {
-    render(<VerdictBadge verdict="WA" detail="Wrong answer on test 4" />);
-    expect(screen.getByText('Wrong answer on test 4')).toBeTruthy();
+    render(<VerdictBadge verdict="WA" detail="Wrong answer on testcase 4" />);
+    expect(screen.getByText('Wrong answer on testcase 4')).toBeTruthy();
   });
 });
 
 describe('TestProgress', () => {
   it('summarises in words', () => {
-    expect(progressSummary(['AC', 'AC', 'RUNNING', 'QUEUED'])).toBe('Running test 3 of 4');
-    expect(progressSummary(['AC', 'WA', 'SKIPPED'])).toBe('Wrong answer on test 2');
+    expect(progressSummary(['AC', 'AC', 'RUNNING', 'QUEUED'])).toBe('Running testcase 3 of 4');
+    expect(progressSummary(['AC', 'WA', 'SKIPPED'])).toBe('Wrong answer on testcase 2');
     expect(progressSummary(['AC', 'AC'])).toBe('Accepted');
     expect(progressSummary(['QUEUED', 'QUEUED'])).toBe('Queued');
-    expect(progressSummary([])).toBe('No tests yet');
+    expect(progressSummary([])).toBe('No testcases yet');
   });
 
   it('is a progressbar with a value text and one titled cell per test', () => {
     render(<TestProgress results={['AC', 'AC', 'RUNNING', 'QUEUED']} />);
     const bar = screen.getByRole('progressbar');
-    expect(bar.getAttribute('aria-valuetext')).toBe('Running test 3 of 4');
+    expect(bar.getAttribute('aria-valuetext')).toBe('Running testcase 3 of 4');
     expect(bar.getAttribute('aria-valuenow')).toBe('2');
-    expect(within(bar).getAllByTitle(/^Test \d/)).toHaveLength(4);
-    expect(screen.getByTitle('Test 3: Running')).toBeTruthy();
+    expect(within(bar).getAllByTitle(/^Testcase \d/)).toHaveLength(4);
+    expect(screen.getByTitle('Testcase 3: Running')).toBeTruthy();
   });
 });
 
@@ -93,7 +93,7 @@ describe('TestResultList', () => {
     expect(screen.getByText('124 ms')).toBeTruthy();
     expect(screen.getByText('15.2 MB')).toBeTruthy();
     expect(screen.getByText('2 s')).toBeTruthy();
-    expect(screen.getByText('Test results', { selector: 'caption' })).toBeTruthy();
+    expect(screen.getByText('Testcase results', { selector: 'caption' })).toBeTruthy();
   });
 });
 
@@ -120,6 +120,23 @@ describe('SubmissionTable', () => {
     expect(screen.getByRole('link', { name: 'Two sum' }).getAttribute('href')).toBe('/p/two-sum');
     expect(screen.getByRole('link', { name: 'Two sum' }).closest('tr')?.getAttribute('aria-current')).toBe('true');
     expect(screen.getByText('31 ms')).toBeTruthy();
+  });
+});
+
+describe('SubmissionTable authors', () => {
+  const row = { id: 1, when: 'now', problem: 'Two sum', language: 'C++', verdict: 'AC' as const };
+
+  it('shows the picture of the author, or the initials without one', () => {
+    render(
+      <SubmissionTable
+        rows={[
+          { ...row, author: 'Ada Lovelace', authorAvatarUrl: 'https://example.com/ada.png' },
+          { ...row, id: 2, author: 'Grace Hopper', authorAvatarUrl: null },
+        ]}
+      />
+    );
+    expect(screen.getByRole('img', { name: 'Ada Lovelace' }).getAttribute('src')).toBe('https://example.com/ada.png');
+    expect(screen.getByRole('img', { name: 'Grace Hopper' }).textContent).toBe('GH');
   });
 });
 

@@ -16,14 +16,14 @@ export interface TestResultRow {
  * Per-test results of one submission, one row each. Hidden tests are labelled "Hidden" and carry no data of their own;
  * owners, administrators, editors and observers can open them elsewhere, solvers only ever see the samples.
  */
-export function TestResultList({ rows, caption = 'Test results' }: { rows: TestResultRow[]; caption?: string }) {
+export function TestResultList({ rows, caption = 'Testcase results' }: { rows: TestResultRow[]; caption?: string }) {
   return (
     <div className="vd-tablewrap">
       <table className="vd-table">
         <caption className="vd-sr">{caption}</caption>
         <thead>
           <tr>
-            <th scope="col">Test</th>
+            <th scope="col">Testcase</th>
             <th scope="col">
               <span className="vd-inline">
                 Verdict

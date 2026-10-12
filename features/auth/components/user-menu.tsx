@@ -24,10 +24,14 @@ export function UserMenu() {
   }
   return (
     <div className="flex items-center gap-2">
-      <span className="flex items-center gap-2">
-        <Avatar name={auth.user.display_name} size="md" />
-        <span className="text-body-strong hidden sm:inline">{auth.user.username}</span>
-      </span>
+      <Link
+        href="/account"
+        aria-label={`Your account, ${auth.user.display_name}`}
+        className="hover:bg-surface-hover flex items-center gap-2 rounded-md px-1.5 py-1"
+      >
+        <Avatar name={auth.user.display_name} src={auth.user.avatar_url} size="md" />
+        <span className="text-body-strong hidden sm:inline">{auth.user.display_name}</span>
+      </Link>
       <Tooltip label="Log out" side="bottom">
         <Button
           variant="ghost"
