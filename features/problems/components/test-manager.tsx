@@ -185,7 +185,7 @@ export function TestManager() {
                     </td>
                     <td className="is-num">
                       <a className="vd-link vd-mono" href={testFileUrl(target, test.id, 'output')} download>
-                        {formatBytes(test.output_size_bytes)}
+                        {formatBytes(test.output_size_bytes ?? 0)}
                         <Download
                           className="ml-1 inline size-3.5"
                           aria-label={`Download output of test ${test.position}`}

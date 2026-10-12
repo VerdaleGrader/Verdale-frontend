@@ -21,7 +21,7 @@ const problem = (slug: string, overrides: Partial<ProblemSummary> = {}): Problem
   time_limit_ms: 1000,
   memory_limit_kb: 262144,
   allowed_languages: ['c', 'python'],
-  created_by: { username: 'edith', display_name: 'Edith' },
+  created_by: { username: 'edith', display_name: 'Edith', avatar_url: null },
   created_at: '2026-10-11T00:00:00Z',
   updated_at: '2026-10-11T00:00:00Z',
   published_at: '2026-10-11T00:00:00Z',
