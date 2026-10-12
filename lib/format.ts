@@ -41,3 +41,20 @@ export function formatBytes(bytes: number): string {
   if (bytes >= 1024) return `${Number((bytes / 1024).toFixed(1))} KiB`;
   return `${bytes} ${bytes === 1 ? 'byte' : 'bytes'}`;
 }
+
+/** "12 Oct 2026, 16:31" for the exact time behind a "4 minutes ago". */
+export function formatDateTime(iso: string): string {
+  return new Intl.DateTimeFormat('en-GB', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).format(new Date(iso));
+}
+
+/** 148212 -> "148,212". */
+export function formatCount(count: number): string {
+  return new Intl.NumberFormat('en-US').format(count);
+}
