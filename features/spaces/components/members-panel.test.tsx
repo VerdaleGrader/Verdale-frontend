@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ToastProvider } from '@/components/ui/toast';
 import { AuthProvider } from '@/features/auth/hooks/auth-provider';
+import { chooseOption } from '@/features/test-support';
 import { abilitiesOf } from '../abilities';
 import type { Member, Role, Space } from '../types';
 import { MembersPanel } from './members-panel';
@@ -93,7 +94,7 @@ describe('MembersPanel', () => {
   it('protects the last owner: cannot change, remove or leave, and says why', async () => {
     renderPanel(space('owner'), [member('ada', 'owner'), member('grace', 'solver')]);
     const select = await screen.findByRole('combobox', { name: 'Role of ada' });
-    expect((select as HTMLSelectElement).disabled).toBe(true);
+    expect(select.hasAttribute('disabled')).toBe(true);
     expect((screen.getByRole('button', { name: 'Remove ada' }) as HTMLButtonElement).disabled).toBe(true);
     expect((screen.getByRole('button', { name: 'Leave Space' }) as HTMLButtonElement).disabled).toBe(true);
     expect(screen.getByText(/only owner/)).toBeTruthy();
@@ -118,10 +119,9 @@ describe('MembersPanel', () => {
   });
 
   it('changing a role calls Core and shows Core’s refusal when it says no', async () => {
-    const user = userEvent.setup();
     api.changeRole.mockRejectedValue(new Error('A Space needs at least one owner. Make someone else an owner first.'));
     renderPanel(space('owner'), [member('ada', 'owner'), member('grace', 'owner')]);
-    await user.selectOptions(await screen.findByRole('combobox', { name: 'Role of grace' }), 'editor');
+    await chooseOption('Role of grace', 'Editor');
     await waitFor(() => expect(api.changeRole).toHaveBeenCalledWith('team', 'grace', 'editor'));
     expect((await screen.findByRole('alert')).textContent).toMatch(/at least one owner/);
   });

@@ -5,7 +5,7 @@ import { useState } from 'react';
 import { Avatar } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Dialog } from '@/components/ui/dialog';
-import { Select } from '@/components/ui/field';
+import { Dropdown } from '@/components/ui/dropdown';
 import { useToast } from '@/components/ui/toast';
 import { EmptyState, ErrorState, Loading } from '@/components/states/states';
 import { useAuth } from '@/features/auth/hooks/auth-provider';
@@ -145,7 +145,7 @@ export function MembersPanel() {
                         </td>
                         <td>
                           {abilities.canManageMembers ? (
-                            <Select
+                            <Dropdown
                               aria-label={`Role of ${member.username}`}
                               size="sm"
                               className="min-w-[8rem]"
@@ -153,7 +153,7 @@ export function MembersPanel() {
                               options={ROLE_OPTIONS}
                               disabled={busy || isLastOwner}
                               title={isLastOwner ? 'A Space needs at least one owner.' : ROLE_HINTS[member.role]}
-                              onChange={(event) => changeRole(member, event.target.value as Role)}
+                              onValueChange={(next) => changeRole(member, next as Role)}
                             />
                           ) : (
                             <span title={ROLE_HINTS[member.role]}>{ROLE_LABELS[member.role]}</span>

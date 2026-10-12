@@ -299,7 +299,7 @@ function SolvePanel({ problem, target }: { problem: Problem; target: ProblemTarg
       <CodeEditorFrame
         languages={languages.map((value) => ({ value, label: LANGUAGE_LABELS[value] }))}
         language={language}
-        onLanguageChange={(event) => changeLanguage(event.target.value as Language)}
+        onLanguageChange={(next) => changeLanguage(next as Language)}
         onSubmit={() => void submit()}
         submitting={submitting}
         submitLabel={loggedIn || auth.status === 'loading' ? 'Submit' : 'Log in to submit'}

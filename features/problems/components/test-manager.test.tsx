@@ -94,8 +94,12 @@ describe('the test list', () => {
     renderManager(listOf([test(1, { is_sample: true }), test(2)]));
     const table = await screen.findByRole('table', { name: 'Tests of this problem' });
     const rows = within(table).getAllByRole('row').slice(1);
-    expect(within(rows[0]!).getByRole('checkbox', { name: 'Test 1 is a sample' })).toHaveProperty('checked', true);
-    expect(within(rows[1]!).getByRole('checkbox', { name: 'Test 2 is a sample' })).toHaveProperty('checked', false);
+    expect(within(rows[0]!).getByRole('checkbox', { name: 'Test 1 is a sample' }).getAttribute('aria-checked')).toBe(
+      'true'
+    );
+    expect(within(rows[1]!).getByRole('checkbox', { name: 'Test 2 is a sample' }).getAttribute('aria-checked')).toBe(
+      'false'
+    );
     expect(within(rows[0]!).getByText('Sample')).toBeTruthy();
     expect(within(rows[1]!).getByText('Hidden')).toBeTruthy();
     expect(within(rows[0]!).getByText('1.5 KiB')).toBeTruthy();
@@ -126,7 +130,7 @@ describe('the test list', () => {
     expect(screen.queryByRole('heading', { name: 'Add tests' })).toBeNull();
     expect(screen.queryByRole('button', { name: /Delete test/ })).toBeNull();
     expect(screen.queryByRole('button', { name: /Move test/ })).toBeNull();
-    expect((screen.getByRole('checkbox', { name: 'Test 1 is a sample' }) as HTMLInputElement).disabled).toBe(true);
+    expect(screen.getByRole('checkbox', { name: 'Test 1 is a sample' }).hasAttribute('disabled')).toBe(true);
     expect(screen.getAllByRole('link').length).toBe(2);
   });
 });
@@ -236,15 +240,15 @@ describe('uploading files', () => {
     renderManager(listOf([]));
     await screen.findByRole('heading', { name: 'Add tests' });
     await userEvent.upload(chooser(), [file('1.in'), file('1.out'), file('2.in'), file('2.out')]);
-    expect(((await screen.findByRole('checkbox', { name: '1 is a sample' })) as HTMLInputElement).checked).toBe(true);
-    expect((screen.getByRole('checkbox', { name: '2 is a sample' }) as HTMLInputElement).checked).toBe(false);
+    expect((await screen.findByRole('checkbox', { name: '1 is a sample' })).getAttribute('aria-checked')).toBe('true');
+    expect(screen.getByRole('checkbox', { name: '2 is a sample' }).getAttribute('aria-checked')).toBe('false');
   });
 
   it('does not, when a sample already exists', async () => {
     renderManager(listOf([test(1, { is_sample: true })]));
     await screen.findByRole('heading', { name: 'Add tests' });
     await userEvent.upload(chooser(), [file('1.in'), file('1.out')]);
-    expect(((await screen.findByRole('checkbox', { name: '1 is a sample' })) as HTMLInputElement).checked).toBe(false);
+    expect((await screen.findByRole('checkbox', { name: '1 is a sample' })).getAttribute('aria-checked')).toBe('false');
   });
 
   it('uploads the pairs one by one, in order, then reloads and clears the list', async () => {
