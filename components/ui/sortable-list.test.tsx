@@ -2,6 +2,7 @@ import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
 import { describe, expect, it, vi } from 'vitest';
+import { MenuItem } from './menu';
 import { SortableListOf, SortableLists, moveItem } from './sortable-list';
 
 interface Item {
@@ -138,5 +139,52 @@ describe('SortableLists (two lists)', () => {
       />
     );
     expect(screen.getByText('Drop a problem here')).toBeTruthy();
+  });
+});
+
+describe('SortableList extras', () => {
+  it('adds the page\u2019s own entries to the row menu', async () => {
+    const onRemove = vi.fn();
+    render(
+      <SortableListOf
+        label="Testcases"
+        items={ITEMS}
+        getId={(item) => item.id}
+        getLabel={(item) => item.name}
+        onReorder={() => undefined}
+        itemActions={(item) => <MenuItem onSelect={() => onRemove(item.id)}>Remove</MenuItem>}
+        renderItem={(item, context) => (
+          <div>
+            <span>{item.name}</span>
+            {context.moveMenu}
+          </div>
+        )}
+      />
+    );
+    await userEvent.click(screen.getByRole('button', { name: /Move Testcase B/ }));
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Remove' }));
+    expect(onRemove).toHaveBeenCalledWith('b');
+  });
+
+  it('keeps handles and menus but disables them while locked', () => {
+    render(
+      <SortableListOf
+        label="Testcases"
+        items={ITEMS}
+        locked
+        getId={(item) => item.id}
+        getLabel={(item) => item.name}
+        onReorder={() => undefined}
+        renderItem={(item, context) => (
+          <div>
+            {context.handle}
+            <span>{item.name}</span>
+            {context.moveMenu}
+          </div>
+        )}
+      />
+    );
+    expect(screen.getByRole('button', { name: 'Drag to reorder Testcase A' }).hasAttribute('disabled')).toBe(true);
+    expect(screen.getByRole('button', { name: /Move Testcase A/ }).hasAttribute('disabled')).toBe(true);
   });
 });
