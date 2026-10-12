@@ -12,11 +12,12 @@ import { ApiError, errorMessage } from '@/lib/api';
 import { timeAgo } from '@/lib/format';
 import { useApiQuery } from '@/lib/use-api-query';
 import { spacesApi } from '../api/spaces.api';
+import { canAssignRole } from '../abilities';
 import { roleOptions } from '../role-options';
 import { ROLE_LABELS, type AssignableRole, type Invite } from '../types';
 import { useSpace } from './space-shell';
 
-const EXPIRY = [
+export const EXPIRY = [
   { value: '1', label: '1 day' },
   { value: '3', label: '3 days' },
   { value: '7', label: '7 days' },
@@ -24,7 +25,7 @@ const EXPIRY = [
   { value: '30', label: '30 days' },
 ];
 
-function absoluteLink(path: string): string {
+export function absoluteLink(path: string): string {
   return `${window.location.origin}${path}`;
 }
 
@@ -166,14 +167,17 @@ export function InvitePanel() {
                       })}
                     </span>
                   </span>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => revoke(invite)}
-                    aria-label={`Revoke invitation ${invite.invited_user ? `for ${invite.invited_user.username}` : 'link'}`}
-                  >
-                    Revoke
-                  </Button>
+                  {/* An administrator cannot withdraw an invitation to administrator (Core refuses it). */}
+                  {canAssignRole(space.my_role, null, invite.role) && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => revoke(invite)}
+                      aria-label={`Revoke invitation ${invite.invited_user ? `for ${invite.invited_user.username}` : 'link'}`}
+                    >
+                      Revoke
+                    </Button>
+                  )}
                 </li>
               ))}
             </ul>

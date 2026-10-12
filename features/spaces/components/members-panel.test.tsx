@@ -45,9 +45,9 @@ const member = (username: string, role: Role): Member => ({
   joined_at: '2026-10-11T00:00:00Z',
 });
 
-function renderPanel(current: Space, members: Member[], me = 'ada') {
+function renderPanel(current: Space, members: Member[], me = 'ada', invites: unknown[] = []) {
   api.members.mockResolvedValue(members);
-  api.invites.mockResolvedValue([]);
+  api.invites.mockResolvedValue(invites);
   const user = {
     id: 'u',
     email: 'a@x.io',
@@ -223,6 +223,26 @@ describe('MembersPanel', () => {
       expect(options).toHaveLength(4);
       expect(screen.getByRole('option', { name: /^Administrator/ }).getAttribute('aria-disabled')).toBe('true');
       expect(screen.getByRole('option', { name: /^Observer/ }).textContent).toMatch(/Sees testcases/);
+    });
+
+    it('keeps Revoke from an administrator for an invitation to administrator, which only the owner may withdraw', async () => {
+      const pending = (id: string, role: Role) => ({
+        id,
+        space: { name: 'Team', slug: 'team' },
+        track: null,
+        role,
+        status: 'pending',
+        expires_at: '2026-10-20T00:00:00Z',
+        created_at: '2026-10-11T00:00:00Z',
+        invited_by: { username: 'ada', display_name: 'ada', avatar_url: null },
+        invited_user: { username: id, display_name: id, avatar_url: null },
+      });
+      renderPanel(space('administrator'), [member('ada', 'owner'), member('boole', 'administrator')], 'boole', [
+        pending('lin', 'administrator'),
+        pending('kim', 'editor'),
+      ]);
+      expect(await screen.findByRole('button', { name: 'Revoke invitation for kim' })).toBeTruthy();
+      expect(screen.queryByRole('button', { name: 'Revoke invitation for lin' })).toBeNull();
     });
 
     it('lets the owner invite an observer', async () => {

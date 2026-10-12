@@ -39,7 +39,9 @@ export function InviteView({ token }: { token: string }) {
           title: `Joined ${joined.space.name}`,
           description: `You are ${ROLE_LABELS[joined.role].toLowerCase()}.`,
         });
-        router.push(`/spaces/${joined.space.slug}`);
+        router.push(
+          joined.track ? `/spaces/${joined.space.slug}/tracks/${joined.track.slug}` : `/spaces/${joined.space.slug}`
+        );
       } else {
         await spacesApi.declineInvite(token);
         toast({ tone: 'neutral', title: 'Invitation declined' });
@@ -106,9 +108,16 @@ export function InviteView({ token }: { token: string }) {
             {data.invited_by.display_name} invited you to join
           </p>
           <h1 className="text-h1 break-words">{data.space.name}</h1>
-          <p className="text-prose">
-            As <strong>{ROLE_LABELS[data.role].toLowerCase()}</strong>. {ROLE_DESCRIPTIONS[data.role]}
-          </p>
+          {data.track ? (
+            <p className="text-prose">
+              To the Track <strong>{data.track.name}</strong>. If you are not a member yet, you join the Space as a{' '}
+              <strong>solver</strong>; your role does not change if you already are one.
+            </p>
+          ) : (
+            <p className="text-prose">
+              As <strong>{ROLE_LABELS[data.role].toLowerCase()}</strong>. {ROLE_DESCRIPTIONS[data.role]}
+            </p>
+          )}
         </header>
         {auth.status === 'authenticated' ? (
           <div className="flex gap-2">
