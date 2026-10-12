@@ -61,10 +61,12 @@ export function PendingInvites({ onJoined }: { onJoined?: () => void }) {
           <li key={invite.id} className="flex flex-wrap items-center justify-between gap-3 py-2 first:pt-0 last:pb-0">
             <span className="flex min-w-0 flex-col">
               <span className="text-body-strong break-words">
-                {invite.invited_by.username} invited you to {invite.space.name}
+                {invite.invited_by.username} invited you to {invite.track ? `${invite.track.name} in ` : ''}
+                {invite.space.name}
               </span>
               <span className="text-small text-text-muted">
-                As {ROLE_LABELS[invite.role].toLowerCase()} · {timeAgo(invite.created_at)}
+                {invite.track ? 'As a solver' : `As ${ROLE_LABELS[invite.role].toLowerCase()}`} ·{' '}
+                {timeAgo(invite.created_at)}
               </span>
             </span>
             <span className="flex gap-2">

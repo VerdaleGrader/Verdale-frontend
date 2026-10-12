@@ -8,6 +8,7 @@ import { CopyButton } from '@/components/grader/sample-io';
 import { TestResultList } from '@/components/grader/test-result-list';
 import { VERDICT_EXPLANATIONS } from '@/components/grader/verdict';
 import { EmptyState, ErrorState, Loading } from '@/components/states/states';
+import { Avatar } from '@/components/ui/avatar';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { useToast } from '@/components/ui/toast';
 import { useAuth } from '@/features/auth/hooks/auth-provider';
@@ -105,7 +106,10 @@ function ResultView({ initial, back }: { initial: Submission; back: string }) {
         <h1 className="text-h1">Result</h1>
         <p className="text-small text-text-muted">
           {LANGUAGE_LABELS[submission.language]} · submitted {timeAgo(submission.created_at)} by{' '}
-          {submission.author.display_name}
+          <span className="vd-inline align-middle">
+            <Avatar name={submission.author.display_name} src={submission.author.avatar_url} size="sm" />
+            {submission.author.display_name}
+          </span>
         </p>
       </header>
 
@@ -156,10 +160,10 @@ function ResultView({ initial, back }: { initial: Submission; back: string }) {
       {finished && submission.results.length > 0 && (
         <section aria-labelledby="tests-heading" className="flex flex-col gap-3">
           <h2 id="tests-heading" className="text-h2">
-            Tests
+            Testcases
           </h2>
           <p className="text-small text-text-muted">
-            Hidden tests show a verdict, time and memory only. Their data is never shown.
+            Hidden testcases show a verdict, time and memory only. Their data is never shown.
           </p>
           <TestResultList rows={resultRows(submission.results)} />
           {feedback.map((result) => (
@@ -167,7 +171,7 @@ function ResultView({ initial, back }: { initial: Submission; back: string }) {
               key={result.position}
               className="border-border bg-surface-sunken text-small flex flex-col gap-1 rounded-md border p-3"
             >
-              <p className="text-body-strong">Sample test {result.position}</p>
+              <p className="text-body-strong">Sample testcase {result.position}</p>
               {result.checker_message && <p>{result.checker_message}</p>}
               {result.stdout_preview && (
                 <>

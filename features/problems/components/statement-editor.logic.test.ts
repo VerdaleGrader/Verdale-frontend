@@ -18,11 +18,13 @@ export const constraints: ProblemConstraints = {
   images: { max_bytes: 2097152, content_types: ['image/png', 'image/jpeg', 'image/webp'] },
   solutions: { max_count: 5 },
   source_max_bytes: 65536,
+  statement_pdf: { max_bytes: 10485760, max_pages: 10 },
 };
 
 const base: StatementDraft = {
   title: 'Sum',
   statement: '# Hi',
+  mode: 'markdown',
   timeLimitMs: '1000',
   memoryLimitMb: '256',
   languages: ['c', 'cpp'],
