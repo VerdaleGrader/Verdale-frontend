@@ -203,7 +203,7 @@ export function TransferLists<T extends SortableItem>({
                   {available.length === 0 ? 'Nothing left to add.' : 'Nothing matches.'}
                 </p>
               ) : (
-                <ul className="vd-sortable" aria-label={availableLabel}>
+                <ul className="vd-ordered" aria-label={availableLabel}>
                   {shown.map((item) => (
                     <AvailableRow
                       key={item.id}
@@ -240,7 +240,7 @@ export function TransferLists<T extends SortableItem>({
                 </p>
               ) : (
                 <SortableContext items={rightIds} strategy={verticalListSortingStrategy}>
-                  <ol className="vd-sortable" aria-label={selectedLabel} aria-busy={order.saving || undefined}>
+                  <ol className="vd-ordered" aria-label={selectedLabel} aria-busy={order.saving || undefined}>
                     {order.ordered.map((item, index) => (
                       <SortableRow
                         key={item.id}
@@ -281,7 +281,7 @@ export function TransferLists<T extends SortableItem>({
           </Zone>
         </div>
         <DragOverlay dropAnimation={null}>
-          {dragging ? <div className="vd-sortable__row is-dragging">{renderItem(dragging.item)}</div> : null}
+          {dragging ? <div className="vd-ordered__row is-dragging">{renderItem(dragging.item)}</div> : null}
         </DragOverlay>
       </DndContext>
       <SaveStatus saving={order.saving || busy} error={error} />
@@ -319,12 +319,12 @@ function AvailableRow({
   return (
     <li
       ref={setNodeRef}
-      className={cn('vd-sortable__row', ticked && 'is-selected', isDragging && 'opacity-40', className)}
+      className={cn('vd-ordered__row', ticked && 'is-selected', isDragging && 'opacity-40', className)}
     >
       <button
         type="button"
         ref={setActivatorNodeRef}
-        className="vd-sortable__handle"
+        className="vd-ordered__handle"
         aria-label={`Drag ${label} to add it`}
         disabled={disabled}
         {...attributes}
@@ -332,7 +332,7 @@ function AvailableRow({
       >
         <GripVertical className="size-4" strokeWidth={1.75} aria-hidden />
       </button>
-      <label className="vd-sortable__body flex items-start gap-2">
+      <label className="vd-ordered__body flex items-start gap-2">
         <input
           type="checkbox"
           className="mt-1"

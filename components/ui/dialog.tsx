@@ -13,7 +13,8 @@ interface DialogProps {
   children?: React.ReactNode;
   /** Buttons, primary or danger last. */
   footer?: React.ReactNode;
-  size?: 'md' | 'lg';
+  /** md 440 px (confirms), lg 640 px (forms), xl 960 px (reading files side by side, e.g. View all). */
+  size?: 'md' | 'lg' | 'xl';
 }
 
 /**
@@ -27,7 +28,9 @@ export function Dialog({ open, onClose, title, description, children, footer, si
       <DialogPrimitive.Portal>
         <div className="vd-dialog-layer">
           <DialogPrimitive.Overlay className="vd-scrim" />
-          <DialogPrimitive.Content className={cn('vd-dialog', size === 'lg' && 'vd-dialog--lg')}>
+          <DialogPrimitive.Content
+            className={cn('vd-dialog', size === 'lg' && 'vd-dialog--lg', size === 'xl' && 'vd-dialog--xl')}
+          >
             <div className="vd-dialog__head">
               <DialogPrimitive.Title className="vd-dialog__title">{title}</DialogPrimitive.Title>
               <DialogPrimitive.Close className="vd-iconbtn" aria-label="Close">

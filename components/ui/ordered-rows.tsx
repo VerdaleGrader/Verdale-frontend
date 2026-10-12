@@ -125,12 +125,12 @@ export function SortableRow({
     <li
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition: reduceMotion ? undefined : transition }}
-      className={cn('vd-sortable__row', isDragging && 'is-dragging', className)}
+      className={cn('vd-ordered__row', isDragging && 'is-dragging', className)}
     >
       <button
         type="button"
         ref={setActivatorNodeRef}
-        className="vd-sortable__handle"
+        className="vd-ordered__handle"
         aria-label={`Drag to reorder ${controls.label}`}
         disabled={locked}
         {...attributes}
@@ -138,11 +138,11 @@ export function SortableRow({
       >
         <GripVertical className="size-4" strokeWidth={1.75} aria-hidden />
       </button>
-      <span className="vd-sortable__position" aria-hidden>
+      <span className="vd-ordered__position" aria-hidden>
         {controls.position}
       </span>
-      <div className="vd-sortable__body">{children}</div>
-      <span className="vd-sortable__moves">
+      <div className="vd-ordered__body">{children}</div>
+      <span className="vd-ordered__moves">
         <button
           type="button"
           className="vd-iconbtn"

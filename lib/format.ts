@@ -34,3 +34,10 @@ export function initialsOf(name: string): string {
   const letters = parts.length > 1 ? parts[0]![0]! + parts[1]![0]! : (parts[0] ?? '?').slice(0, 2);
   return letters.toUpperCase();
 }
+
+/** "8 MiB", "1.5 KiB", "812 bytes" for sizes of files and totals. */
+export function formatBytes(bytes: number): string {
+  if (bytes >= 1024 * 1024) return `${Number((bytes / (1024 * 1024)).toFixed(1))} MiB`;
+  if (bytes >= 1024) return `${Number((bytes / 1024).toFixed(1))} KiB`;
+  return `${bytes} ${bytes === 1 ? 'byte' : 'bytes'}`;
+}
