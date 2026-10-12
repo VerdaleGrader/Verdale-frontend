@@ -23,7 +23,7 @@ const STATUS_FILTERS = ['published', 'draft', 'archived', 'all'] as const;
 type StatusFilter = (typeof STATUS_FILTERS)[number];
 
 // Search, status and page live in the URL (?q=…&status=…&page=…); defaults are left out.
-const QUERY = { q: param.text(), status: param.oneOf(STATUS_FILTERS, 'published'), page: param.page() };
+const QUERY = { q: param.text(), status: param.oneOf(STATUS_FILTERS, 'all'), page: param.page() };
 
 const FILTER_OPTIONS = [
   { value: 'published', label: 'Published' },
@@ -140,10 +140,10 @@ function emptyTitle(status: StatusFilter) {
 function emptyDescription(query: string, status: StatusFilter, canCreate: boolean, archived: boolean) {
   if (query) return 'Try a shorter or different word.';
   if (archived) return 'This Space was archived without problems.';
-  if (status === 'published' && canCreate) {
+  if ((status === 'published' || status === 'all') && canCreate) {
     return 'Start a draft, add testcases and a reference solution, then publish it for others to solve.';
   }
-  if (status === 'published') return 'Problems published in this Space will appear here.';
+  if (status === 'published' || status === 'all') return 'Problems published in this Space will appear here.';
   return 'Nothing to show for this filter.';
 }
 

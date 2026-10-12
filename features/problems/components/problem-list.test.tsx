@@ -82,6 +82,10 @@ describe('the problems of a Space', () => {
     expect(screen.getAllByRole('link', { name: /New problem/ })[0]!.getAttribute('href')).toBe(
       '/spaces/team/problems/new'
     );
+    // one status filter, and it starts on All
+    expect(screen.getAllByRole('combobox', { name: 'Show' })).toHaveLength(1);
+    expect(screen.getByRole('combobox', { name: 'Show' }).textContent).toContain('All');
+    expect(api.list).toHaveBeenCalledWith('team', expect.objectContaining({ status: 'all' }));
     await chooseOption('Show', 'Drafts');
     await waitFor(() =>
       expect(api.list).toHaveBeenLastCalledWith('team', expect.objectContaining({ status: 'draft', page: 1 }))
