@@ -12,6 +12,8 @@ export interface SpaceAbilities {
   canAuthorProblems: boolean;
   /** Owners and editors in a Space that is not archived. */
   canCreateProblems: boolean;
+  /** Owners and editors in a Space that is not archived: they change testcases, publish and archive problems. */
+  canEditProblems: boolean;
 }
 
 /**
@@ -32,5 +34,6 @@ export function abilitiesOf(space: Pick<Space, 'my_role' | 'archived_at' | 'is_p
     canLeave: role !== null && !(space.is_personal && role === 'owner'),
     canAuthorProblems: role === 'owner' || role === 'editor',
     canCreateProblems: (role === 'owner' || role === 'editor') && !archived,
+    canEditProblems: (role === 'owner' || role === 'editor') && !archived,
   };
 }

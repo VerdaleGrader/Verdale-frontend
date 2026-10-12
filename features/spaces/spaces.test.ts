@@ -20,6 +20,7 @@ describe('abilitiesOf (what to show; Core decides what is allowed)', () => {
       canLeave: false,
       canAuthorProblems: false,
       canCreateProblems: false,
+      canEditProblems: false,
     });
   });
 
@@ -28,15 +29,18 @@ describe('abilitiesOf (what to show; Core decides what is allowed)', () => {
       expect(abilitiesOf({ ...base, my_role: role })).toMatchObject({
         canAuthorProblems: true,
         canCreateProblems: true,
+        canEditProblems: true,
       });
       expect(abilitiesOf({ ...base, my_role: role, archived_at: '2026-10-11T00:00:00Z' })).toMatchObject({
         canAuthorProblems: true,
         canCreateProblems: false,
+        canEditProblems: false,
       });
     }
     expect(abilitiesOf({ ...base, my_role: 'solver' })).toMatchObject({
       canAuthorProblems: false,
       canCreateProblems: false,
+      canEditProblems: false,
     });
   });
 
