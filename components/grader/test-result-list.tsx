@@ -1,6 +1,7 @@
 import { Badge } from '@/components/ui/badge';
 import { formatMemory, formatTime } from '@/lib/format';
 import { VerdictBadge } from './verdict-badge';
+import { VerdictInfo } from './verdict-info';
 import type { Verdict } from './verdict';
 
 export interface TestResultRow {
@@ -11,7 +12,10 @@ export interface TestResultRow {
   detail?: string;
 }
 
-/** Per-test results of one submission. Hidden tests say "Hidden" and never show their data. */
+/**
+ * Per-test results of one submission, one row each. Hidden tests are labelled "Hidden" and carry no data of their own;
+ * owners, administrators, editors and observers can open them elsewhere, solvers only ever see the samples.
+ */
 export function TestResultList({ rows, caption = 'Test results' }: { rows: TestResultRow[]; caption?: string }) {
   return (
     <div className="vd-tablewrap">
@@ -20,7 +24,12 @@ export function TestResultList({ rows, caption = 'Test results' }: { rows: TestR
         <thead>
           <tr>
             <th scope="col">Test</th>
-            <th scope="col">Verdict</th>
+            <th scope="col">
+              <span className="vd-inline">
+                Verdict
+                <VerdictInfo />
+              </span>
+            </th>
             <th scope="col" className="is-num">
               Time
             </th>
@@ -39,7 +48,7 @@ export function TestResultList({ rows, caption = 'Test results' }: { rows: TestR
                 </span>
               </td>
               <td>
-                <VerdictBadge verdict={row.verdict} detail={row.detail} />
+                <VerdictBadge verdict={row.verdict} detail={row.detail} format="auto" />
               </td>
               <td className="is-num vd-mono">{row.timeMs === undefined ? '–' : formatTime(row.timeMs)}</td>
               <td className="is-num vd-mono">{row.memoryKb === undefined ? '–' : formatMemory(row.memoryKb)}</td>

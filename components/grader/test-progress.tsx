@@ -15,10 +15,23 @@ export function progressSummary(results: Verdict[]): string {
 }
 
 /** Live judging progress: one cell per test, filled with its verdict colour when it finishes. */
-export function TestProgress({ results }: { results: Verdict[] }) {
+export function TestProgress({
+  results,
+  label,
+  ariaLabel = 'Judging progress',
+}: {
+  results: Verdict[];
+  /**
+   * The status text, when the default judging words do not fit: "Generating output 3 of 12",
+   * "All 12 outputs generated". Cells and the count are unchanged.
+   */
+  label?: string;
+  /** Names the progress bar for screen readers: "Generation progress". */
+  ariaLabel?: string;
+}) {
   const total = results.length;
   const finished = results.filter((verdict) => !['QUEUED', 'RUNNING'].includes(verdict)).length;
-  const summary = progressSummary(results);
+  const summary = label ?? progressSummary(results);
   return (
     <div className="vd-progress">
       <div className="vd-progress__head">
@@ -32,7 +45,7 @@ export function TestProgress({ results }: { results: Verdict[] }) {
       <div
         className="vd-progress__cells"
         role="progressbar"
-        aria-label="Judging progress"
+        aria-label={ariaLabel}
         aria-valuemin={0}
         aria-valuemax={total}
         aria-valuenow={finished}
