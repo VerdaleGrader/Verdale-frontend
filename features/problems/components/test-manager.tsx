@@ -5,6 +5,7 @@ import { ArrowDown, ArrowUp, Download, FileUp, Trash2, Upload } from 'lucide-rea
 import { EmptyState, ErrorState, Loading } from '@/components/states/states';
 import { Button } from '@/components/ui/button';
 import { Dialog } from '@/components/ui/dialog';
+import { Checkbox } from '@/components/ui/checkbox';
 import { TextField } from '@/components/ui/field';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/components/ui/toast';
@@ -157,22 +158,21 @@ export function TestManager() {
                   <tr key={test.id}>
                     <td className="is-num vd-mono">{test.position}</td>
                     <td>
-                      <label className="flex items-center gap-2">
-                        <input
-                          type="checkbox"
+                      <span className="flex items-center gap-2">
+                        <Checkbox
                           checked={test.is_sample}
                           disabled={!data.editable || busy !== null}
                           aria-label={`Test ${test.position} is a sample`}
-                          onChange={(event) =>
+                          onCheckedChange={(next) =>
                             void run(
                               `sample-${test.id}`,
-                              () => problemsApi.setTestSample(target, test.id, event.target.checked),
+                              () => problemsApi.setTestSample(target, test.id, next === true),
                               'Could not change the sample'
                             )
                           }
                         />
                         <span className="text-small">{test.is_sample ? 'Sample' : 'Hidden'}</span>
-                      </label>
+                      </span>
                     </td>
                     <td className="is-num">
                       <a className="vd-link vd-mono" href={testFileUrl(target, test.id, 'input')} download>
@@ -493,16 +493,13 @@ function AddTests({
                           <span className="text-text-muted">({formatBytes(pair.output.size)})</span>
                         </td>
                         <td>
-                          <input
-                            type="checkbox"
+                          <Checkbox
                             checked={pair.sample}
                             disabled={pair.status === 'uploading' || pair.status === 'done'}
                             aria-label={`${pair.name} is a sample`}
-                            onChange={(event) =>
+                            onCheckedChange={(next) =>
                               setPairs((current) =>
-                                current.map((item) =>
-                                  item.id === pair.id ? { ...item, sample: event.target.checked } : item
-                                )
+                                current.map((item) => (item.id === pair.id ? { ...item, sample: next === true } : item))
                               )
                             }
                           />
@@ -617,10 +614,11 @@ function PasteTest({ samplesSoFar, onAdded }: { samplesSoFar: number; onAdded: (
           onChange={(event) => setOutput(event.target.value)}
         />
       </div>
-      <label className="text-body flex items-center gap-2">
-        <input type="checkbox" checked={sample} onChange={(event) => setSample(event.target.checked)} />
-        Show to solvers as a sample
-      </label>
+      <Checkbox
+        label="Show to solvers as a sample"
+        checked={sample}
+        onCheckedChange={(next) => setSample(next === true)}
+      />
       <div>
         <Button onClick={add} disabled={saving || (input === '' && output === '')}>
           {saving ? 'Adding…' : 'Add test'}

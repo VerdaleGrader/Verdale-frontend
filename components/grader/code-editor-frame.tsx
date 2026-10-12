@@ -1,6 +1,6 @@
 import { Play, Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Select, type SelectOption } from '@/components/ui/field';
+import { Dropdown, type DropdownOption } from '@/components/ui/dropdown';
 import { Tooltip } from '@/components/ui/tooltip';
 
 /**
@@ -21,9 +21,9 @@ export function CodeEditorFrame({
   children,
   status,
 }: {
-  languages: SelectOption[];
+  languages: DropdownOption[];
   language: string;
-  onLanguageChange?: React.ChangeEventHandler<HTMLSelectElement>;
+  onLanguageChange?: (language: string) => void;
   onRun?: () => void;
   running?: boolean;
   onSubmit?: () => void;
@@ -37,13 +37,13 @@ export function CodeEditorFrame({
   return (
     <section className="vd-editor" aria-label="Code editor">
       <div className="vd-editor__bar">
-        <Select
+        <Dropdown
           aria-label="Language"
           size="sm"
           className="vd-editor__lang"
           options={languages}
           value={language}
-          onChange={onLanguageChange}
+          onValueChange={onLanguageChange}
         />
         <div className="vd-editor__actions">
           {onRun && (

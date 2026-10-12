@@ -4,7 +4,8 @@ import { Check, Copy } from 'lucide-react';
 import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Select, TextField } from '@/components/ui/field';
+import { Dropdown } from '@/components/ui/dropdown';
+import { TextField } from '@/components/ui/field';
 import { useToast } from '@/components/ui/toast';
 import { EmptyState, ErrorState, Loading } from '@/components/states/states';
 import { ApiError, errorMessage } from '@/lib/api';
@@ -107,18 +108,13 @@ export function InvitePanel() {
             error={error?.status === 404 || error?.status === 409 ? error.message : error?.fieldError('username')}
             onChange={(event) => setUsername(event.target.value)}
           />
-          <Select
+          <Dropdown
             label="Role"
             value={role}
             options={INVITE_ROLES}
-            onChange={(event) => setRole(event.target.value as 'editor' | 'solver')}
+            onValueChange={(next) => setRole(next as 'editor' | 'solver')}
           />
-          <Select
-            label="Expires after"
-            value={days}
-            options={EXPIRY}
-            onChange={(event) => setDays(event.target.value)}
-          />
+          <Dropdown label="Expires after" value={days} options={EXPIRY} onValueChange={setDays} />
         </div>
         <div>
           <Button type="submit" disabled={creating}>

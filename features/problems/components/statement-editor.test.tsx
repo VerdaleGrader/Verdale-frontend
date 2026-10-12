@@ -59,7 +59,7 @@ describe('the statement editor (GRD-28)', () => {
     expect((screen.getByLabelText('Memory limit (MB)') as HTMLInputElement).value).toBe('256');
     expect(screen.getByText('Per test, 100 to 10000 ms.')).toBeTruthy();
     expect(screen.getByText('Per test, 16 to 1024 MB.')).toBeTruthy();
-    expect(screen.getByLabelText('C++')).toHaveProperty('checked', true);
+    expect(screen.getByRole('checkbox', { name: 'C++' }).getAttribute('aria-checked')).toBe('true');
     expect((screen.getByLabelText('Statement (Markdown)') as HTMLTextAreaElement).value).toBe('Read $a$ and $b$.');
     expect(screen.getByText('All changes saved')).toBeTruthy();
   });

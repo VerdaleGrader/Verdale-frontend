@@ -4,7 +4,8 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog } from '@/components/ui/dialog';
-import { Select, TextField } from '@/components/ui/field';
+import { Dropdown } from '@/components/ui/dropdown';
+import { TextField } from '@/components/ui/field';
 import { useToast } from '@/components/ui/toast';
 import { ApiError, errorMessage } from '@/lib/api';
 import { spacesApi } from '../api/spaces.api';
@@ -108,12 +109,12 @@ export function SpaceSettings() {
           error={error?.fieldError('description')}
           onChange={(event) => setDescription(event.target.value)}
         />
-        <Select
+        <Dropdown
           label="Visibility"
           value={visibility}
           options={VISIBILITY_OPTIONS}
           disabled={readOnly}
-          onChange={(event) => setVisibility(event.target.value as Visibility)}
+          onValueChange={(next) => setVisibility(next as Visibility)}
         />
         {!readOnly && (
           <div>

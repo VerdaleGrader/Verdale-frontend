@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { ImagePlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog } from '@/components/ui/dialog';
+import { Checkbox } from '@/components/ui/checkbox';
 import { TextField } from '@/components/ui/field';
 import { useToast } from '@/components/ui/toast';
 import { useSpace } from '@/features/spaces/components/space-shell';
@@ -257,14 +258,12 @@ export function StatementEditor() {
           <legend className="vd-label">Allowed languages</legend>
           <div className="flex flex-wrap gap-4">
             {LANGUAGE_OPTIONS.filter((option) => constraints.languages.includes(option.value)).map((option) => (
-              <label key={option.value} className="text-body flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  checked={draft.languages.includes(option.value)}
-                  onChange={() => toggleLanguage(option.value)}
-                />
-                {option.label}
-              </label>
+              <Checkbox
+                key={option.value}
+                label={option.label}
+                checked={draft.languages.includes(option.value)}
+                onCheckedChange={() => toggleLanguage(option.value)}
+              />
             ))}
           </div>
           {error('languages') && (

@@ -2,9 +2,11 @@ import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiError } from '@/lib/api';
+import { LANGUAGE_LABELS } from '@/features/problems/types';
 import {
   ANONYMOUS,
   FakeEventSource,
+  chooseOption,
   makeProblem,
   makeSpace,
   makeSubmission,
@@ -60,9 +62,11 @@ describe('the problem page (GRD-48)', () => {
   it('offers only the languages the problem allows, starting from a template', async () => {
     problemsApi.get.mockResolvedValue(makeProblem({ allowed_languages: ['python', 'cpp'] }));
     renderInApp(<SolveView />);
-    const select = (await screen.findByRole('combobox', { name: 'Language' })) as HTMLSelectElement;
-    expect([...select.options].map((option) => option.value)).toEqual(['python', 'cpp']);
-    expect(select.value).toBe('python');
+    const select = await screen.findByRole('combobox', { name: 'Language' });
+    expect(select.textContent).toBe('Python 3');
+    await userEvent.click(select);
+    expect((await screen.findAllByRole('option')).map((option) => option.textContent)).toEqual(['Python 3', 'C++']);
+    await userEvent.keyboard('{Escape}');
     expect((await editorBox()).value).toContain('import sys');
   });
 
@@ -73,13 +77,13 @@ describe('the problem page (GRD-48)', () => {
     fireEvent.change(await editorBox(), { target: { value: 'int main(void) { /* c draft */ }' } });
     await act(async () => vi.advanceTimersByTime(700));
     // another language has its own code
-    fireEvent.change(screen.getByRole('combobox', { name: 'Language' }), { target: { value: 'python' } });
+    await chooseOption('Language', LANGUAGE_LABELS.python);
     expect((await editorBox()).value).toContain('import sys');
     fireEvent.change(await editorBox(), { target: { value: 'print("py draft")' } });
     await act(async () => vi.advanceTimersByTime(700));
-    fireEvent.change(screen.getByRole('combobox', { name: 'Language' }), { target: { value: 'cpp' } });
+    await chooseOption('Language', LANGUAGE_LABELS.cpp);
     expect((await editorBox()).value).toContain('#include <iostream>');
-    fireEvent.change(screen.getByRole('combobox', { name: 'Language' }), { target: { value: 'c' } });
+    await chooseOption('Language', LANGUAGE_LABELS.c);
     expect((await editorBox()).value).toBe('int main(void) { /* c draft */ }');
     first.unmount();
     vi.useRealTimers();
@@ -87,7 +91,7 @@ describe('the problem page (GRD-48)', () => {
     renderInApp(<SolveView />);
     // it comes back on the language it was last on, with its code
     expect((await editorBox()).value).toBe('int main(void) { /* c draft */ }');
-    fireEvent.change(screen.getByRole('combobox', { name: 'Language' }), { target: { value: 'python' } });
+    await chooseOption('Language', LANGUAGE_LABELS.python);
     expect((await editorBox()).value).toBe('print("py draft")');
   });
 

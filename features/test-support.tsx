@@ -1,4 +1,5 @@
-import { render } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { ToastProvider } from '@/components/ui/toast';
 import { AuthProvider, type AuthState } from '@/features/auth/hooks/auth-provider';
 import type { Problem, ProblemConstraints, ProblemEditor } from '@/features/problems/types';
@@ -206,4 +207,11 @@ export class FakeEventSource {
   static get last() {
     return FakeEventSource.instances[FakeEventSource.instances.length - 1]!;
   }
+}
+
+/** Open a Dropdown by its accessible name and pick an option by its name. */
+export async function chooseOption(name: string | RegExp, option: string | RegExp) {
+  const user = userEvent.setup();
+  await user.click(await screen.findByRole('combobox', { name }));
+  await user.click(await screen.findByRole('option', { name: option }));
 }
