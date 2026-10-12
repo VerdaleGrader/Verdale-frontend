@@ -230,7 +230,7 @@ export function PublishPanel() {
           <CircleCheck className="text-success mr-1.5 inline size-4" strokeWidth={1.75} aria-hidden />
           Published. Solvers can read it and submit solutions.
         </p>
-        {abilities.canCreateProblems && (
+        {abilities.canEditProblems && (
           <Button variant="destructive" size="sm" onClick={() => setConfirming('archive')} disabled={busy}>
             Archive
           </Button>
@@ -268,7 +268,7 @@ export function PublishPanel() {
         <Button
           variant="primary"
           size="sm"
-          disabled={!editor.can_publish || busy}
+          disabled={!editor.can_publish || busy || !abilities.canEditProblems}
           onClick={() => setConfirming('publish')}
         >
           Publish
