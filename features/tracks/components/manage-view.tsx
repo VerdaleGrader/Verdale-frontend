@@ -7,7 +7,7 @@ import { Plus } from 'lucide-react';
 import { EmptyState, ErrorState, Loading } from '@/components/states/states';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { SortableList } from '@/components/ui/sortable-list';
+import { SortableListOf } from '@/components/ui/sortable-list';
 import { useToast } from '@/components/ui/toast';
 import { useSpace } from '@/features/spaces/components/space-shell';
 import { errorMessage } from '@/lib/api';
@@ -71,32 +71,37 @@ function Manage({ editable }: { editable: boolean }) {
             {active.length === 0 ? (
               <EmptyState title="No active Tracks" description="Create a Track to give solvers a way in." />
             ) : (
-              <SortableList
+              <SortableListOf
                 items={active}
                 label="Tracks in order"
-                itemLabel={(track) => track.name}
-                disabled={!editable}
+                getId={(track) => track.id}
+                getLabel={(track) => track.name}
+                readOnly={!editable}
                 onReorder={async (ids) => {
                   await tracksApi.reorder(space.slug, ids);
                   tracks.reload();
                 }}
-                renderItem={(track) => (
-                  <span className="flex flex-wrap items-center justify-between gap-2">
-                    <span className="flex min-w-0 flex-col gap-1">
-                      <Link
-                        href={`${base}/manage/tracks/${track.slug}`}
-                        className="vd-link text-body-strong break-words"
-                      >
-                        {track.name}
-                      </Link>
-                      <span className="text-mono-label text-text-muted">{track.slug}</span>
+                renderItem={(track, { handle, moveMenu }) => (
+                  <div className="flex items-center gap-2 px-3 py-2">
+                    {handle}
+                    <span className="flex min-w-0 flex-1 flex-wrap items-center justify-between gap-2">
+                      <span className="flex min-w-0 flex-col gap-1">
+                        <Link
+                          href={`${base}/manage/tracks/${track.slug}`}
+                          className="vd-link text-body-strong break-words"
+                        >
+                          {track.name}
+                        </Link>
+                        <span className="text-mono-label text-text-muted">{track.slug}</span>
+                      </span>
+                      <span className="text-small text-text-muted flex flex-wrap items-center gap-2">
+                        {track.visibility === 'members' && <Badge tone="info">{VISIBILITY_LABELS.members}</Badge>}
+                        {track.collection_count} {track.collection_count === 1 ? 'Collection' : 'Collections'} ·{' '}
+                        {track.problem_count} {track.problem_count === 1 ? 'problem' : 'problems'}
+                      </span>
                     </span>
-                    <span className="text-small text-text-muted flex flex-wrap items-center gap-2">
-                      {track.visibility === 'members' && <Badge tone="info">{VISIBILITY_LABELS.members}</Badge>}
-                      {track.collection_count} {track.collection_count === 1 ? 'Collection' : 'Collections'} ·{' '}
-                      {track.problem_count} {track.problem_count === 1 ? 'problem' : 'problems'}
-                    </span>
-                  </span>
+                    {moveMenu}
+                  </div>
                 )}
               />
             )}

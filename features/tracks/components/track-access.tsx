@@ -7,7 +7,8 @@ import { Avatar } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Dialog } from '@/components/ui/dialog';
-import { Select, TextField } from '@/components/ui/field';
+import { Dropdown } from '@/components/ui/dropdown';
+import { TextField } from '@/components/ui/field';
 import { useToast } from '@/components/ui/toast';
 import { ROLE_LABELS } from '@/features/spaces/types';
 import { useSpace } from '@/features/spaces/components/space-shell';
@@ -213,12 +214,7 @@ export function TrackAccess({
                 error={error?.status === 404 || error?.status === 409 ? error.message : error?.fieldError('username')}
                 onChange={(event) => setUsername(event.target.value)}
               />
-              <Select
-                label="Expires after"
-                value={days}
-                options={EXPIRY}
-                onChange={(event) => setDays(event.target.value)}
-              />
+              <Dropdown label="Expires after" value={days} options={EXPIRY} onValueChange={setDays} />
             </div>
             <div>
               <Button type="submit" disabled={creating}>

@@ -8,12 +8,14 @@ import { EmptyState, ErrorState, Loading } from '@/components/states/states';
 import { Badge } from '@/components/ui/badge';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Dialog } from '@/components/ui/dialog';
-import { Select, TextField } from '@/components/ui/field';
+import { Dropdown } from '@/components/ui/dropdown';
+import { TextField } from '@/components/ui/field';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { TransferLists } from '@/components/ui/transfer-lists';
 import { useToast } from '@/components/ui/toast';
 import { useSpace } from '@/features/spaces/components/space-shell';
 import { ApiError, errorMessage } from '@/lib/api';
+import { param, useUrlQuery } from '@/lib/use-url-query';
 import { useApiQuery } from '@/lib/use-api-query';
 import { tracksApi } from '../api/tracks.api';
 import { VISIBILITY_LABELS, type TrackDetail, type TrackVisibility } from '../types';
@@ -30,6 +32,12 @@ interface CollectionItem {
   archived: boolean;
 }
 
+const TABS = ['collections', 'settings', 'access', 'progress'] as const;
+type TrackTab = (typeof TABS)[number];
+
+// The open section lives in the URL (?tab=settings); the default is left out.
+const QUERY = { tab: param.oneOf(TABS, 'collections') };
+
 /** Edit one Track: its Collections and their order, its settings and privacy, who may enter, and how far they have got. */
 export function TrackEditor() {
   return <ManagerGuard>{(editable) => <Editor editable={editable} />}</ManagerGuard>;
@@ -45,7 +53,8 @@ function Editor({ editable }: { editable: boolean }) {
   );
   const everything = useApiQuery(() => tracksApi.collections(space.slug), `edit-track-collections-${space.slug}`);
   const [latest, setLatest] = useState<TrackDetail | null>(null);
-  const [tab, setTab] = useState('collections');
+  const { values, set } = useUrlQuery(QUERY);
+  const tab = values.tab;
 
   if (track.status === 'loading' || everything.status === 'loading') return <Loading label="Loading the Track" />;
   if (track.status === 'error') {
@@ -115,7 +124,7 @@ function Editor({ editable }: { editable: boolean }) {
         </Link>
       </header>
 
-      <Tabs value={tab} onValueChange={setTab} className="flex flex-col gap-6">
+      <Tabs value={tab} onValueChange={(next) => set({ tab: next as TrackTab })} className="flex flex-col gap-6">
         <TabsList aria-label="Track sections">
           <TabsTrigger value="collections" count={data.collections.length}>
             Collections
@@ -288,14 +297,12 @@ function TrackSettings({
           error={error?.fieldError('description')}
           onChange={(event) => setEdits((current) => ({ ...current, description: event.target.value }))}
         />
-        <Select
+        <Dropdown
           label="Who can see this Track"
           value={value.visibility}
           options={VISIBILITY_OPTIONS}
           disabled={!editable}
-          onChange={(event) =>
-            setEdits((current) => ({ ...current, visibility: event.target.value as TrackVisibility }))
-          }
+          onValueChange={(next) => setEdits((current) => ({ ...current, visibility: next as TrackVisibility }))}
         />
         <VisibilityExplanation value={value.visibility} />
         {value.visibility !== track.visibility && (
