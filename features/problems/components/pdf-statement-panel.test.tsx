@@ -75,12 +75,12 @@ describe('StatementFormat', () => {
   it('lets the author choose Markdown or PDF and says what each means', async () => {
     const onMode = vi.fn();
     render(<StatementFormat mode="markdown" pdf={null} readOnly={false} busy={false} onMode={onMode} />);
-    expect((screen.getByLabelText('Markdown text') as HTMLInputElement).checked).toBe(true);
-    await userEvent.click(screen.getByLabelText('PDF file'));
+    expect(screen.getByRole('radio', { name: 'Markdown text' }).getAttribute('aria-checked')).toBe('true');
+    await userEvent.click(screen.getByRole('radio', { name: 'PDF file' }));
     expect(onMode).toHaveBeenCalledWith('pdf');
     expect(screen.getByText(/Choose PDF to use a file you already have/)).toBeTruthy();
   });
-  it('says the sample tests stay next to a PDF', () => {
+  it('says the sample testcases stay next to a PDF', () => {
     render(
       <StatementFormat
         mode="pdf"
@@ -90,7 +90,7 @@ describe('StatementFormat', () => {
         onMode={vi.fn()}
       />
     );
-    expect(screen.getByText(/sample tests are still shown next to it/)).toBeTruthy();
+    expect(screen.getByText(/sample testcases are still shown next to it/)).toBeTruthy();
   });
   it('is locked when the version is read-only', () => {
     render(<StatementFormat mode="pdf" pdf={null} readOnly busy={false} onMode={vi.fn()} />);

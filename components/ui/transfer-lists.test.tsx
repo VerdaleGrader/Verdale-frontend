@@ -102,6 +102,6 @@ describe('TransferLists', () => {
     await user.click(screen.getByRole('checkbox', { name: 'Select Xray' }));
     await user.click(screen.getByRole('button', { name: /Add 1 selected/ }));
     expect((await screen.findByRole('alert')).textContent).toContain('A Collection can hold at most 200 problems.');
-    expect((screen.getByRole('checkbox', { name: 'Select Xray' }) as HTMLInputElement).checked).toBe(true);
+    expect(screen.getByRole('checkbox', { name: 'Select Xray' }).getAttribute('aria-checked')).toBe('true');
   });
 });

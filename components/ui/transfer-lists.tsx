@@ -22,6 +22,7 @@ import {
 } from '@dnd-kit/sortable';
 import { ArrowLeft, ArrowRight, GripVertical } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { TextField } from '@/components/ui/field';
 import {
   SaveStatus,
@@ -255,17 +256,16 @@ export function TransferLists<T extends SortableItem>({
                           onMove: (offset) => void order.commit(moveId(rightIds, item.id, offset)),
                         }}
                       >
-                        <label className="flex items-start gap-2">
-                          <input
-                            type="checkbox"
+                        <div className="flex items-start gap-2">
+                          <Checkbox
                             className="mt-1"
                             checked={ticked.right.has(item.id)}
                             disabled={locked}
                             aria-label={`Select ${itemLabel(item)}`}
-                            onChange={() => toggle('right', item.id)}
+                            onCheckedChange={() => toggle('right', item.id)}
                           />
                           <span className="min-w-0 flex-1">{renderItem(item)}</span>
-                        </label>
+                        </div>
                       </SortableRow>
                     ))}
                   </ol>
@@ -332,17 +332,16 @@ function AvailableRow({
       >
         <GripVertical className="size-4" strokeWidth={1.75} aria-hidden />
       </button>
-      <label className="vd-ordered__body flex items-start gap-2">
-        <input
-          type="checkbox"
+      <div className="vd-ordered__body flex items-start gap-2">
+        <Checkbox
           className="mt-1"
           checked={ticked}
           disabled={disabled}
           aria-label={`Select ${label}`}
-          onChange={onToggle}
+          onCheckedChange={onToggle}
         />
         <span className="min-w-0 flex-1">{children}</span>
-      </label>
+      </div>
     </li>
   );
 }

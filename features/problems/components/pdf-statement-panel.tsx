@@ -4,6 +4,7 @@ import { FileText } from 'lucide-react';
 import { useRef, useState } from 'react';
 import { PdfViewer } from '@/components/pdf/pdf-viewer';
 import { Button } from '@/components/ui/button';
+import { RadioGroup } from '@/components/ui/radio-group';
 import { useToast } from '@/components/ui/toast';
 import { ApiError, errorMessage } from '@/lib/api';
 import { problemsApi, statementPdfUrl } from '../api/problems.api';
@@ -55,21 +56,17 @@ export function StatementFormat({
   return (
     <fieldset className="flex flex-col gap-2" disabled={readOnly || busy}>
       <legend className="vd-label">Statement format</legend>
-      <div className="flex flex-wrap gap-6">
-        <label className="text-body flex items-center gap-2">
-          <input
-            type="radio"
-            name="statement-format"
-            checked={mode === 'markdown'}
-            onChange={() => onMode('markdown')}
-          />
-          Markdown text
-        </label>
-        <label className="text-body flex items-center gap-2">
-          <input type="radio" name="statement-format" checked={mode === 'pdf'} onChange={() => onMode('pdf')} />
-          PDF file
-        </label>
-      </div>
+      <RadioGroup
+        aria-label="Statement format"
+        className="vd-radiogroup--row"
+        value={mode}
+        disabled={readOnly || busy}
+        onValueChange={(next) => onMode(next as Mode)}
+        options={[
+          { value: 'markdown', label: 'Markdown text' },
+          { value: 'pdf', label: 'PDF file' },
+        ]}
+      />
       <p className="vd-hint">
         {mode === 'pdf'
           ? 'Solvers read your PDF. The sample testcases are still shown next to it, and the Markdown text is kept if you switch back.'

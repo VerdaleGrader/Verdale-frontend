@@ -94,12 +94,12 @@ describe('the test list', () => {
     renderManager(listOf([test(1, { is_sample: true }), test(2)]));
     const table = await screen.findByRole('table', { name: 'Testcases of this problem' });
     const rows = within(table).getAllByRole('row').slice(1);
-    expect(within(rows[0]!).getByRole('checkbox', { name: 'Test 1 is a sample' }).getAttribute('aria-checked')).toBe(
-      'true'
-    );
-    expect(within(rows[1]!).getByRole('checkbox', { name: 'Test 2 is a sample' }).getAttribute('aria-checked')).toBe(
-      'false'
-    );
+    expect(
+      within(rows[0]!).getByRole('checkbox', { name: 'Testcase 1 is a sample' }).getAttribute('aria-checked')
+    ).toBe('true');
+    expect(
+      within(rows[1]!).getByRole('checkbox', { name: 'Testcase 2 is a sample' }).getAttribute('aria-checked')
+    ).toBe('false');
     expect(within(rows[0]!).getByText('Sample')).toBeTruthy();
     expect(within(rows[1]!).getByText('Hidden')).toBeTruthy();
     expect(within(rows[0]!).getByText('1.5 KiB')).toBeTruthy();
@@ -111,7 +111,7 @@ describe('the test list', () => {
 
   it('warns as a limit comes close', async () => {
     renderManager({ ...listOf([test(1)]), summary: { count: 95, sample_count: 1, total_bytes: 100 } });
-    const bar = await screen.findByRole('progressbar', { name: 'Tests' });
+    const bar = await screen.findByRole('progressbar', { name: 'Testcases' });
     expect(bar.firstElementChild!.className).toContain('bg-warning');
     expect(screen.getByRole('progressbar', { name: 'Total size' }).firstElementChild!.className).toContain(
       'bg-primary'
@@ -130,7 +130,7 @@ describe('the test list', () => {
     expect(screen.queryByRole('heading', { name: 'Add testcases' })).toBeNull();
     expect(screen.queryByRole('button', { name: /Delete test/ })).toBeNull();
     expect(screen.queryByRole('button', { name: /Move test/ })).toBeNull();
-    expect(screen.getByRole('checkbox', { name: 'Test 1 is a sample' }).hasAttribute('disabled')).toBe(true);
+    expect(screen.getByRole('checkbox', { name: 'Testcase 1 is a sample' }).hasAttribute('disabled')).toBe(true);
     expect(screen.getAllByRole('link').length).toBe(2);
   });
 });

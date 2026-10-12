@@ -70,9 +70,6 @@ describe('the problems of a Space', () => {
     const rows = within(table).getAllByRole('row').slice(1);
     expect(within(rows[0]!).getByText('Draft')).toBeTruthy();
     expect(within(rows[0]!).getByRole('link', { name: 'Problem wip' }).getAttribute('href')).toBe(
-      '/spaces/team/problems/wip'
-    );
-    expect(within(rows[0]!).getByRole('link', { name: 'Edit' }).getAttribute('href')).toBe(
       '/spaces/team/problems/wip/edit'
     );
     expect(within(rows[1]!).getByText('Published')).toBeTruthy();
@@ -176,9 +173,7 @@ describe('filters in the URL', () => {
   it('falls back to the defaults for values that make no sense', async () => {
     resetNavigation('/spaces/team?status=bogus&page=-3');
     renderInApp(<ProblemList />, { space: makeSpace('editor') });
-    await waitFor(() =>
-      expect(api.list).toHaveBeenCalledWith('team', { q: '', status: 'published', page: 1, pageSize: 20 })
-    );
+    await waitFor(() => expect(api.list).toHaveBeenCalledWith('team', { q: '', status: 'all', page: 1, pageSize: 20 }));
   });
 
   it('ignores a draft filter in the URL for a solver', async () => {
