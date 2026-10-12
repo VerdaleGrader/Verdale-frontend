@@ -98,54 +98,54 @@ export const problemsApi = {
   tests: (target: Target) =>
     unwrap(coreApi.GET('/api/v1/spaces/{slug}/problems/{problemSlug}/tests', { params: { path: path(target) } })),
 
-  addTest: (
-    target: Target,
-    input: Blob,
-    output: Blob,
-    isSample: boolean,
-    names?: { input?: string; output?: string }
-  ) =>
+  /** Check and store one file (or pasted text) for a later save; the problem does not change until `saveTests`. */
+  stageFile: (target: Target, source: File | { text: string }) =>
     unwrap(
-      coreApi.POST('/api/v1/spaces/{slug}/problems/{problemSlug}/tests', {
-        params: { path: path(target) },
-        body: { input: input as unknown as string, output: output as unknown as string, is_sample: isSample },
-        bodySerializer: () =>
-          formData(
-            { input, output, is_sample: String(isSample) },
-            { input: names?.input ?? 'input.txt', output: names?.output ?? 'output.txt' }
-          ),
+      source instanceof Blob
+        ? coreApi.POST('/api/v1/spaces/{slug}/problems/{problemSlug}/tests/files', {
+            params: { path: path(target) },
+            body: { file: source as unknown as string },
+            bodySerializer: () => formData({ file: source }),
+          })
+        : coreApi.POST('/api/v1/spaces/{slug}/problems/{problemSlug}/tests/files', {
+            params: { path: path(target) },
+            body: source,
+          })
+    ),
+
+  /** Everything the testcases page changed, in one go. 409 TESTS_CHANGED when someone saved meanwhile. */
+  saveTests: (target: Target, body: Schemas['SaveTestCasesRequest']) =>
+    unwrap(coreApi.PUT('/api/v1/spaces/{slug}/problems/{problemSlug}/tests', { params: { path: path(target) }, body })),
+
+  /** A window of lines of a saved testcase file, for the preview (10 lines) and View all (1000 at a time). */
+  testFileSlice: (target: Target, testId: string, side: 'input' | 'output', fromLine: number, maxLines: number) =>
+    unwrap(
+      coreApi.GET('/api/v1/spaces/{slug}/problems/{problemSlug}/tests/{testId}/files/{side}', {
+        params: {
+          path: { ...path(target), testId, side },
+          query: { from_line: fromLine, max_lines: maxLines },
+        },
       })
     ),
 
-  replaceTest: (target: Target, testId: string, files: { input?: File; output?: File }) =>
+  // --- generate expected output ------------------------------------------------
+
+  startGenerate: (target: Target, body: Schemas['StartGenerateRequest']) =>
     unwrap(
-      coreApi.PUT('/api/v1/spaces/{slug}/problems/{problemSlug}/tests/{testId}', {
-        params: { path: { ...path(target), testId } },
-        body: { input: files.input as unknown as string, output: files.output as unknown as string },
-        bodySerializer: () => formData({ input: files.input, output: files.output }),
+      coreApi.POST('/api/v1/spaces/{slug}/problems/{problemSlug}/generate', { params: { path: path(target) }, body })
+    ),
+
+  generateJob: (target: Target, jobId: string) =>
+    unwrap(
+      coreApi.GET('/api/v1/spaces/{slug}/problems/{problemSlug}/generate/{jobId}', {
+        params: { path: { ...path(target), jobId } },
       })
     ),
 
-  setTestSample: (target: Target, testId: string, isSample: boolean) =>
+  stopGenerate: (target: Target, jobId: string) =>
     unwrap(
-      coreApi.PATCH('/api/v1/spaces/{slug}/problems/{problemSlug}/tests/{testId}', {
-        params: { path: { ...path(target), testId } },
-        body: { is_sample: isSample },
-      })
-    ),
-
-  removeTest: (target: Target, testId: string) =>
-    unwrap(
-      coreApi.DELETE('/api/v1/spaces/{slug}/problems/{problemSlug}/tests/{testId}', {
-        params: { path: { ...path(target), testId } },
-      })
-    ),
-
-  reorderTests: (target: Target, testIds: string[]) =>
-    unwrap(
-      coreApi.POST('/api/v1/spaces/{slug}/problems/{problemSlug}/tests/reorder', {
-        params: { path: path(target) },
-        body: { test_ids: testIds },
+      coreApi.POST('/api/v1/spaces/{slug}/problems/{problemSlug}/generate/{jobId}/stop', {
+        params: { path: { ...path(target), jobId } },
       })
     ),
 
