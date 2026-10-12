@@ -330,6 +330,15 @@ describe('UnsavedBar', () => {
     rerender(<UnsavedBar count={0} onSave={onSave} onDiscard={onDiscard} />);
     expect(screen.queryByRole('region')).toBeNull();
   });
+
+  it('says why saving failed in place of the count, and keeps Save', () => {
+    render(
+      <UnsavedBar count={2} error="Could not save your changes." onSave={() => undefined} onDiscard={() => undefined} />
+    );
+    expect(screen.getByRole('alert').textContent).toBe('Could not save your changes.');
+    expect(screen.queryByText('2 unsaved changes')).toBeNull();
+    expect(screen.getByRole('button', { name: 'Save changes' })).toBeTruthy();
+  });
 });
 
 describe('FilePreview', () => {
