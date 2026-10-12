@@ -174,9 +174,7 @@ describe('filters in the URL', () => {
   it('falls back to the defaults for values that make no sense', async () => {
     resetNavigation('/spaces/team?status=bogus&page=-3');
     renderInApp(<ProblemList />, { space: makeSpace('editor') });
-    await waitFor(() =>
-      expect(api.list).toHaveBeenCalledWith('team', { q: '', status: 'all', page: 1, pageSize: 20 })
-    );
+    await waitFor(() => expect(api.list).toHaveBeenCalledWith('team', { q: '', status: 'all', page: 1, pageSize: 20 }));
   });
 
   it('ignores a draft filter in the URL for a solver', async () => {

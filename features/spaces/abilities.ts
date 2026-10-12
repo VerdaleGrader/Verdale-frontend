@@ -4,33 +4,47 @@ export interface SpaceAbilities {
   isMember: boolean;
   /** Frozen when the Space is archived. */
   archived: boolean;
+  /** Owner and administrator: name, description, members. */
   canManageSettings: boolean;
+  /** Owner only: visibility, archive, handing the Space over. */
+  canManageDanger: boolean;
+  /** Owner and administrator: invitations, roles, removing members. */
   canManageMembers: boolean;
   canViewMembers: boolean;
   canLeave: boolean;
-  /** Owners and editors: they see drafts, tests and solutions (also in an archived Space, read-only). */
+  /** Owner, administrator, editor and observer: drafts, hidden testcases, solutions, everybody's submissions (also in an archived Space, read-only). */
   canAuthorProblems: boolean;
-  /** Owners and editors in a Space that is not archived. */
+  /** Owner, administrator and editor in a Space that is not archived: change problems, Tracks and Collections. */
+  canEditProblems: boolean;
+  /** Same people as `canEditProblems`. */
   canCreateProblems: boolean;
+  /** Owner, administrator, editor and observer: the Space-wide submission pages and members' progression. */
+  canReviewSubmissions: boolean;
 }
 
 /**
  * What to SHOW for the signed-in user, mirroring Core's permission table
- * (Verdale-core-service/docs/auth.md). This only hides buttons that would
- * fail; Core checks every request again and is the source of truth.
+ * (Verdale-core-service/src/permissions/can.ts). This only hides buttons that
+ * would fail; Core checks every request again and is the source of truth.
  */
 export function abilitiesOf(space: Pick<Space, 'my_role' | 'archived_at' | 'is_personal'>): SpaceAbilities {
   const role = space.my_role;
   const archived = space.archived_at !== null;
+  const writes = role === 'owner' || role === 'administrator' || role === 'editor';
+  const reads = writes || role === 'observer';
+  const manages = role === 'owner' || role === 'administrator';
   return {
     isMember: role !== null,
     archived,
-    canManageSettings: role === 'owner' && !archived,
-    canManageMembers: role === 'owner' && !archived,
+    canManageSettings: manages && !archived,
+    canManageDanger: role === 'owner' && !archived,
+    canManageMembers: manages && !archived,
     canViewMembers: role !== null,
-    // A personal Space always has exactly one owner, who cannot leave it.
-    canLeave: role !== null && !(space.is_personal && role === 'owner'),
-    canAuthorProblems: role === 'owner' || role === 'editor',
-    canCreateProblems: (role === 'owner' || role === 'editor') && !archived,
+    // The owner hands the Space over instead of leaving it.
+    canLeave: role !== null && role !== 'owner',
+    canAuthorProblems: reads,
+    canEditProblems: writes && !archived,
+    canCreateProblems: writes && !archived,
+    canReviewSubmissions: reads,
   };
 }
