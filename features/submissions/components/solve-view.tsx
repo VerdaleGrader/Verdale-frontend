@@ -8,7 +8,7 @@ import { CodeEditor } from '@/components/code/code-editor';
 import { PageContainer, PageHeader } from '@/components/layout/page';
 import { SubmissionTable } from '@/components/grader/submission-table';
 import { EmptyState, ErrorState, Loading } from '@/components/states/states';
-import { Button, buttonVariants } from '@/components/ui/button';
+import { buttonVariants } from '@/components/ui/button';
 import { useAuth } from '@/features/auth/hooks/auth-provider';
 import { problemsApi, type ProblemTarget } from '@/features/problems/api/problems.api';
 import { ProblemReader } from '@/features/problems/components/problem-reader';
@@ -127,14 +127,11 @@ function ProblemNotAvailable({ target }: { target: ProblemTarget }) {
         title={items[0]!.problem.title}
         description="This problem is no longer in any Track you can see. You can still read your submissions, but new ones are closed."
         actions={
-          <>
-            <Button disabled title="This problem is not in a Track you can see">
-              Submit
-            </Button>
-            <Link href={`/spaces/${space.slug}`} className={buttonVariants({ variant: 'secondary' })}>
-              Back to {space.name}
-            </Link>
-          </>
+          // No Submit button here: there is no problem page to submit from, and a disabled button would
+          // break the rule that Submit is only disabled while a submission is in flight (GRD-99).
+          <Link href={`/spaces/${space.slug}`} className={buttonVariants({ variant: 'secondary' })}>
+            Back to {space.name}
+          </Link>
         }
       />
       <SubmissionTable rows={items.map((item) => toRow(item, base))} />

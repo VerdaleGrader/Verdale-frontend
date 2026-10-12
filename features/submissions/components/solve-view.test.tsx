@@ -342,8 +342,8 @@ describe('the problem page (GRD-48)', () => {
       expect(within(table).getByRole('link', { name: 'Sum of two numbers' }).getAttribute('href')).toBe(
         '/spaces/team/problems/sum/submissions/s9'
       );
-      const submit = screen.getByRole('button', { name: 'Submit' }) as HTMLButtonElement;
-      expect(submit.disabled).toBe(true);
+      // nothing to submit to: no Submit button (it would be disabled for a reason GRD-99 does not allow)
+      expect(screen.queryByRole('button', { name: 'Submit' })).toBeNull();
       expect(screen.queryByRole('textbox', { name: /source code/ })).toBeNull();
     });
 
