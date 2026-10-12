@@ -20,7 +20,16 @@ describe('abilitiesOf (what to show; Core decides what is allowed)', () => {
       canLeave: false,
       canAuthorProblems: false,
       canCreateProblems: false,
+      canEditProblems: false,
+      canReviewSubmissions: false,
     });
+  });
+
+  it('staff roles review submissions, solvers and visitors do not', () => {
+    for (const role of ['owner', 'administrator', 'editor', 'observer'] as const) {
+      expect(abilitiesOf({ ...base, my_role: role }).canReviewSubmissions).toBe(true);
+    }
+    expect(abilitiesOf({ ...base, my_role: 'solver' }).canReviewSubmissions).toBe(false);
   });
 
   it('owners and editors author problems; solvers do not; an archived Space is read-only', () => {
