@@ -1777,6 +1777,23 @@
   flex-direction: column;
   gap: var(--space-3);
 }
+.vd-sortable__col {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+}
+@media (min-width: 768px) {
+  .vd-sortable--columns {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+    column-gap: var(--space-4);
+  }
+  .vd-sortable--columns > :not(.vd-sortable__col) {
+    grid-column: 1 / -1;
+  }
+}
 .vd-sortable__list {
   margin: 0;
   padding: 0;

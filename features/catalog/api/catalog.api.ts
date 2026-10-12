@@ -1,11 +1,35 @@
 import { coreApi } from '@/lib/api-client';
 import { unwrap } from '@/lib/api';
 import type { components } from '@/lib/contracts/core-public.gen';
+import { problemsApi } from '@/features/problems/api/problems.api';
+import type { ProblemSummary } from '@/features/problems/types';
 
 type Schemas = components['schemas'];
 
+const PROBLEM_PAGE = 50;
+/** A Space with more problems than this is not browsed in one go; the picker says so. */
+export const MAX_PICKER_PROBLEMS = 1000;
+
+/** Every problem a search finds, page after page (Core pages at 50), up to MAX_PICKER_PROBLEMS. */
+async function allProblems(
+  slug: string,
+  filter: { q?: string; status?: 'published' | 'draft' | 'archived' | 'all' }
+): Promise<{ items: ProblemSummary[]; total: number }> {
+  const items: ProblemSummary[] = [];
+  let total = 0;
+  for (let page = 1; items.length < MAX_PICKER_PROBLEMS; page += 1) {
+    const result = await problemsApi.list(slug, { ...filter, page, pageSize: PROBLEM_PAGE });
+    total = result.total;
+    items.push(...result.items);
+    if (items.length >= total || result.items.length === 0) break;
+  }
+  return { items, total };
+}
+
 /** Repository: pure calls to Core for Tracks, Collections, their members and progression. Errors are ApiError (lib/api.ts). */
 export const catalogApi = {
+  allProblems,
+
   // --- Tracks ---------------------------------------------------------------
 
   /** The Tracks the caller can reach, in order. Staff can also ask for archived ones. */

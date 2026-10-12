@@ -126,6 +126,26 @@ describe('SortableLists (two lists)', () => {
     expect(screen.getByText('Testcase A moved to position 2 of 2 in Track B.')).toBeTruthy();
   });
 
+  it('puts a heading above each list and can lay the lists out in columns', () => {
+    render(
+      <SortableLists
+        columns
+        lists={[
+          { id: 'one', label: 'Track A', items: ITEMS.slice(0, 2) },
+          { id: 'two', label: 'Track B', items: ITEMS.slice(2) },
+        ]}
+        listHeader={(list, count) => <h3>{`${list.label} · ${count}`}</h3>}
+        getId={(item) => item.id}
+        getLabel={(item) => item.name}
+        onReorder={() => undefined}
+        renderItem={(item) => item.name}
+      />
+    );
+    expect(screen.getByRole('heading', { name: 'Track A · 2' })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Track B · 1' })).toBeTruthy();
+    expect(document.querySelector('.vd-sortable--columns')).toBeTruthy();
+  });
+
   it('shows an empty list', () => {
     render(
       <SortableLists

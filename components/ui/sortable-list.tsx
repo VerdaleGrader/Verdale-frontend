@@ -95,6 +95,10 @@ interface SortableListsProps<T> {
   readOnly?: boolean;
   /** Shown inside an empty list. */
   emptyLabel?: string;
+  /** A heading above each list (for example "In this Collection · 4"), given the list and its current count. */
+  listHeader?: (list: SortableGroup<T>, count: number) => React.ReactNode;
+  /** Lay the lists out side by side from the md breakpoint up (they stack on a phone). */
+  columns?: boolean;
   className?: string;
 }
 
@@ -109,6 +113,8 @@ export function SortableLists<T>({
   onReorder,
   readOnly,
   emptyLabel = 'Nothing here',
+  listHeader,
+  columns,
   className,
 }: SortableListsProps<T>) {
   const reduced = useMediaQuery('(prefers-reduced-motion: reduce)');
@@ -244,7 +250,7 @@ export function SortableLists<T>({
   }
 
   return (
-    <div className={cn('vd-sortable', className)} aria-busy={saving || undefined}>
+    <div className={cn('vd-sortable', columns && 'vd-sortable--columns', className)} aria-busy={saving || undefined}>
       <DndContext
         id={contextId}
         sensors={sensors}
@@ -269,6 +275,7 @@ export function SortableLists<T>({
             reduced={reduced}
             activeId={activeId}
             emptyLabel={emptyLabel}
+            header={listHeader}
             getLabel={getLabel}
             renderItem={renderItem}
             moveBy={moveBy}
@@ -304,6 +311,7 @@ function SortableListBody<T>({
   reduced,
   activeId,
   emptyLabel,
+  header,
   getLabel,
   renderItem,
   moveBy,
@@ -318,6 +326,7 @@ function SortableListBody<T>({
   reduced: boolean;
   activeId: string | null;
   emptyLabel: string;
+  header?: SortableListsProps<T>['listHeader'];
   getLabel: (item: T) => string;
   renderItem: SortableListsProps<T>['renderItem'];
   moveBy: (id: string, to: (current: { list: string; index: number }, count: number) => number) => void;
@@ -327,30 +336,33 @@ function SortableListBody<T>({
   const { setNodeRef } = useDroppable({ id: list.id });
   return (
     <SortableContext id={list.id} items={ids} strategy={verticalListSortingStrategy} disabled={readOnly}>
-      <ol ref={setNodeRef} className="vd-sortable__list" aria-label={list.label}>
-        {ids.map((id, index) => {
-          const item = byId.get(id);
-          if (item === undefined) return null;
-          return (
-            <SortableRow
-              key={id}
-              id={id}
-              label={getLabel(item)}
-              listId={list.id}
-              index={index}
-              count={ids.length}
-              readOnly={readOnly}
-              reduced={reduced}
-              dragging={activeId === id}
-              otherLists={multiple ? lists.filter((other) => other.id !== list.id) : []}
-              moveBy={moveBy}
-              moveToList={moveToList}
-              render={(context) => renderItem(item, context)}
-            />
-          );
-        })}
-        {ids.length === 0 && <li className="vd-sortable__empty">{emptyLabel}</li>}
-      </ol>
+      <div className="vd-sortable__col">
+        {header?.(list, ids.length)}
+        <ol ref={setNodeRef} className="vd-sortable__list" aria-label={list.label}>
+          {ids.map((id, index) => {
+            const item = byId.get(id);
+            if (item === undefined) return null;
+            return (
+              <SortableRow
+                key={id}
+                id={id}
+                label={getLabel(item)}
+                listId={list.id}
+                index={index}
+                count={ids.length}
+                readOnly={readOnly}
+                reduced={reduced}
+                dragging={activeId === id}
+                otherLists={multiple ? lists.filter((other) => other.id !== list.id) : []}
+                moveBy={moveBy}
+                moveToList={moveToList}
+                render={(context) => renderItem(item, context)}
+              />
+            );
+          })}
+          {ids.length === 0 && <li className="vd-sortable__empty">{emptyLabel}</li>}
+        </ol>
+      </div>
     </SortableContext>
   );
 }
