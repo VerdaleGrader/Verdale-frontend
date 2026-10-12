@@ -24,6 +24,7 @@ export const constraints: ProblemConstraints = {
 const base: StatementDraft = {
   title: 'Sum',
   statement: '# Hi',
+  mode: 'markdown',
   timeLimitMs: '1000',
   memoryLimitMb: '256',
   languages: ['c', 'cpp'],

@@ -143,6 +143,17 @@ function ProblemPage({ problem, target }: { problem: Problem; target: ProblemTar
             timeLimitMs={problem.time_limit_ms}
             memoryLimitKb={problem.memory_limit_kb}
             statement={problem.statement}
+            statementMode={problem.statement_mode}
+            pdf={
+              problem.statement_pdf
+                ? {
+                    target,
+                    draft: problem.status === 'draft',
+                    version: String(problem.version_number),
+                    sizeBytes: problem.statement_pdf.size_bytes,
+                  }
+                : null
+            }
             samples={problem.samples}
           />
         </div>
