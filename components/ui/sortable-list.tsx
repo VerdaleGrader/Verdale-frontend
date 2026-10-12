@@ -93,6 +93,10 @@ interface SortableListsProps<T> {
   onReorder: (order: Order, change: { id: string; from: string; to: string }) => void | Promise<void>;
   /** A view-only person sees the order but gets no handle and no menu. */
   readOnly?: boolean;
+  /** Busy: handles and menus stay in place but are disabled, e.g. while Generate runs. */
+  locked?: boolean;
+  /** More entries for the ⋯ menu, after the move entries (Replace files…, Remove). Use MenuItem. */
+  itemActions?: (item: T) => React.ReactNode;
   /** Shown inside an empty list. */
   emptyLabel?: string;
   /** A heading above each list (for example "In this Collection · 4"), given the list and its current count. */
@@ -112,6 +116,8 @@ export function SortableLists<T>({
   renderItem,
   onReorder,
   readOnly,
+  locked,
+  itemActions,
   emptyLabel = 'Nothing here',
   listHeader,
   columns,
@@ -272,6 +278,8 @@ export function SortableLists<T>({
             byId={byId}
             lists={lists}
             readOnly={readOnly}
+            locked={locked}
+            itemActions={itemActions}
             reduced={reduced}
             activeId={activeId}
             emptyLabel={emptyLabel}
@@ -308,6 +316,8 @@ function SortableListBody<T>({
   byId,
   lists,
   readOnly,
+  locked,
+  itemActions,
   reduced,
   activeId,
   emptyLabel,
@@ -323,6 +333,8 @@ function SortableListBody<T>({
   byId: Map<string, T>;
   lists: SortableGroup<T>[];
   readOnly?: boolean;
+  locked?: boolean;
+  itemActions?: (item: T) => React.ReactNode;
   reduced: boolean;
   activeId: string | null;
   emptyLabel: string;
@@ -351,6 +363,8 @@ function SortableListBody<T>({
                 index={index}
                 count={ids.length}
                 readOnly={readOnly}
+                locked={locked}
+                actions={itemActions?.(item)}
                 reduced={reduced}
                 dragging={activeId === id}
                 otherLists={multiple ? lists.filter((other) => other.id !== list.id) : []}
@@ -374,6 +388,8 @@ function SortableRow({
   index,
   count,
   readOnly,
+  locked,
+  actions,
   reduced,
   dragging,
   otherLists,
@@ -387,6 +403,8 @@ function SortableRow({
   index: number;
   count: number;
   readOnly?: boolean;
+  locked?: boolean;
+  actions?: React.ReactNode;
   reduced: boolean;
   dragging: boolean;
   otherLists: Array<{ id: string; label: string }>;
@@ -396,19 +414,24 @@ function SortableRow({
 }) {
   const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition } = useSortable({
     id,
-    disabled: readOnly,
+    disabled: readOnly || locked,
     // Reduced motion: items jump to their place instead of sliding.
     transition: reduced ? null : { duration: 180, easing: 'ease-out' },
   });
   const moveUp = () => moveBy(id, (at) => at.index - 1);
   const moveDown = () => moveBy(id, (at) => at.index + 1);
   const handle = readOnly ? null : (
-    <DragHandle ref={setActivatorNodeRef} label={label} {...attributes} {...listeners} />
+    <DragHandle ref={setActivatorNodeRef} label={label} disabled={locked} {...attributes} {...listeners} />
   );
   const moveMenu = readOnly ? null : (
     <Menu
       trigger={
-        <button type="button" className="vd-iconbtn" aria-label={`Move ${label}, now ${index + 1} of ${count}`}>
+        <button
+          type="button"
+          className="vd-iconbtn"
+          disabled={locked}
+          aria-label={`Move ${label}, now ${index + 1} of ${count}`}
+        >
           <Ellipsis className="size-4" strokeWidth={1.75} aria-hidden />
         </button>
       }
@@ -428,12 +451,13 @@ function SortableRow({
       <MenuItem icon={ArrowDownToLine} disabled={index === count - 1} onSelect={() => moveBy(id, (_, n) => n - 1)}>
         Move to bottom
       </MenuItem>
-      {otherLists.length > 0 && <MenuSeparator />}
+      {(otherLists.length > 0 || actions) && <MenuSeparator />}
       {otherLists.map((other) => (
         <MenuItem key={other.id} icon={MoveRight} onSelect={() => moveToList(id, other.id)}>
           Move to {other.label}
         </MenuItem>
       ))}
+      {actions}
     </Menu>
   );
   return (

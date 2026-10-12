@@ -14,6 +14,7 @@ export function UnsavedBar({
   floating,
   saveLabel = 'Save changes',
   discardLabel = 'Discard',
+  error,
 }: {
   count: number;
   onSave: () => void;
@@ -22,12 +23,18 @@ export function UnsavedBar({
   floating?: boolean;
   saveLabel?: string;
   discardLabel?: string;
+  /** Saving failed: says why in place of the count. The changes are still there. */
+  error?: string;
 }) {
   if (count === 0) return null;
   return (
-    <div role="region" aria-label="Unsaved changes" className={cn('vd-unsaved', floating && 'vd-unsaved--floating')}>
-      <p className="vd-unsaved__text" aria-live="polite">
-        {count === 1 ? '1 unsaved change' : `${count} unsaved changes`}
+    <div
+      role="region"
+      aria-label="Unsaved changes"
+      className={cn('vd-unsaved', floating && 'vd-unsaved--floating', error && 'vd-unsaved--error')}
+    >
+      <p className="vd-unsaved__text" role={error ? 'alert' : undefined} aria-live={error ? undefined : 'polite'}>
+        {error ?? (count === 1 ? '1 unsaved change' : `${count} unsaved changes`)}
       </p>
       <div className="vd-unsaved__actions">
         <Button variant="ghost" size="sm" onClick={onDiscard} disabled={saving}>

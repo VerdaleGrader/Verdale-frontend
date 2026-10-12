@@ -268,7 +268,7 @@ export function PublishPanel() {
         <Button
           variant="primary"
           size="sm"
-          disabled={!editor.can_publish || busy}
+          disabled={!editor.can_publish || busy || !abilities.canEditProblems}
           onClick={() => setConfirming('publish')}
         >
           Publish
