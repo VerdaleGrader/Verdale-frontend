@@ -156,6 +156,38 @@ describe('the problem page (GRD-48)', () => {
     await act(async () => finish(summary));
   });
 
+  it('stays clickable after an Accepted result, so the same code can be submitted again', async () => {
+    submissionsApi.list.mockResolvedValue({
+      items: [{ ...summary, id: 'old', status: 'completed', verdict: 'AC', tests_passed: 2 }],
+      page: 1,
+      page_size: 1,
+      total: 1,
+    });
+    submissionsApi.get.mockResolvedValue(makeSubmission({ id: 'old', status: 'completed', verdict: 'AC' }));
+    submissionsApi.create.mockResolvedValue({ ...summary, id: 'again' });
+    renderInApp(<SolveView />);
+    await screen.findAllByText('Accepted');
+    const button = screen.getByRole('button', { name: 'Submit' }) as HTMLButtonElement;
+    expect(button.disabled).toBe(false);
+    await userEvent.click(button);
+    await waitFor(() => expect(submissionsApi.create).toHaveBeenCalledTimes(1));
+  });
+
+  it('is disabled only while the submission waits to be judged', async () => {
+    submissionsApi.create.mockResolvedValue({ ...summary, id: 's9' });
+    renderInApp(<SolveView />);
+    await editorBox();
+    await userEvent.click(screen.getByRole('button', { name: 'Submit' }));
+    const waiting = await screen.findByRole('button', { name: 'Waiting for the result…' });
+    expect((waiting as HTMLButtonElement).disabled).toBe(true);
+    await waitFor(() => expect(FakeEventSource.last.url).toBe('/api/v1/submissions/s9/events'));
+    act(() =>
+      FakeEventSource.last.push(makeSubmission({ id: 's9', status: 'completed', verdict: 'WA', tests_passed: 1 }))
+    );
+    const again = (await screen.findByRole('button', { name: 'Submit' })) as HTMLButtonElement;
+    expect(again.disabled).toBe(false);
+  });
+
   it('shows the latest submission of mine when the page opens', async () => {
     submissionsApi.list.mockResolvedValue({
       items: [{ ...summary, id: 'old', status: 'completed', verdict: 'WA', tests_passed: 1 }],
@@ -182,7 +214,7 @@ describe('the problem page (GRD-48)', () => {
       const alert = await submitAndFail(
         new ApiError(429, 'RATE_LIMITED', 'Too many submissions. Try again in 42 seconds.')
       );
-      expect(alert.textContent).toBe('You are submitting too quickly. Too many submissions. Try again in 42 seconds.');
+      expect(alert.textContent).toBe('You can submit at most 10 times a minute. Try again in 42 seconds.');
       expect(((await editorBox()) as HTMLTextAreaElement).value).toBe('my code');
       expect((screen.getByRole('button', { name: 'Submit' }) as HTMLButtonElement).disabled).toBe(false);
     });
@@ -231,15 +263,22 @@ describe('the problem page (GRD-48)', () => {
     problemsApi.get.mockResolvedValue(makeProblem({ status: 'archived', accepts_submissions: false }));
     renderInApp(<SolveView />);
     expect(await screen.findByText(/archived\. You can read it/)).toBeTruthy();
-    expect((screen.getByRole('button', { name: 'Submit' }) as HTMLButtonElement).disabled).toBe(true);
+    expect((screen.getByRole('button', { name: 'Submit' }) as HTMLButtonElement).disabled).toBe(false);
     expect(screen.getByText('Submissions are closed.')).toBeTruthy();
+    await userEvent.click(screen.getByRole('button', { name: 'Submit' }));
+    expect((await screen.findByRole('alert')).textContent).toBe(
+      'This problem is archived and no longer accepts submissions.'
+    );
+    expect(submissionsApi.create).not.toHaveBeenCalled();
   });
 
   it('closes submissions in an archived Space', async () => {
     problemsApi.get.mockResolvedValue(makeProblem({ accepts_submissions: false }));
     renderInApp(<SolveView />, { space: makeSpace('solver', { archived_at: '2026-10-11T00:00:00Z' }) });
     expect(await screen.findByText(/This Space is archived, so nothing can be submitted/)).toBeTruthy();
-    expect((screen.getByRole('button', { name: 'Submit' }) as HTMLButtonElement).disabled).toBe(true);
+    await userEvent.click(screen.getByRole('button', { name: 'Submit' }));
+    expect((await screen.findByRole('alert')).textContent).toBe('This Space is archived, so nothing can be submitted.');
+    expect(submissionsApi.create).not.toHaveBeenCalled();
   });
 
   it('shows an author a draft as a preview that cannot be submitted', async () => {
@@ -249,7 +288,9 @@ describe('the problem page (GRD-48)', () => {
     expect(screen.getByRole('link', { name: 'Edit problem' }).getAttribute('href')).toBe(
       '/spaces/team/problems/sum/edit'
     );
-    expect((screen.getByRole('button', { name: 'Submit' }) as HTMLButtonElement).disabled).toBe(true);
+    await userEvent.click(screen.getByRole('button', { name: 'Submit' }));
+    expect((await screen.findByRole('alert')).textContent).toMatch(/This problem is a draft/);
+    expect(submissionsApi.create).not.toHaveBeenCalled();
   });
 
   it('shows the edit link to authors only', async () => {
@@ -327,7 +368,14 @@ describe('helpers', () => {
   });
 
   it.each([
-    [new ApiError(429, 'RATE_LIMITED', 'Try later.'), 'You are submitting too quickly. Try later.'],
+    [
+      new ApiError(429, 'RATE_LIMITED', 'Too many requests. Try again in 7 seconds.'),
+      'You can submit at most 10 times a minute. Try again in 7 seconds.',
+    ],
+    [
+      new ApiError(429, 'RATE_LIMITED', 'Slow down.'),
+      'You can submit at most 10 times a minute. Wait a moment and try again.',
+    ],
     [new ApiError(409, 'PROBLEM_NOT_OPEN', 'Closed.'), 'Closed.'],
     [new ApiError(403, 'FORBIDDEN', 'Archived Space.'), 'Archived Space.'],
     [
