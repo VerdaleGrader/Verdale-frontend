@@ -150,7 +150,7 @@ function CreateProblemPage({ constraints }: { constraints: ProblemConstraints })
         }
         statement={draft.statement}
         samples={[]}
-        samplesNote="Sample tests are added on the Tests tab after the first save."
+        samplesNote="Sample testcases are added on the Testcases tab after the first save."
       />
     ),
     [draft, space.name, constraints]
@@ -173,7 +173,7 @@ function CreateProblemPage({ constraints }: { constraints: ProblemConstraints })
       toast({
         tone: 'success',
         title: 'Draft saved',
-        description: 'Add tests and a reference solution, then publish.',
+        description: 'Add testcases and a reference solution, then publish.',
       });
       router.replace(`/spaces/${space.slug}/problems/${created.slug}/edit`);
     } catch (caught) {

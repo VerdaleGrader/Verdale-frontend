@@ -202,8 +202,8 @@ export function StatementEditor() {
             Delete this draft
           </h2>
           <p className="text-small text-text-muted">
-            Removes the draft with its tests and reference solutions. This cannot be undone. Once a problem is published
-            it can only be archived.
+            Removes the draft with its testcases and reference solutions. This cannot be undone. Once a problem is
+            published it can only be archived.
           </p>
           <div>
             <Button variant="destructive" onClick={() => setDeleting(true)} disabled={busy}>
@@ -214,7 +214,7 @@ export function StatementEditor() {
             open={deleting}
             onClose={() => setDeleting(false)}
             title={`Delete “${editor.version.title}”?`}
-            description="The draft, its tests and its reference solutions are removed for good."
+            description="The draft, its testcases and its reference solutions are removed for good."
             footer={
               <>
                 <Button onClick={() => setDeleting(false)} disabled={busy}>
@@ -277,7 +277,9 @@ function SolverPreview({ draft, editor }: { draft: StatementDraft; editor: Probl
       statement={draft.statement}
       samples={samples ?? []}
       samplesNote={
-        samples === null ? 'Loading examples…' : 'Mark a test as a sample on the Tests tab to show an example here.'
+        samples === null
+          ? 'Loading examples…'
+          : 'Mark a testcase as a sample on the Testcases tab to show an example here.'
       }
     />
   );

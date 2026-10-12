@@ -54,7 +54,7 @@ export function SolutionsPanel() {
   return (
     <div className="flex flex-col gap-6">
       <p className="text-small text-text-muted max-w-[var(--measure)]">
-        A reference solution proves the problem and its tests are right, and is needed before you can publish. Only
+        A reference solution proves the problem and its testcases are right, and is needed before you can publish. Only
         owners and editors of this Space can see it. The primary solution is the one that is checked first.
       </p>
 

@@ -192,7 +192,7 @@ export function Gallery() {
           author: 'grace',
           language: 'Python',
           verdict: 'WA' as const,
-          detail: 'Wrong answer on test 4',
+          detail: 'Wrong answer on testcase 4',
           timeMs: 85,
           memoryKb: 9216,
         },
@@ -345,9 +345,9 @@ export function Gallery() {
           ))}
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <VerdictBadge verdict="WA" detail="Wrong answer on test 4" />
-          <VerdictBadge verdict="RUNNING" detail="Running test 7 of 20" />
-          <VerdictBadge verdict="ISE" detail="Internal error on test 10" />
+          <VerdictBadge verdict="WA" detail="Wrong answer on testcase 4" />
+          <VerdictBadge verdict="RUNNING" detail="Running testcase 7 of 20" />
+          <VerdictBadge verdict="ISE" detail="Internal error on testcase 10" />
           <span className="text-small text-text-muted">auto: full name, the code on a narrow screen</span>
           <VerdictBadge verdict="TLE" format="auto" />
         </div>

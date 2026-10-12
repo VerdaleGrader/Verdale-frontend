@@ -39,7 +39,7 @@ Start Core first (see `Verdale-core-service/README.md`, which also explains runn
 | `/spaces/<slug>/problems/<problem>/edit/tests`       | owners and editors                                        | Test manager: upload or paste, mark samples, order, replace, delete, totals against the limits        |
 | `/spaces/<slug>/problems/<problem>/edit/solutions`   | owners and editors                                        | Reference solutions (needed before publishing)                                                        |
 | `/spaces/<slug>/problems/<problem>/submissions`      | signed in                                                 | Your submissions of the problem (owners and editors can switch to everyone's)                         |
-| `/spaces/<slug>/problems/<problem>/submissions/<id>` | author, owners and editors                                | Full result: verdict, per-test table, compiler message, your code, "Check again" after a system error |
+| `/spaces/<slug>/problems/<problem>/submissions/<id>` | author, owners and editors                                | Full result: verdict, per-testcase table, compiler message, your code, "Check again" after a system error |
 | `/invites/<token>`                                   | everyone to look, signed in to answer                     | Accept or decline an invitation link                                                                  |
 | `/design`                                            | everyone                                                  | Component gallery for design review                                                                   |
 

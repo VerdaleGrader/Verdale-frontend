@@ -72,7 +72,7 @@ export function StatementFormat({
       </div>
       <p className="vd-hint">
         {mode === 'pdf'
-          ? 'Solvers read your PDF. The sample tests are still shown next to it, and the Markdown text is kept if you switch back.'
+          ? 'Solvers read your PDF. The sample testcases are still shown next to it, and the Markdown text is kept if you switch back.'
           : pdf
             ? 'Solvers read the Markdown text. The PDF you uploaded is kept if you switch to PDF.'
             : 'Solvers read the Markdown text. Choose PDF to use a file you already have.'}
@@ -119,7 +119,7 @@ export function PdfStatementPanel() {
       </h2>
       <p className="text-small text-text-muted max-w-[var(--measure)]">
         At most {formatBytes(limits.max_bytes)} and {limits.max_pages} pages. Password-protected files are not accepted.
-        Add the sample tests on the Tests tab; they are shown next to the PDF.
+        Add the sample testcases on the Testcases tab; they are shown next to the PDF.
       </p>
       <div className="flex flex-wrap items-center gap-3">
         <Button disabled={readOnly || uploading} onClick={() => fileInput.current?.click()}>

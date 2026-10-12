@@ -115,7 +115,7 @@ describe('the problems of a Space', () => {
     api.list.mockResolvedValue(page([]));
     const editor = renderInApp(<ProblemList />, { space: makeSpace('editor') });
     expect(await screen.findByText('No problems yet')).toBeTruthy();
-    expect(screen.getByText(/Start a draft, add tests and a reference solution/)).toBeTruthy();
+    expect(screen.getByText(/Start a draft, add testcases and a reference solution/)).toBeTruthy();
     editor.unmount();
     const solver = renderInApp(<ProblemList />, { space: makeSpace('solver') });
     expect(await screen.findByText(/Problems published in this Space will appear here/)).toBeTruthy();

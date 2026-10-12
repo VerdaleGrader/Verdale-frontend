@@ -59,7 +59,7 @@ export function DetailsFields({
           inputMode="numeric"
           value={draft.timeLimitMs}
           disabled={readOnly}
-          hint={`Per test, ${constraints.time_limit_ms.min} to ${constraints.time_limit_ms.max} ms.`}
+          hint={`Per testcase, ${constraints.time_limit_ms.min} to ${constraints.time_limit_ms.max} ms.`}
           error={error('timeLimitMs')}
           onChange={(event) => onChange('timeLimitMs', event.target.value)}
         />
@@ -69,7 +69,7 @@ export function DetailsFields({
           inputMode="numeric"
           value={draft.memoryLimitMb}
           disabled={readOnly}
-          hint={`Per test, ${Math.ceil(constraints.memory_limit_kb.min / 1024)} to ${Math.floor(constraints.memory_limit_kb.max / 1024)} MB.`}
+          hint={`Per testcase, ${Math.ceil(constraints.memory_limit_kb.min / 1024)} to ${Math.floor(constraints.memory_limit_kb.max / 1024)} MB.`}
           error={error('memoryLimitMb')}
           onChange={(event) => onChange('memoryLimitMb', event.target.value)}
         />

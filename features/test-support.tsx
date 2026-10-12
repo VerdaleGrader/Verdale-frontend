@@ -123,8 +123,8 @@ export function makeEditor(overrides: Partial<ProblemEditor> = {}): ProblemEdito
     publish_checks: [
       { key: 'statement', ok: true, message: 'The statement is written.' },
       { key: 'languages', ok: true, message: 'At least one language is allowed.' },
-      { key: 'tests', ok: true, message: '2 test(s) added.' },
-      { key: 'sample_test', ok: true, message: '1 sample test(s) shown to solvers.' },
+      { key: 'tests', ok: true, message: '2 testcase(s) added.' },
+      { key: 'sample_test', ok: true, message: '1 sample testcase(s) shown to solvers.' },
       { key: 'solution', ok: true, message: 'A primary reference solution is attached.' },
     ],
     can_publish: true,
