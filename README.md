@@ -2,7 +2,7 @@
 
 Next.js 16 (App Router), React 19, Tailwind CSS 4, shadcn/ui, Lucide. Styled with the [Verdale Design System](https://claude.ai/artifact/EPmCfi44rhHVD1Uf7JUZWZ).
 
-> Status: M1 gave the scaffold, tokens and typed Core client. M2 adds the web shell (header, theme switch, sign-in with GitHub or Google, route guard, standard loading / error / empty states), the full design-system component set, and the Space pages (my Spaces, explore, create, overview, settings, members, invitations). Problems and solving come in M3. `/design` shows every component in both themes (not linked from the app).
+> Status: M1 gave the scaffold, tokens and typed Core client. M2 adds the web shell (header, theme switch, sign-in with GitHub or Google, route guard, standard loading / error / empty states), the full design-system component set, and the Space pages (my Spaces, explore, create, overview, settings, members, invitations). M3 adds the problem editor (Markdown with live preview and maths, autosave, limits, languages, pictures), the test manager, reference solutions and the publish checklist, the problem list, the solving page (statement, examples, code editor, submit) and live results with a history of submissions. `/design` shows every component in both themes (not linked from the app).
 
 ## Run it
 
@@ -16,18 +16,25 @@ Start Core first (see `Verdale-core-service/README.md`, which also explains runn
 
 ## Pages
 
-| Route                     | Who                                   | What                                                           |
-| ------------------------- | ------------------------------------- | -------------------------------------------------------------- |
-| `/`                       | everyone                              | Landing                                                        |
-| `/login`                  | everyone                              | Sign in or sign up (the same flow) with GitHub or Google       |
-| `/explore`                | everyone                              | Search public Spaces                                           |
-| `/spaces`                 | signed in                             | My Spaces (active / archived), pending invitations             |
-| `/spaces/new`             | signed in                             | Create a Space                                                 |
-| `/spaces/<slug>`          | everyone (public) / members (private) | Overview                                                       |
-| `/spaces/<slug>/members`  | members; owners manage                | Members, roles, invitations                                    |
-| `/spaces/<slug>/settings` | owners                                | Name, description, visibility (confirmed), archive (confirmed) |
-| `/invites/<token>`        | everyone to look, signed in to answer | Accept or decline an invitation link                           |
-| `/design`                 | everyone                              | Component gallery for design review                            |
+| Route                                                | Who                                                       | What                                                                                                  |
+| ---------------------------------------------------- | --------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `/`                                                  | everyone                                                  | Landing                                                                                               |
+| `/login`                                             | everyone                                                  | Sign in or sign up (the same flow) with GitHub or Google                                              |
+| `/explore`                                           | everyone                                                  | Search public Spaces                                                                                  |
+| `/spaces`                                            | signed in                                                 | My Spaces (active / archived), pending invitations                                                    |
+| `/spaces/new`                                        | signed in                                                 | Create a Space                                                                                        |
+| `/spaces/<slug>`                                     | everyone (public) / members (private)                     | Overview                                                                                              |
+| `/spaces/<slug>/members`                             | members; owners manage                                    | Members, roles, invitations                                                                           |
+| `/spaces/<slug>/settings`                            | owners                                                    | Name, description, visibility (confirmed), archive (confirmed)                                        |
+| `/spaces/<slug>/problems/new`                        | owners and editors                                        | Start a draft problem (title and slug)                                                                |
+| `/spaces/<slug>/problems/<problem>`                  | everyone (published) / owners and editors (draft preview) | Statement, examples, code editor, submit, live result                                                 |
+| `/spaces/<slug>/problems/<problem>/edit`             | owners and editors                                        | Statement editor: details, limits, languages, Markdown with live preview, pictures, publish checklist |
+| `/spaces/<slug>/problems/<problem>/edit/tests`       | owners and editors                                        | Test manager: upload or paste, mark samples, order, replace, delete, totals against the limits        |
+| `/spaces/<slug>/problems/<problem>/edit/solutions`   | owners and editors                                        | Reference solutions (needed before publishing)                                                        |
+| `/spaces/<slug>/problems/<problem>/submissions`      | signed in                                                 | Your submissions of the problem (owners and editors can switch to everyone's)                         |
+| `/spaces/<slug>/problems/<problem>/submissions/<id>` | author, owners and editors                                | Full result: verdict, per-test table, compiler message, your code, "Check again" after a system error |
+| `/invites/<token>`                                   | everyone to look, signed in to answer                     | Accept or decline an invitation link                                                                  |
+| `/design`                                            | everyone                                                  | Component gallery for design review                                                                   |
 
 **Sign-in is a browser navigation**: the login buttons are plain links to Core (`/api/v1/auth/oauth/<provider>/start`), which redirects to the provider and back. Core needs the OAuth apps configured (`Verdale-core-service/docs/auth.md`). **Route guard**: `proxy.ts` sends visitors without a session cookie to `/login?next=…` before a protected page renders; it only checks that the cookie exists. Core validates the session on every call, and pages also react to a 401. Buttons a role cannot use are hidden (`features/spaces/abilities.ts` mirrors Core's permission table) but Core is always the one that decides.
 
@@ -48,9 +55,13 @@ Same feature-based layout as the Trailblazer frontend:
 app/                 routes only; globals.css maps shadcn variables to Verdale tokens
 app/tokens.css       generated from design/tokens.json (light and dark), do not edit
 features/<name>/     api/ (pure calls, the repository), hooks/ (state, the controller), components/ (render only), types.ts
+features/problems/   problem list, create form, editor workspace (statement, tests, solutions, publish panel), autosave hook, test-file pairing
+features/submissions/ solve page, live status (Server-Sent Events with a polling fallback), result and history pages
 components/ui/       base components (Button, TextField, Select, Tabs, Badge, Avatar, Tooltip, Toast, Dialog, Pagination)
 components/grader/   Grader components: VerdictBadge, TestProgress, TestResultList, SubmissionTable, ProblemStatement, SampleIO, CodeEditorFrame, DiffView
 components/layout/   header, theme toggle, page container, route tabs
+components/markdown/ MarkdownView: GitHub Markdown plus KaTeX maths; no raw HTML, safe links, pictures only from Verdale's storage
+components/code/     CodeEditor: Monaco with the Verdale themes, or a plain text box on small screens and when Monaco cannot load
 components/states/   empty, error and loading states
 app/components.css   component styles from the design system (vd-* classes, tokens only)
 lib/monaco-themes.ts Monaco themes verdale-light / verdale-dark (hex; a test fails if they drift from the tokens)
@@ -68,3 +79,14 @@ contracts/           pinned copy of Verdale-core-service/contracts (contracts.lo
 - A verdict or status is never colour alone: icon + code + label.
 - Light theme first; dark follows `prefers-color-scheme` or `data-theme="dark"` on `<html>`.
 - Interface copy is English, sentence case, no exclamation marks. Fonts: IBM Plex Sans (+ Sans Thai for problem content), IBM Plex Mono.
+
+## Problems and solving (M3)
+
+- **Editing is autosaved.** The Statement tab saves a moment after typing stops, sends only what changed, shows "Saving…", "Saved at 14:05" or the error, keeps your text when a save fails ("Try again"), and the browser asks before you close the tab with unsaved changes. Mistakes Core would refuse (limits, empty title, no language) are shown beside the field and never sent.
+- **The preview is the solver's page.** The editor's right-hand pane and the solving page use the same `ProblemReader`, so what you preview is what solvers get. Examples come from the sample tests.
+- **Pictures** are uploaded with "Insert image" (PNG, JPEG or WebP) and inserted at the cursor. `MarkdownView` shows only pictures served by Core (`/api/v1/assets/…`) or from `NEXT_PUBLIC_ASSET_BASE_URL` (the public bucket's own domain, if you set one); any other image address is shown as a link, so an author cannot learn who reads a problem.
+- **Test files** are paired by name (`1.in` with `1.out` or `.ans`, `input1.txt` with `output1.txt`, or `in/` and `out/` folders). Core checks them (UTF-8 text only, size limits, CRLF turned into LF) and its message names the file and the reason.
+- **The code editor is Monaco**, loaded from the jsDelivr CDN by `@monaco-editor/react` the first time a page needs it. If it cannot load within 8 seconds (offline, blocked) a plain text box with the same behaviour (Tab, Ctrl or ⌘ + Enter) takes its place. Under 768 px wide the plain box is used from the start. Unfinished code is kept in this browser per problem and language.
+- **Live results** use Server-Sent Events (`/api/v1/submissions/<id>/events`) through the same `/api/*` rewrite. A dropped connection reconnects by itself and every connection starts with the full state; after repeated failures the page polls every two seconds. A system error (ISE) is explained as not the solver's fault and can be re-checked.
+- **Hidden tests never appear.** The result table shows a verdict, time and memory for them; only sample tests can show a checker message and the start of the output.
+- Core decides every permission; `features/spaces/abilities.ts` only hides buttons that would fail.

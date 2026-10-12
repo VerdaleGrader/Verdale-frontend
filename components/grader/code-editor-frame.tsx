@@ -16,6 +16,8 @@ export function CodeEditorFrame({
   running,
   onSubmit,
   submitting,
+  submitLabel = 'Submit',
+  submitDisabled,
   children,
   status,
 }: {
@@ -26,6 +28,9 @@ export function CodeEditorFrame({
   running?: boolean;
   onSubmit?: () => void;
   submitting?: boolean;
+  /** Replaces "Submit", e.g. "Log in to submit". */
+  submitLabel?: string;
+  submitDisabled?: boolean;
   children?: React.ReactNode;
   status?: React.ReactNode;
 }) {
@@ -41,16 +46,18 @@ export function CodeEditorFrame({
           onChange={onLanguageChange}
         />
         <div className="vd-editor__actions">
-          <Tooltip label="Run samples (Ctrl or ⌘ + ')" side="bottom">
-            <Button size="sm" onClick={onRun} disabled={running || submitting}>
-              <Play aria-hidden />
-              {running ? 'Running…' : 'Run samples'}
-            </Button>
-          </Tooltip>
+          {onRun && (
+            <Tooltip label="Run samples (Ctrl or ⌘ + ')" side="bottom">
+              <Button size="sm" onClick={onRun} disabled={running || submitting}>
+                <Play aria-hidden />
+                {running ? 'Running…' : 'Run samples'}
+              </Button>
+            </Tooltip>
+          )}
           <Tooltip label="Submit (Ctrl or ⌘ + Enter)" side="bottom">
-            <Button variant="primary" size="sm" onClick={onSubmit} disabled={running || submitting}>
+            <Button variant="primary" size="sm" onClick={onSubmit} disabled={running || submitting || submitDisabled}>
               <Send aria-hidden />
-              {submitting ? 'Submitting…' : 'Submit'}
+              {submitting ? 'Submitting…' : submitLabel}
             </Button>
           </Tooltip>
         </div>

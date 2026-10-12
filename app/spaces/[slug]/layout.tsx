@@ -1,4 +1,4 @@
-import { SpaceShell } from '@/features/spaces/components/space-shell';
+import { SpaceProvider } from '@/features/spaces/components/space-shell';
 
 export default async function SpaceLayout({
   children,
@@ -8,5 +8,5 @@ export default async function SpaceLayout({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  return <SpaceShell slug={slug}>{children}</SpaceShell>;
+  return <SpaceProvider slug={slug}>{children}</SpaceProvider>;
 }
