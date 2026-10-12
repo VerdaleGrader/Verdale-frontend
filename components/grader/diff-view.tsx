@@ -1,8 +1,9 @@
 'use client';
 
 import * as React from 'react';
-import { CircleCheck, CircleX } from 'lucide-react';
+import { CircleCheck, CircleX, Copy } from 'lucide-react';
 import { Toggle } from '@/components/ui/toggle';
+import { formatCount } from '@/lib/format';
 import { cn } from '@/lib/utils';
 
 /*
@@ -24,6 +25,7 @@ const MAX_CHAR_DIFF = 400;
 const FOLD_FROM_LINES = 40;
 const FOLD_CONTEXT = 2;
 const REVEAL_STEP = 20;
+const ONE_SIDED_SHOWN = 3;
 
 /** Lines as the judge compares them: trailing spaces on a line are ignored, and so are trailing blank lines. */
 function lines(text: string): string[] {
@@ -143,40 +145,86 @@ function buildRows(expected: string, actual: string): Row[] {
 }
 
 /** The sentences under the summary: first difference, extra and missing spaces, missing lines, ignored spaces. */
-function notes(rows: Row[], actualName: string): { headline: string; details: string[] } {
+function notes(
+  rows: Row[],
+  actualName: string
+): { headline: string; details: Array<{ text: string; muted?: boolean }> } {
   const total = rows.length;
   const differing = rows.filter((row) => row.differs);
   const first = rows.findIndex((row) => row.differs);
   const row = rows[first]!;
-  let headline = `${differing.length} of ${total} ${total === 1 ? 'line differs' : 'lines differ'}. `;
+  let headline = `${formatCount(differing.length)} of ${formatCount(total)} ${total === 1 ? 'line differs' : 'lines differ'}. `;
   if (row.expected !== undefined && row.actual !== undefined) {
     let col = 0;
     const want = row.expected.replace(/[ \t]+$/, '');
     const got = row.actual.replace(/[ \t]+$/, '');
     while (col < want.length && col < got.length && want[col] === got[col]) col++;
-    headline += `First difference at line ${first + 1}, column ${col + 1}: expected “${want[col] ?? 'end of line'}”, found “${got[col] ?? 'end of line'}”.`;
+    headline += `First difference at line ${formatCount(first + 1)}, column ${col + 1}: expected “${want[col] ?? 'end of line'}”, found “${got[col] ?? 'end of line'}”.`;
   } else if (row.expected === undefined) {
-    headline += `First difference at line ${first + 1}: ${actualName} has an extra line.`;
+    headline += `First difference at line ${formatCount(first + 1)}: ${actualName} has an extra line.`;
   } else {
-    headline += `First difference at line ${first + 1}: this line is missing from ${actualName}.`;
+    headline += `First difference at line ${formatCount(first + 1)}: this line is missing from ${actualName}.`;
   }
-  const details: string[] = [];
+  const printed = rows.filter((row) => row.actual !== undefined).length;
+  const expectedCount = rows.filter((row) => row.expected !== undefined).length;
+  const plural = (count: number, word: string) => `${formatCount(count)} ${word}${count === 1 ? '' : 's'}`;
+  const details: Array<{ text: string; muted?: boolean }> = [];
   rows.forEach((r, index) => {
-    if (r.expected !== undefined && r.actual !== undefined && r.differs) {
-      const extra = r.right.find((segment) => segment.kind === 'extra');
-      const missing = r.right.find((segment) => segment.kind === 'missing');
-      if (extra?.text === ' ') details.push(`Line ${index + 1} has an extra space.`);
-      if (missing?.text === ' ') details.push(`Line ${index + 1} is missing a space.`);
+    // Only a line that differs by whitespace alone gets a whitespace note; otherwise the characters are what is wrong.
+    if (
+      r.expected !== undefined &&
+      r.actual !== undefined &&
+      r.differs &&
+      r.expected.replace(/\s/g, '') === r.actual.replace(/\s/g, '')
+    ) {
+      // Columns count from 1: where the extra space is in the output, where the missing one belongs in the expected line.
+      let actualCol = 0;
+      let expectedCol = 0;
+      let extraAt = 0;
+      let missingAt = 0;
+      for (const segment of r.right) {
+        if (segment.kind === 'extra' && segment.text === ' ' && !extraAt) extraAt = actualCol + 1;
+        if (segment.kind === 'missing' && segment.text === ' ' && !missingAt) missingAt = expectedCol + 1;
+        if (segment.kind !== 'missing') actualCol += segment.text.length;
+        if (segment.kind !== 'extra') expectedCol += segment.text.length;
+      }
+      if (extraAt) details.push({ text: `Line ${index + 1} has an extra space at column ${extraAt}.` });
+      if (missingAt) details.push({ text: `Line ${index + 1} is missing a space at column ${missingAt}.` });
     }
-    if (r.actual === undefined && r.expected !== undefined) {
-      details.push(`Line ${index + 1} is missing from ${actualName} (${actualName} has fewer lines than expected).`);
-    }
-    if (r.expected === undefined && r.actual !== undefined)
-      details.push(`Line ${index + 1} is extra: it was not expected.`);
+  });
+  // Whole lines missing from one side or extra on it, a run at a time ("Lines 1,001–2,000 are extra").
+  const run = (from: number, onlyOn: 'expected' | 'actual') => {
+    let to = from;
+    while (
+      to + 1 < rows.length &&
+      rows[to + 1]![onlyOn] !== undefined &&
+      rows[to + 1]![onlyOn === 'expected' ? 'actual' : 'expected'] === undefined
+    )
+      to++;
+    return to;
+  };
+  for (let index = 0; index < rows.length; index++) {
+    const r = rows[index]!;
+    const missing = r.actual === undefined && r.expected !== undefined;
+    const extra = r.expected === undefined && r.actual !== undefined;
+    if (!missing && !extra) continue;
+    const to = run(index, missing ? 'expected' : 'actual');
+    const lines =
+      to === index ? `Line ${formatCount(index + 1)} is` : `Lines ${formatCount(index + 1)}–${formatCount(to + 1)} are`;
+    details.push({
+      text: missing
+        ? `${lines} missing from ${actualName} (${actualName} has ${plural(printed, 'line')}, ${formatCount(expectedCount)} ${expectedCount === 1 ? 'was' : 'were'} expected).`
+        : `${lines} extra: ${to === index ? 'it was' : 'they were'} not expected.`,
+    });
+    index = to;
+  }
+  // What the judge ignores comes last, and quieter: it is not part of why the answer is wrong.
+  rows.forEach((r, index) => {
     if (r.actualTail && !r.differs)
-      details.push(
-        `Line ${index + 1} ends with a space. Trailing spaces are ignored by the judge, so it does not count.`
-      );
+      details.push({
+        text: `Line ${index + 1} ends with a space. Trailing spaces are ignored by the judge, so it does not count.`,
+        muted: true,
+      });
   });
   return { headline, details: details.slice(0, 6) };
 }
@@ -229,6 +277,12 @@ function Code({ row, side, showWhitespace }: { row: Row; side: 'left' | 'right';
   );
 }
 
+/** What a folded run holds: lines that match, or lines only one side has. */
+function foldKind(row: Row): string {
+  if (!row.differs) return 'matching';
+  return row.expected === undefined ? 'extra' : 'missing';
+}
+
 type Item = { type: 'row'; index: number } | { type: 'fold'; from: number; to: number; id: string };
 
 /**
@@ -245,6 +299,14 @@ export function DiffView({
   defaultShowWhitespace = true,
   foldLongOutput = true,
   rawHref,
+  between,
+  copyable,
+  expectedTotal,
+  actualTotal,
+  goToLine,
+  outputFirst,
+  plain,
+  missingText,
 }: {
   expected: string;
   actual: string;
@@ -259,11 +321,30 @@ export function DiffView({
   foldLongOutput?: boolean;
   /** Link to the whole file as text, offered in a fold. */
   rawHref?: string;
+  /** Shown between the options and the two columns (the testcase's input on the review pages). */
+  between?: React.ReactNode;
+  /** A copy button in each column's title, copying that side's text. */
+  copyable?: boolean;
+  /** Lines in the whole file when only the start is given (the title says so instead of counting what is shown). */
+  expectedTotal?: number;
+  actualTotal?: number;
+  /** A "Go to line" box that opens folded lines and scrolls to the line. For long outputs. */
+  goToLine?: boolean;
+  /** The solver's output in the left column and the expected output on the right (the review pages' order). */
+  outputFirst?: boolean;
+  /** Only the two columns: no summary sentences, no options. For a program that stopped, where "differs" is not the point. */
+  plain?: boolean;
+  /** What a line of the right column says when the right side has none ("stopped before line 3"). */
+  missingText?: (line: number) => string;
 }) {
   const rows = React.useMemo(() => buildRows(expected, actual), [expected, actual]);
   const [showWhitespace, setShowWhitespace] = React.useState(defaultShowWhitespace);
   const [onlyDifferent, setOnlyDifferent] = React.useState(false);
   const [revealed, setRevealed] = React.useState<Record<string, number>>({});
+  const [wrap, setWrap] = React.useState(false);
+  const [target, setTarget] = React.useState('');
+  const root = React.useRef<HTMLDivElement>(null);
+  const [scrollTo, setScrollTo] = React.useState<number | null>(null);
 
   const same = !rows.some((row) => row.differs);
   const summary = same ? null : notes(rows, actualName);
@@ -272,7 +353,22 @@ export function DiffView({
     const fold = onlyDifferent || (foldLongOutput && rows.length > FOLD_FROM_LINES);
     if (!fold) return rows.map((_, index) => ({ type: 'row', index }));
     const context = onlyDifferent ? 0 : FOLD_CONTEXT;
+    // A long run of lines that exist on one side only (an output that never stops) shows its start and folds the rest.
+    const oneSided = (row: Row) => row.expected === undefined || row.actual === undefined;
+    const hiddenRun = new Array<boolean>(rows.length).fill(false);
+    for (let start = 0; start < rows.length; ) {
+      if (!oneSided(rows[start]!)) {
+        start++;
+        continue;
+      }
+      let end = start;
+      while (end + 1 < rows.length && oneSided(rows[end + 1]!)) end++;
+      if (end - start + 1 > ONE_SIDED_SHOWN * 3)
+        for (let k = start + ONE_SIDED_SHOWN; k <= end; k++) hiddenRun[k] = true;
+      start = end + 1;
+    }
     const show = rows.map((row, index) => {
+      if (hiddenRun[index]) return false;
       if (row.differs) return true;
       for (let k = Math.max(0, index - context); k <= Math.min(rows.length - 1, index + context); k++)
         if (rows[k]!.differs) return true;
@@ -295,11 +391,34 @@ export function DiffView({
     return result;
   }, [rows, onlyDifferent, foldLongOutput, revealed]);
 
+  React.useEffect(() => {
+    if (scrollTo === null) return;
+    root.current?.querySelector(`[data-line="${scrollTo}"]`)?.scrollIntoView?.({ block: 'center' });
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- one-shot request from the form
+    setScrollTo(null);
+  }, [scrollTo, items]);
+
   const column = (side: 'left' | 'right') => (
     <div className="vd-diff__col" style={{ minWidth: 0 }}>
-      <div className="vd-diff__head">
-        {side === 'left' ? expectedLabel : actualLabel} ·{' '}
-        {rows.filter((row) => (side === 'left' ? row.expected : row.actual) !== undefined).length} lines
+      <div className="vd-diff__head" style={copyable ? { justifyContent: 'space-between' } : undefined}>
+        <span>
+          {side === 'left' ? expectedLabel : actualLabel} ·{' '}
+          {formatCount(
+            (side === 'left' ? expectedTotal : actualTotal) ??
+              rows.filter((row) => (side === 'left' ? row.expected : row.actual) !== undefined).length
+          )}{' '}
+          lines
+        </span>
+        {copyable && (
+          <button
+            type="button"
+            className="vd-iconbtn"
+            aria-label={`Copy ${(side === 'left' ? expectedLabel : actualLabel).toLowerCase()}`}
+            onClick={() => void navigator.clipboard?.writeText(side === 'left' ? expected : actual)}
+          >
+            <Copy className="size-3.5" strokeWidth={1.75} aria-hidden />
+          </button>
+        )}
       </div>
       <ol className="cd-lines">
         {items.map((item) => {
@@ -308,7 +427,7 @@ export function DiffView({
             return (
               <li key={`fold-${item.id}`} className="cd-fold">
                 <span>
-                  {hidden} matching {hidden === 1 ? 'line' : 'lines'} hidden
+                  {formatCount(hidden)} {foldKind(rows[item.from]!)} {hidden === 1 ? 'line' : 'lines'} hidden
                 </span>
                 {side === 'left' && (
                   <span>
@@ -342,15 +461,23 @@ export function DiffView({
           const own = side === 'left' ? row.expected : row.actual;
           const missing = own === undefined;
           return (
-            <li key={item.index} className={cn('cd-line', row.differs && 'is-diff', missing && 'is-missing')}>
+            <li
+              key={item.index}
+              data-line={item.index + 1}
+              className={cn('cd-line', row.differs && 'is-diff', missing && 'is-missing')}
+            >
               <span className="cd-no" aria-hidden>
-                {item.index + 1}
+                {formatCount(item.index + 1)}
               </span>
               <span className="cd-gut" aria-hidden>
-                {row.differs ? (missing ? '−' : '≠') : ''}
+                {row.differs ? (missing ? '−' : row.expected === undefined ? '+' : '≠') : ''}
               </span>
               {missing ? (
-                <code>{side === 'right' ? `(no line ${item.index + 1} in output)` : '(no such line expected)'}</code>
+                <code>
+                  {side === 'right'
+                    ? (missingText?.(item.index + 1) ?? `(no line ${item.index + 1} in output)`)
+                    : '(no such line expected)'}
+                </code>
               ) : (
                 <Code row={row} side={side} showWhitespace={showWhitespace} />
               )}
@@ -372,56 +499,99 @@ export function DiffView({
   );
 
   return (
-    <div className="vd-diff">
-      <div className={cn('vd-diff__summary', same ? 'is-good' : 'is-bad')} role="status">
-        {same ? (
-          <CircleCheck className="size-4" strokeWidth={1.75} aria-hidden />
-        ) : (
-          <CircleX className="size-4" strokeWidth={1.75} aria-hidden />
-        )}
-        <span>{same ? 'Output matches the expected output.' : summary!.headline}</span>
-      </div>
-      {summary && summary.details.length > 0 && (
-        <ul className="cd-notes">
-          {summary.details.map((detail) => (
-            <li key={detail}>{detail}</li>
-          ))}
-        </ul>
+    <div className={cn('vd-diff', wrap && 'is-wrapped')} ref={root}>
+      {!plain && (
+        <div className={cn('vd-diff__summary', same ? 'is-good' : 'is-bad')} role="status">
+          <p className="vd-diff__headline">
+            {same ? (
+              <CircleCheck className="size-4" strokeWidth={1.75} aria-hidden />
+            ) : (
+              <CircleX className="size-4" strokeWidth={1.75} aria-hidden />
+            )}
+            <span>{same ? 'Output matches the expected output.' : summary!.headline}</span>
+          </p>
+          {summary && summary.details.length > 0 && (
+            <ul className="cd-notes">
+              {summary.details.map((detail) => (
+                <li key={detail.text} className={cn(detail.muted && 'is-muted')}>
+                  {detail.text}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
       )}
-      <div className="cd-options">
-        <Toggle label="Show whitespace" checked={showWhitespace} onCheckedChange={setShowWhitespace} />
-        <Toggle
-          label="Only lines that differ"
-          checked={onlyDifferent}
-          disabled={same}
-          onCheckedChange={setOnlyDifferent}
-        />
-        <span className="cd-legend">
-          <span>
-            <span className="cd-x vd-mono">3</span> wrong character
+      {!plain && (
+        <div className="cd-options">
+          <Toggle label="Show whitespace" checked={showWhitespace} onCheckedChange={setShowWhitespace} />
+          <Toggle
+            label="Only lines that differ"
+            checked={onlyDifferent}
+            disabled={same}
+            onCheckedChange={setOnlyDifferent}
+          />
+          {goToLine && (
+            <>
+              <Toggle label="Wrap long lines" checked={wrap} onCheckedChange={setWrap} />
+              <form
+                className="inline-flex items-center gap-2"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  const line = Number(target.replace(/[,\s]/g, ''));
+                  if (!Number.isInteger(line) || line < 1 || line > rows.length) return;
+                  // Open the folded run the line is in, then scroll once it is drawn.
+                  const fold = items.find(
+                    (item) => item.type === 'fold' && line - 1 >= item.from && line - 1 < item.to
+                  );
+                  if (fold && fold.type === 'fold') {
+                    const first = Number(fold.id);
+                    setRevealed((current) => ({ ...current, [fold.id]: line - first }));
+                  }
+                  setScrollTo(line);
+                }}
+              >
+                <label className="vd-label" htmlFor="diff-goto" style={{ fontWeight: 500 }}>
+                  Go to line
+                </label>
+                <input
+                  id="diff-goto"
+                  className="vd-input vd-input--mono"
+                  style={{ width: 96, height: 28 }}
+                  inputMode="numeric"
+                  value={target}
+                  onChange={(event) => setTarget(event.target.value)}
+                />
+              </form>
+            </>
+          )}
+          <span className="cd-legend">
+            <span>
+              <span className="cd-x vd-mono">3</span> wrong character
+            </span>
+            <span>
+              <span className="cd-want vd-mono">2</span> expected character
+            </span>
+            <span>
+              <span className="cd-miss vd-mono">␣</span> missing
+            </span>
+            <span>
+              <span className="vd-mono cd-ws">·</span> space <span className="vd-mono cd-ws">→</span> tab{' '}
+              <span className="vd-mono cd-ws">↵</span> line end
+            </span>
+            <span>
+              <span className="vd-mono cd-ign">·</span> ignored
+            </span>
           </span>
-          <span>
-            <span className="cd-want vd-mono">2</span> expected character
-          </span>
-          <span>
-            <span className="cd-miss vd-mono">␣</span> missing
-          </span>
-          <span>
-            <span className="vd-mono cd-ws">·</span> space <span className="vd-mono cd-ws">→</span> tab{' '}
-            <span className="vd-mono cd-ws">↵</span> line end
-          </span>
-          <span>
-            <span className="vd-mono cd-ign">·</span> ignored
-          </span>
-        </span>
-      </div>
+        </div>
+      )}
+      {between}
       <div
         className="vd-diff__cols"
         role="group"
         aria-label={`${actualLabel} compared with ${expectedLabel.toLowerCase()}`}
       >
-        {column('left')}
-        {column('right')}
+        {outputFirst ? column('right') : column('left')}
+        {outputFirst ? column('left') : column('right')}
       </div>
     </div>
   );

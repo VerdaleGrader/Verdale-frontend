@@ -164,8 +164,8 @@ describe('DiffView', () => {
     const { container } = render(<DiffView expected={'5 0\n8 1'} actual={'5  0\n81'} />);
     expect(container.querySelectorAll('.cd-x').length).toBeGreaterThan(0);
     expect(container.querySelector('.cd-miss')).toBeTruthy();
-    expect(screen.getByText('Line 1 has an extra space.')).toBeTruthy();
-    expect(screen.getByText('Line 2 is missing a space.')).toBeTruthy();
+    expect(screen.getByText(/^Line 1 has an extra space at column \d+\.$/)).toBeTruthy();
+    expect(screen.getByText(/^Line 2 is missing a space at column 2\.$/)).toBeTruthy();
   });
 
   it('shows whitespace and line ends, and hides them again', async () => {
