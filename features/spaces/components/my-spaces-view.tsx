@@ -1,7 +1,6 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
 import { Plus } from 'lucide-react';
 import { PageContainer, PageHeader } from '@/components/layout/page';
 import { EmptyState, ErrorState, Loading } from '@/components/states/states';
@@ -10,6 +9,7 @@ import { Pagination } from '@/components/ui/pagination';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useRequireAuth } from '@/features/auth/hooks/use-require-auth';
 import { useApiQuery } from '@/lib/use-api-query';
+import { param, useUrlQuery } from '@/lib/use-url-query';
 import { cn } from '@/lib/utils';
 import { spacesApi } from '../api/spaces.api';
 import { PendingInvites } from './pending-invites';
@@ -17,11 +17,14 @@ import { SpaceGrid } from './space-card';
 
 const PAGE_SIZE = 20;
 
+// The tab and page live in the URL (?tab=archived&page=2); defaults are left out.
+const QUERY = { tab: param.oneOf(['active', 'archived'] as const, 'active'), page: param.page() };
+
 /** The signed-in user's Spaces: active ones first, archived ones on their own tab. */
 export function MySpacesView() {
   const auth = useRequireAuth();
-  const [tab, setTab] = useState<'active' | 'archived'>('active');
-  const [page, setPage] = useState(1);
+  const { values, set } = useUrlQuery(QUERY);
+  const { tab, page } = values;
   const archived = tab === 'archived';
   const spaces = useApiQuery(
     () => spacesApi.listMine({ page, pageSize: PAGE_SIZE }, archived),
@@ -43,13 +46,7 @@ export function MySpacesView() {
 
       <PendingInvites onJoined={spaces.reload} />
 
-      <Tabs
-        value={tab}
-        onValueChange={(next) => {
-          setTab(next as 'active' | 'archived');
-          setPage(1);
-        }}
-      >
+      <Tabs value={tab} onValueChange={(next) => set({ tab: next as 'active' | 'archived' })}>
         <TabsList aria-label="Space status">
           <TabsTrigger value="active">Active</TabsTrigger>
           <TabsTrigger value="archived">Archived</TabsTrigger>
@@ -74,7 +71,12 @@ export function MySpacesView() {
         ) : (
           <>
             <SpaceGrid spaces={spaces.data.items} />
-            <Pagination page={page} pageSize={PAGE_SIZE} total={spaces.data.total} onPage={setPage} />
+            <Pagination
+              page={page}
+              pageSize={PAGE_SIZE}
+              total={spaces.data.total}
+              onPage={(next) => set({ page: next })}
+            />
           </>
         ))}
     </PageContainer>
