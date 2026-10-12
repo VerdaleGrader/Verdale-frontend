@@ -44,10 +44,12 @@ const listOf = (items: ReturnType<typeof test>[], overrides: Partial<TestCaseLis
   summary: {
     count: items.length,
     sample_count: items.filter((item) => item.is_sample).length,
+    missing_output_count: 0,
     total_bytes: items.length * 1512,
   },
   limits: LIMITS,
   editable: true,
+  revision: 'r1',
   ...overrides,
 });
 
@@ -110,7 +112,10 @@ describe('the test list', () => {
   });
 
   it('warns as a limit comes close', async () => {
-    renderManager({ ...listOf([test(1)]), summary: { count: 95, sample_count: 1, total_bytes: 100 } });
+    renderManager({
+      ...listOf([test(1)]),
+      summary: { count: 95, sample_count: 1, missing_output_count: 0, total_bytes: 100 },
+    });
     const bar = await screen.findByRole('progressbar', { name: 'Testcases' });
     expect(bar.firstElementChild!.className).toContain('bg-warning');
     expect(screen.getByRole('progressbar', { name: 'Total size' }).firstElementChild!.className).toContain(

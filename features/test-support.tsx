@@ -118,7 +118,7 @@ export function makeEditor(overrides: Partial<ProblemEditor> = {}): ProblemEdito
     created_by: { username: 'edith', display_name: 'Edith', avatar_url: null },
     created_at: '2026-10-11T00:00:00Z',
     updated_at: '2026-10-11T00:00:00Z',
-    tests: { count: 2, sample_count: 1, total_bytes: 20 },
+    tests: { count: 2, sample_count: 1, missing_output_count: 0, total_bytes: 20 },
     solutions: { count: 1, has_primary: true },
     publish_checks: [
       { key: 'statement', ok: true, message: 'The statement is written.' },
