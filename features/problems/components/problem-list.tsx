@@ -47,7 +47,7 @@ export function ProblemList() {
   const [input, setInput] = useState('');
   const [query, setQuery] = useState('');
   const [page, setPage] = useState(1);
-  const [status, setStatus] = useState<StatusFilter>('published');
+  const [status, setStatus] = useState<StatusFilter>('all');
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -142,10 +142,10 @@ function emptyTitle(status: StatusFilter) {
 function emptyDescription(query: string, status: StatusFilter, canCreate: boolean, archived: boolean) {
   if (query) return 'Try a shorter or different word.';
   if (archived) return 'This Space was archived without problems.';
-  if (status === 'published' && canCreate) {
+  if ((status === 'published' || status === 'all') && canCreate) {
     return 'Start a draft, add testcases and a reference solution, then publish it for others to solve.';
   }
-  if (status === 'published') return 'Problems published in this Space will appear here.';
+  if (status === 'published' || status === 'all') return 'Problems published in this Space will appear here.';
   return 'Nothing to show for this filter.';
 }
 
