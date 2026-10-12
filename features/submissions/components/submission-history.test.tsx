@@ -1,9 +1,10 @@
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { makeSpace, makeSummary, renderInApp } from '@/features/test-support';
+import { currentUrl, resetNavigation } from '@/features/test-navigation';
+import { chooseOption, makeSpace, makeSummary, renderInApp } from '@/features/test-support';
 
-vi.mock('next/navigation', () => ({ useParams: () => ({ problemSlug: 'sum' }), useRouter: () => ({ push: vi.fn() }) }));
+vi.mock('next/navigation', () => import('@/features/test-navigation'));
 const submissionsApi = vi.hoisted(() => ({ list: vi.fn() }));
 vi.mock('../api/submissions.api', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../api/submissions.api')>()),
@@ -17,6 +18,7 @@ const page = (items: object[], total = items.length) => ({ items, page: 1, page_
 
 beforeEach(() => {
   vi.clearAllMocks();
+  resetNavigation('/spaces/team/problems/sum/submissions', { slug: 'team', problemSlug: 'sum' });
   submissionsApi.list.mockResolvedValue(page([]));
 });
 
@@ -68,10 +70,18 @@ describe('submission history', () => {
     solver.unmount();
 
     renderInApp(<SubmissionHistory />, { space: makeSpace('editor') });
-    const select = await screen.findByRole('combobox', { name: 'Show' });
-    await userEvent.selectOptions(select, 'all');
+    await chooseOption('Show', 'Everyone’s submissions');
     await waitFor(() =>
       expect(submissionsApi.list).toHaveBeenLastCalledWith(expect.anything(), { scope: 'all', page: 1, pageSize: 20 })
+    );
+    expect(currentUrl()).toBe('/spaces/team/problems/sum/submissions?scope=all');
+  });
+
+  it('opens the scope and page named in the URL, but gives a solver only their own', async () => {
+    resetNavigation('/spaces/team/problems/sum/submissions?scope=all&page=3', { slug: 'team', problemSlug: 'sum' });
+    renderInApp(<SubmissionHistory />, { space: makeSpace('solver') });
+    await waitFor(() =>
+      expect(submissionsApi.list).toHaveBeenLastCalledWith(expect.anything(), { scope: 'mine', page: 3, pageSize: 20 })
     );
   });
 });

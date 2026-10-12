@@ -8,7 +8,7 @@ import { CodeEditor } from '@/components/code/code-editor';
 import { PageContainer, PageHeader } from '@/components/layout/page';
 import { SubmissionTable } from '@/components/grader/submission-table';
 import { EmptyState, ErrorState, Loading } from '@/components/states/states';
-import { Button, buttonVariants } from '@/components/ui/button';
+import { buttonVariants } from '@/components/ui/button';
 import { useAuth } from '@/features/auth/hooks/auth-provider';
 import { problemsApi, type ProblemTarget } from '@/features/problems/api/problems.api';
 import { ProblemReader } from '@/features/problems/components/problem-reader';
@@ -32,7 +32,11 @@ export function fromSummary(summary: SubmissionSummary): Submission {
 /** What to tell the person when Core refuses a submission, in words that say what to do. */
 export function submitErrorMessage(error: unknown): string {
   if (error instanceof ApiError) {
-    if (error.status === 429) return `You are submitting too quickly. ${error.message}`;
+    if (error.status === 429) {
+      // Core's message ends with "Try again in N seconds."; the limit itself is in the contract.
+      const seconds = /(\d+) seconds?/.exec(error.message)?.[1];
+      return `You can submit at most 10 times a minute. ${seconds ? `Try again in ${seconds} seconds.` : 'Wait a moment and try again.'}`;
+    }
     if (error.status === 400) return error.fieldError('source') ?? error.fieldError('language') ?? error.message;
     if (
       error.status === 409 &&
@@ -123,14 +127,11 @@ function ProblemNotAvailable({ target }: { target: ProblemTarget }) {
         title={items[0]!.problem.title}
         description="This problem is no longer in any Track you can see. You can still read your submissions, but new ones are closed."
         actions={
-          <>
-            <Button disabled title="This problem is not in a Track you can see">
-              Submit
-            </Button>
-            <Link href={`/spaces/${space.slug}`} className={buttonVariants({ variant: 'secondary' })}>
-              Back to {space.name}
-            </Link>
-          </>
+          // No Submit button here: there is no problem page to submit from, and a disabled button would
+          // break the rule that Submit is only disabled while a submission is in flight (GRD-99).
+          <Link href={`/spaces/${space.slug}`} className={buttonVariants({ variant: 'secondary' })}>
+            Back to {space.name}
+          </Link>
         }
       />
       <SubmissionTable rows={items.map((item) => toRow(item, base))} />
@@ -204,8 +205,17 @@ function ProblemPage({ problem, target }: { problem: Problem; target: ProblemTar
 
 const SAVE_DELAY_MS = 500;
 
+/** Why nothing can be submitted, said after the click instead of by a disabled button. */
+function closedMessage(problem: Problem, spaceArchived: boolean): string {
+  if (problem.status === 'draft') return 'This problem is a draft. Nothing can be submitted until it is published.';
+  if (problem.status === 'archived') return 'This problem is archived and no longer accepts submissions.';
+  if (spaceArchived) return 'This Space is archived, so nothing can be submitted.';
+  return 'Submissions are closed for this problem.';
+}
+
 function SolvePanel({ problem, target }: { problem: Problem; target: ProblemTarget }) {
   const { auth, expire } = useAuth();
+  const { space } = useSpace();
   const router = useRouter();
   const pathname = usePathname();
   const roomy = useMediaQuery('(min-width: 768px)');
@@ -257,6 +267,9 @@ function SolvePanel({ problem, target }: { problem: Problem; target: ProblemTarg
   }, [loggedIn, target]);
 
   const live = useSubmissionLive(current?.id ?? null, current);
+  const submission = live.submission ?? current;
+  // The button is the same in every state except while a submission is on its way or being judged.
+  const waiting = submission !== undefined && submission.status !== 'completed';
 
   const changeLanguage = useCallback(
     (next: Language) => {
@@ -274,7 +287,11 @@ function SolvePanel({ problem, target }: { problem: Problem; target: ProblemTarg
       router.push(`/login?next=${encodeURIComponent(pathname)}`);
       return;
     }
-    if (!open || submitting) return;
+    if (submitting || waiting) return;
+    if (!open) {
+      setError(closedMessage(problem, space.archived_at !== null));
+      return;
+    }
     setSubmitting(true);
     setError(null);
     try {
@@ -290,20 +307,21 @@ function SolvePanel({ problem, target }: { problem: Problem; target: ProblemTarg
     } finally {
       setSubmitting(false);
     }
-  }, [loggedIn, open, submitting, target, language, router, pathname, expire]);
+  }, [loggedIn, open, submitting, waiting, problem, space.archived_at, target, language, router, pathname, expire]);
 
-  const submission = live.submission ?? current;
   const base = `/spaces/${target.slug}/problems/${target.problemSlug}`;
   return (
     <div className="flex flex-col gap-3">
       <CodeEditorFrame
         languages={languages.map((value) => ({ value, label: LANGUAGE_LABELS[value] }))}
         language={language}
-        onLanguageChange={(event) => changeLanguage(event.target.value as Language)}
+        onLanguageChange={(next) => changeLanguage(next as Language)}
         onSubmit={() => void submit()}
         submitting={submitting}
-        submitLabel={loggedIn || auth.status === 'loading' ? 'Submit' : 'Log in to submit'}
-        submitDisabled={!open && loggedIn}
+        submitLabel={
+          waiting ? 'Waiting for the result…' : loggedIn || auth.status === 'loading' ? 'Submit' : 'Log in to submit'
+        }
+        submitDisabled={waiting}
         status={
           <div className="flex flex-col gap-3">
             {error && (

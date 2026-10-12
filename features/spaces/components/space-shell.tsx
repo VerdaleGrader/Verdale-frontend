@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { createContext, useContext } from 'react';
 import { PageContainer } from '@/components/layout/page';
 import { TabNav } from '@/components/layout/tab-nav';
@@ -91,9 +92,11 @@ export function SpaceProvider({ slug, children }: { slug: string; children: Reac
 export function SpaceChrome({ children }: { children: React.ReactNode }) {
   const { space: data, abilities } = useSpace();
   const base = `/spaces/${data.slug}`;
+  // The Submissions pages are wide tables: they get the width of the design, the other tabs keep the reading width.
+  const wide = usePathname().startsWith(`${base}/submissions`);
   const tabs = [
     { href: base, label: 'Overview' },
-    // Owners and editors also get the whole problem list, drafts included, and the tools behind it.
+    // The staff also get the whole problem list, drafts included, and the tools behind it.
     ...(abilities.canAuthorProblems
       ? [
           { href: `${base}/problems`, label: 'Problems' },
@@ -102,11 +105,16 @@ export function SpaceChrome({ children }: { children: React.ReactNode }) {
         ]
       : []),
     ...(abilities.canViewMembers ? [{ href: `${base}/members`, label: 'Members', count: data.member_count }] : []),
-    ...(data.my_role === 'owner' ? [{ href: `${base}/settings`, label: 'Settings' }] : []),
+    ...(abilities.canReviewSubmissions
+      ? [{ href: `${base}/submissions`, label: 'Submissions', matchPrefix: true }]
+      : []),
+    ...(data.my_role === 'owner' || data.my_role === 'administrator'
+      ? [{ href: `${base}/settings`, label: 'Settings' }]
+      : []),
   ];
 
   return (
-    <PageContainer>
+    <PageContainer className={wide ? 'max-w-[1440px]' : undefined}>
       <header className="flex flex-col gap-2">
         <p className="text-mono-label text-text-muted">{data.slug}</p>
         <h1 className="text-h1 break-words">{data.name}</h1>

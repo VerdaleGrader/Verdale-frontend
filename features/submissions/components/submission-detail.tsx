@@ -156,10 +156,10 @@ function ResultView({ initial, back }: { initial: Submission; back: string }) {
       {finished && submission.results.length > 0 && (
         <section aria-labelledby="tests-heading" className="flex flex-col gap-3">
           <h2 id="tests-heading" className="text-h2">
-            Tests
+            Testcases
           </h2>
           <p className="text-small text-text-muted">
-            Hidden tests show a verdict, time and memory only. Their data is never shown.
+            Hidden testcases show a verdict, time and memory only. Their data is never shown.
           </p>
           <TestResultList rows={resultRows(submission.results)} />
           {feedback.map((result) => (
@@ -167,7 +167,7 @@ function ResultView({ initial, back }: { initial: Submission; back: string }) {
               key={result.position}
               className="border-border bg-surface-sunken text-small flex flex-col gap-1 rounded-md border p-3"
             >
-              <p className="text-body-strong">Sample test {result.position}</p>
+              <p className="text-body-strong">Sample testcase {result.position}</p>
               {result.checker_message && <p>{result.checker_message}</p>}
               {result.stdout_preview && (
                 <>

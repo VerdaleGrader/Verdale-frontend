@@ -67,9 +67,9 @@ describe('the statement editor: slug and format (GRD-72, GRD-74)', () => {
     });
     api.update.mockResolvedValue(updated(withPdf, { statement_mode: 'pdf' }));
     renderInApp(<Harness initial={withPdf} />, { space: makeSpace('editor') });
-    expect(((await screen.findByLabelText('Markdown text')) as HTMLInputElement).checked).toBe(true);
+    expect((await screen.findByRole('radio', { name: 'Markdown text' })).getAttribute('aria-checked')).toBe('true');
     expect(screen.getByLabelText('Statement (Markdown)')).toBeTruthy();
-    await userEvent.click(screen.getByLabelText('PDF file'));
+    await userEvent.click(screen.getByRole('radio', { name: 'PDF file' }));
     await waitFor(() =>
       expect(api.update).toHaveBeenCalledWith({ slug: 'team', problemSlug: 'sum' }, { statement_mode: 'pdf' })
     );
@@ -81,14 +81,14 @@ describe('the statement editor: slug and format (GRD-72, GRD-74)', () => {
 
   it('opens the upload panel on choosing PDF without a file, and asks Core for nothing yet', async () => {
     renderInApp(<Harness initial={makeEditor()} />, { space: makeSpace('editor') });
-    await userEvent.click(await screen.findByLabelText('PDF file'));
+    await userEvent.click(await screen.findByRole('radio', { name: 'PDF file' }));
     expect(await screen.findByText('Upload PDF')).toBeTruthy();
     expect(api.update).not.toHaveBeenCalled();
   });
 
   it('a published version keeps its format fixed', async () => {
     renderInApp(<Harness initial={{ ...makeEditor(), editable: false }} />, { space: makeSpace('editor') });
-    const radio = await screen.findByLabelText('PDF file');
+    const radio = await screen.findByRole('radio', { name: 'PDF file' });
     expect(radio.matches(':disabled')).toBe(true);
   });
 });
@@ -99,9 +99,9 @@ describe('the statement editor (GRD-28)', () => {
     expect((await screen.findByLabelText('Title')) as HTMLInputElement).toHaveProperty('value', 'Sum of two numbers');
     expect((screen.getByLabelText('Time limit (ms)') as HTMLInputElement).value).toBe('1000');
     expect((screen.getByLabelText('Memory limit (MB)') as HTMLInputElement).value).toBe('256');
-    expect(screen.getByText('Per test, 100 to 10000 ms.')).toBeTruthy();
-    expect(screen.getByText('Per test, 16 to 1024 MB.')).toBeTruthy();
-    expect(screen.getByLabelText('C++')).toHaveProperty('checked', true);
+    expect(screen.getByText('Per testcase, 100 to 10000 ms.')).toBeTruthy();
+    expect(screen.getByText('Per testcase, 16 to 1024 MB.')).toBeTruthy();
+    expect(screen.getByRole('checkbox', { name: 'C++' }).getAttribute('aria-checked')).toBe('true');
     expect((screen.getByLabelText('Statement (Markdown)') as HTMLTextAreaElement).value).toBe('Read $a$ and $b$.');
     expect(screen.getByText('All changes saved')).toBeTruthy();
   });

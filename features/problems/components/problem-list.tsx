@@ -1,24 +1,29 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
 import { Plus } from 'lucide-react';
 import { EmptyState, ErrorState, Loading } from '@/components/states/states';
 import { Badge } from '@/components/ui/badge';
 import { buttonVariants } from '@/components/ui/button';
-import { Select, TextField } from '@/components/ui/field';
+import { ClickableRow, RowText } from '@/components/ui/clickable-row';
+import { Dropdown } from '@/components/ui/dropdown';
+import { TextField } from '@/components/ui/field';
 import { Pagination } from '@/components/ui/pagination';
 import { useAuth } from '@/features/auth/hooks/auth-provider';
 import { useSpace } from '@/features/spaces/components/space-shell';
 import { formatMemory, formatTime, timeAgo } from '@/lib/format';
 import { useApiQuery } from '@/lib/use-api-query';
+import { param, useDebouncedText, useUrlQuery } from '@/lib/use-url-query';
 import { problemsApi } from '../api/problems.api';
 import { LANGUAGE_LABELS, STATUS_LABELS, type ProblemStatus, type ProblemSummary } from '../types';
 
 const PAGE_SIZE = 20;
-const DEBOUNCE_MS = 300;
 
-type StatusFilter = 'published' | 'draft' | 'archived' | 'all';
+const STATUS_FILTERS = ['published', 'draft', 'archived', 'all'] as const;
+type StatusFilter = (typeof STATUS_FILTERS)[number];
+
+// Search, status and page live in the URL (?q=…&status=…&page=…); defaults are left out.
+const QUERY = { q: param.text(), status: param.oneOf(STATUS_FILTERS, 'all'), page: param.page() };
 
 const FILTER_OPTIONS = [
   { value: 'published', label: 'Published' },
@@ -44,18 +49,9 @@ export function ProblemList() {
   const { space, abilities } = useSpace();
   const { auth } = useAuth();
   const author = abilities.canAuthorProblems;
-  const [input, setInput] = useState('');
-  const [query, setQuery] = useState('');
-  const [page, setPage] = useState(1);
-  const [status, setStatus] = useState<StatusFilter>('published');
-
-  useEffect(() => {
-    const timer = window.setTimeout(() => {
-      setQuery(input.trim());
-      setPage(1);
-    }, DEBOUNCE_MS);
-    return () => window.clearTimeout(timer);
-  }, [input]);
+  const { values, set } = useUrlQuery(QUERY);
+  const { q: query, status, page } = values;
+  const [input, setInput] = useDebouncedText(query, (text) => set({ q: text }));
 
   const effectiveStatus: StatusFilter = author ? status : 'published';
   const problems = useApiQuery(
@@ -87,14 +83,11 @@ export function ProblemList() {
           className="w-full max-w-xs"
         />
         {author && (
-          <Select
+          <Dropdown
             label="Show"
             value={status}
             options={FILTER_OPTIONS}
-            onChange={(event) => {
-              setStatus(event.target.value as StatusFilter);
-              setPage(1);
-            }}
+            onValueChange={(next) => set({ status: next as StatusFilter })}
             className="w-44"
           />
         )}
@@ -126,7 +119,12 @@ export function ProblemList() {
         ) : (
           <>
             <ProblemTable spaceSlug={space.slug} problems={problems.data.items} author={author} />
-            <Pagination page={page} pageSize={PAGE_SIZE} total={problems.data.total} onPage={setPage} />
+            <Pagination
+              page={page}
+              pageSize={PAGE_SIZE}
+              total={problems.data.total}
+              onPage={(next) => set({ page: next })}
+            />
           </>
         ))}
     </section>
@@ -142,10 +140,10 @@ function emptyTitle(status: StatusFilter) {
 function emptyDescription(query: string, status: StatusFilter, canCreate: boolean, archived: boolean) {
   if (query) return 'Try a shorter or different word.';
   if (archived) return 'This Space was archived without problems.';
-  if (status === 'published' && canCreate) {
-    return 'Start a draft, add tests and a reference solution, then publish it for others to solve.';
+  if ((status === 'published' || status === 'all') && canCreate) {
+    return 'Start a draft, add testcases and a reference solution, then publish it for others to solve.';
   }
-  if (status === 'published') return 'Problems published in this Space will appear here.';
+  if (status === 'published' || status === 'all') return 'Problems published in this Space will appear here.';
   return 'Nothing to show for this filter.';
 }
 
@@ -183,12 +181,18 @@ function ProblemTable({
         </thead>
         <tbody>
           {problems.map((problem) => (
-            <tr key={problem.id}>
+            // Empty space in a row opens the editor for those who may edit; the title still opens the problem.
+            <ClickableRow
+              key={problem.id}
+              href={author ? `/spaces/${spaceSlug}/problems/${problem.slug}/edit` : undefined}
+            >
               <td>
                 <Link href={problemHref(spaceSlug, problem, author)} className="vd-link">
                   {problem.title}
                 </Link>
-                <span className="text-mono-label text-text-muted vd-cell-sub">{problem.slug}</span>
+                <span className="text-mono-label text-text-muted vd-cell-sub">
+                  <RowText>{problem.slug}</RowText>
+                </span>
               </td>
               {author && (
                 <td>
@@ -196,11 +200,17 @@ function ProblemTable({
                 </td>
               )}
               <td className="vd-muted">
-                {problem.allowed_languages.map((language) => LANGUAGE_LABELS[language]).join(', ')}
+                <RowText>{problem.allowed_languages.map((language) => LANGUAGE_LABELS[language]).join(', ')}</RowText>
               </td>
-              <td className="is-num vd-mono">{formatTime(problem.time_limit_ms)}</td>
-              <td className="is-num vd-mono">{formatMemory(problem.memory_limit_kb)}</td>
-              <td className="vd-muted">{timeAgo(problem.updated_at)}</td>
+              <td className="is-num vd-mono">
+                <RowText>{formatTime(problem.time_limit_ms)}</RowText>
+              </td>
+              <td className="is-num vd-mono">
+                <RowText>{formatMemory(problem.memory_limit_kb)}</RowText>
+              </td>
+              <td className="vd-muted">
+                <RowText>{timeAgo(problem.updated_at)}</RowText>
+              </td>
               {author && (
                 <td>
                   {problem.status !== 'draft' && (
@@ -210,7 +220,7 @@ function ProblemTable({
                   )}
                 </td>
               )}
-            </tr>
+            </ClickableRow>
           ))}
         </tbody>
       </table>

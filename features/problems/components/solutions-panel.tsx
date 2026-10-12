@@ -7,7 +7,8 @@ import { EmptyState, ErrorState, Loading } from '@/components/states/states';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Dialog } from '@/components/ui/dialog';
-import { Select } from '@/components/ui/field';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Dropdown } from '@/components/ui/dropdown';
 import { useToast } from '@/components/ui/toast';
 import { ApiError, errorMessage } from '@/lib/api';
 import { useRefreshableQuery } from '@/lib/use-api-query';
@@ -53,7 +54,7 @@ export function SolutionsPanel() {
   return (
     <div className="flex flex-col gap-6">
       <p className="text-small text-text-muted max-w-[var(--measure)]">
-        A reference solution proves the problem and its tests are right, and is needed before you can publish. Only
+        A reference solution proves the problem and its testcases are right, and is needed before you can publish. Only
         owners and editors of this Space can see it. The primary solution is the one that is checked first.
       </p>
 
@@ -247,11 +248,11 @@ function SolutionForm({
   return (
     <form onSubmit={submit} className="flex flex-col gap-3" noValidate>
       {heading && <h2 className="text-h2">{heading}</h2>}
-      <Select
+      <Dropdown
         label="Language"
         value={language}
         options={LANGUAGE_OPTIONS.filter((option) => allowed.includes(option.value))}
-        onChange={(event) => setLanguage(event.target.value as Language)}
+        onValueChange={(next) => setLanguage(next as Language)}
         className="max-w-xs"
       />
       <div className="border-border overflow-hidden rounded-md border">
@@ -266,10 +267,11 @@ function SolutionForm({
       </div>
       <p className="text-small text-text-muted">Up to {formatBytes(maxBytes)}.</p>
       {!initial && (
-        <label className="text-body flex items-center gap-2">
-          <input type="checkbox" checked={primary} onChange={(event) => setPrimary(event.target.checked)} />
-          Make this the primary solution
-        </label>
+        <Checkbox
+          label="Make this the primary solution"
+          checked={primary}
+          onCheckedChange={(next) => setPrimary(next === true)}
+        />
       )}
       {error && (
         <p role="alert" className="vd-hint vd-hint--error">

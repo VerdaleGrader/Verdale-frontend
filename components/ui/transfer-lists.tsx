@@ -22,6 +22,7 @@ import {
 } from '@dnd-kit/sortable';
 import { ArrowLeft, ArrowRight, GripVertical } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { TextField } from '@/components/ui/field';
 import {
   SaveStatus,
@@ -30,7 +31,7 @@ import {
   moveId,
   useOrderedSave,
   type SortableItem,
-} from '@/components/ui/sortable-list';
+} from '@/components/ui/ordered-rows';
 import { cn } from '@/lib/utils';
 
 const SELECTED_ZONE = 'transfer-selected-zone';
@@ -203,7 +204,7 @@ export function TransferLists<T extends SortableItem>({
                   {available.length === 0 ? 'Nothing left to add.' : 'Nothing matches.'}
                 </p>
               ) : (
-                <ul className="vd-sortable" aria-label={availableLabel}>
+                <ul className="vd-ordered" aria-label={availableLabel}>
                   {shown.map((item) => (
                     <AvailableRow
                       key={item.id}
@@ -240,7 +241,7 @@ export function TransferLists<T extends SortableItem>({
                 </p>
               ) : (
                 <SortableContext items={rightIds} strategy={verticalListSortingStrategy}>
-                  <ol className="vd-sortable" aria-label={selectedLabel} aria-busy={order.saving || undefined}>
+                  <ol className="vd-ordered" aria-label={selectedLabel} aria-busy={order.saving || undefined}>
                     {order.ordered.map((item, index) => (
                       <SortableRow
                         key={item.id}
@@ -255,17 +256,16 @@ export function TransferLists<T extends SortableItem>({
                           onMove: (offset) => void order.commit(moveId(rightIds, item.id, offset)),
                         }}
                       >
-                        <label className="flex items-start gap-2">
-                          <input
-                            type="checkbox"
+                        <div className="flex items-start gap-2">
+                          <Checkbox
                             className="mt-1"
                             checked={ticked.right.has(item.id)}
                             disabled={locked}
                             aria-label={`Select ${itemLabel(item)}`}
-                            onChange={() => toggle('right', item.id)}
+                            onCheckedChange={() => toggle('right', item.id)}
                           />
                           <span className="min-w-0 flex-1">{renderItem(item)}</span>
-                        </label>
+                        </div>
                       </SortableRow>
                     ))}
                   </ol>
@@ -281,7 +281,7 @@ export function TransferLists<T extends SortableItem>({
           </Zone>
         </div>
         <DragOverlay dropAnimation={null}>
-          {dragging ? <div className="vd-sortable__row is-dragging">{renderItem(dragging.item)}</div> : null}
+          {dragging ? <div className="vd-ordered__row is-dragging">{renderItem(dragging.item)}</div> : null}
         </DragOverlay>
       </DndContext>
       <SaveStatus saving={order.saving || busy} error={error} />
@@ -319,12 +319,12 @@ function AvailableRow({
   return (
     <li
       ref={setNodeRef}
-      className={cn('vd-sortable__row', ticked && 'is-selected', isDragging && 'opacity-40', className)}
+      className={cn('vd-ordered__row', ticked && 'is-selected', isDragging && 'opacity-40', className)}
     >
       <button
         type="button"
         ref={setActivatorNodeRef}
-        className="vd-sortable__handle"
+        className="vd-ordered__handle"
         aria-label={`Drag ${label} to add it`}
         disabled={disabled}
         {...attributes}
@@ -332,17 +332,16 @@ function AvailableRow({
       >
         <GripVertical className="size-4" strokeWidth={1.75} aria-hidden />
       </button>
-      <label className="vd-sortable__body flex items-start gap-2">
-        <input
-          type="checkbox"
+      <div className="vd-ordered__body flex items-start gap-2">
+        <Checkbox
           className="mt-1"
           checked={ticked}
           disabled={disabled}
           aria-label={`Select ${label}`}
-          onChange={onToggle}
+          onCheckedChange={onToggle}
         />
         <span className="min-w-0 flex-1">{children}</span>
-      </label>
+      </div>
     </li>
   );
 }

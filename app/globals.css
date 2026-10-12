@@ -83,6 +83,10 @@
   --color-verdict-re-soft: var(--verdict-re-soft);
   --color-verdict-ce: var(--verdict-ce);
   --color-verdict-ce-soft: var(--verdict-ce-soft);
+  --color-verdict-ole: var(--verdict-ole);
+  --color-verdict-ole-soft: var(--verdict-ole-soft);
+  --color-verdict-ise: var(--verdict-ise);
+  --color-verdict-ise-soft: var(--verdict-ise-soft);
   --color-verdict-pending: var(--verdict-pending);
   --color-verdict-pending-soft: var(--verdict-pending-soft);
 

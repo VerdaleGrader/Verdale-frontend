@@ -1,4 +1,5 @@
-import { render } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { ToastProvider } from '@/components/ui/toast';
 import { AuthProvider, type AuthState } from '@/features/auth/hooks/auth-provider';
 import type { Problem, ProblemConstraints, ProblemEditor } from '@/features/problems/types';
@@ -117,13 +118,13 @@ export function makeEditor(overrides: Partial<ProblemEditor> = {}): ProblemEdito
     created_by: { username: 'edith', display_name: 'Edith', avatar_url: null },
     created_at: '2026-10-11T00:00:00Z',
     updated_at: '2026-10-11T00:00:00Z',
-    tests: { count: 2, sample_count: 1, total_bytes: 20 },
+    tests: { count: 2, sample_count: 1, missing_output_count: 0, total_bytes: 20 },
     solutions: { count: 1, has_primary: true },
     publish_checks: [
       { key: 'statement', ok: true, message: 'The statement is written.' },
       { key: 'languages', ok: true, message: 'At least one language is allowed.' },
-      { key: 'tests', ok: true, message: '2 test(s) added.' },
-      { key: 'sample_test', ok: true, message: '1 sample test(s) shown to solvers.' },
+      { key: 'tests', ok: true, message: '2 testcase(s) added.' },
+      { key: 'sample_test', ok: true, message: '1 sample testcase(s) shown to solvers.' },
       { key: 'solution', ok: true, message: 'A primary reference solution is attached.' },
     ],
     can_publish: true,
@@ -206,4 +207,11 @@ export class FakeEventSource {
   static get last() {
     return FakeEventSource.instances[FakeEventSource.instances.length - 1]!;
   }
+}
+
+/** Open a Dropdown by its accessible name and pick an option by its name. */
+export async function chooseOption(name: string | RegExp, option: string | RegExp) {
+  const user = userEvent.setup();
+  await user.click(await screen.findByRole('combobox', { name }));
+  await user.click(await screen.findByRole('option', { name: option }));
 }

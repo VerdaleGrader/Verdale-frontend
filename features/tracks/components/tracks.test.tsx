@@ -2,19 +2,23 @@ import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiError } from '@/lib/api';
-import { ANONYMOUS, makeSpace, renderInApp } from '@/features/test-support';
+import { currentUrl, resetNavigation } from '@/features/test-navigation';
+import { ANONYMOUS, chooseOption, makeSpace, renderInApp } from '@/features/test-support';
 import type { CollectionDetail, Track, TrackDetail, TrackMember } from '../types';
 
-const nav = vi.hoisted(() => ({
-  push: vi.fn(),
-  replace: vi.fn(),
-  params: { trackSlug: 'basics', collectionSlug: 'week-1' },
-}));
-vi.mock('next/navigation', () => ({
-  useRouter: () => ({ push: nav.push, replace: nav.replace, back: vi.fn() }),
-  useParams: () => nav.params,
-  usePathname: () => '/spaces/team',
-}));
+const nav = vi.hoisted(() => ({ push: vi.fn() }));
+// The in-memory navigation keeps the URL query (the Track editor's tab, the progress Track); push is also spied on.
+vi.mock('next/navigation', async () => {
+  const real = await import('@/features/test-navigation');
+  const router = {
+    ...real.useRouter(),
+    push: (url: string) => {
+      nav.push(url);
+      real.useRouter().push(url);
+    },
+  };
+  return { ...real, useRouter: () => router };
+});
 const api = vi.hoisted(() => ({
   list: vi.fn(),
   get: vi.fn(),
@@ -142,7 +146,7 @@ function collection(overrides: Partial<CollectionDetail> = {}): CollectionDetail
 
 beforeEach(() => {
   vi.clearAllMocks();
-  nav.params = { trackSlug: 'basics', collectionSlug: 'week-1' };
+  resetNavigation('/spaces/team', { trackSlug: 'basics', collectionSlug: 'week-1' });
   api.members.mockResolvedValue([]);
   api.invites.mockResolvedValue([]);
 });
@@ -282,9 +286,20 @@ describe('a Track as a solver sees it (GRD-84)', () => {
 });
 
 describe('manage Tracks and Collections (GRD-83)', () => {
-  it('is for owners and editors only', () => {
+  it('lets administrators create Tracks and keeps observers view-only', async () => {
+    api.list.mockResolvedValue([]);
+    api.collections.mockResolvedValue([]);
+    const first = renderInApp(<ManageView />, { space: makeSpace('administrator') });
+    expect(await screen.findByRole('button', { name: 'New Track' })).toBeTruthy();
+    first.unmount();
+    renderInApp(<ManageView />, { space: makeSpace('observer') });
+    expect(await screen.findByRole('heading', { name: 'Tracks' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'New Track' })).toBeNull();
+  });
+
+  it('is for the staff only', () => {
     renderInApp(<ManageView />, { space: makeSpace('solver') });
-    expect(screen.getByText('Only owners and editors can manage Tracks')).toBeTruthy();
+    expect(screen.getByText('Only the Space’s staff can open Track management')).toBeTruthy();
     expect(api.list).not.toHaveBeenCalled();
   });
 
@@ -311,7 +326,8 @@ describe('manage Tracks and Collections (GRD-83)', () => {
     api.collections.mockResolvedValue([]);
     api.reorder.mockResolvedValue([]);
     renderInApp(<ManageView />, { space: makeSpace('owner') });
-    await userEvent.click(await screen.findByRole('button', { name: 'Move Second up' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Move Second, now 2 of 2' }));
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Move up' }));
     await waitFor(() => expect(api.reorder).toHaveBeenCalledWith('team', ['t2', 't1']));
   });
 
@@ -324,7 +340,7 @@ describe('manage Tracks and Collections (GRD-83)', () => {
     const dialog = await screen.findByRole('dialog');
     await userEvent.type(within(dialog).getByLabelText('Name'), 'Week One');
     expect((within(dialog).getByLabelText('Slug') as HTMLInputElement).value).toBe('week-one');
-    await userEvent.selectOptions(within(dialog).getByLabelText('Who can see it'), 'members');
+    await chooseOption('Who can see it', 'Only people added to the Track');
     expect(within(dialog).getByText(/Only people added to this Track/)).toBeTruthy();
     await userEvent.click(within(dialog).getByRole('button', { name: 'Create Track' }));
     await waitFor(() =>
@@ -378,7 +394,9 @@ describe('manage Tracks and Collections (GRD-83)', () => {
     renderInApp(<ManageView />, { space: makeSpace('owner', { archived_at: NOW }) });
     await screen.findByRole('list', { name: 'Tracks in order' });
     expect(screen.queryByRole('button', { name: 'New Track' })).toBeNull();
-    expect((screen.getByRole('button', { name: 'Move Basics down' }) as HTMLButtonElement).disabled).toBe(true);
+    // read-only: the order is shown, with neither a handle nor a move menu
+    expect(screen.queryByRole('button', { name: 'Drag to reorder Basics' })).toBeNull();
+    expect(screen.queryByRole('button', { name: /^Move Basics/ })).toBeNull();
   });
 });
 
@@ -453,7 +471,7 @@ describe('the Collection editor (GRD-83)', () => {
 
   it('is for owners and editors only', () => {
     renderInApp(<CollectionEditor />, { space: makeSpace('solver') });
-    expect(screen.getByText('Only owners and editors can manage Tracks')).toBeTruthy();
+    expect(screen.getByText('Only the Space’s staff can open Track management')).toBeTruthy();
   });
 });
 
@@ -494,7 +512,7 @@ describe('the Track editor (GRD-83, GRD-85)', () => {
     renderInApp(<TrackEditor />, { space: makeSpace('owner') });
     await userEvent.click(await screen.findByRole('tab', { name: 'Settings' }));
     expect(screen.getByText(/Everyone who can see the Space sees this Track/)).toBeTruthy();
-    await userEvent.selectOptions(screen.getByLabelText('Who can see this Track'), 'members');
+    await chooseOption('Who can see this Track', 'Only people added to the Track');
     expect(screen.getByText(/Only people added to this Track \(by invitation\) see it/)).toBeTruthy();
     expect(screen.getByText(/people who were not added to this Track stop seeing it/)).toBeTruthy();
     await userEvent.click(screen.getByRole('button', { name: 'Save settings' }));
@@ -518,6 +536,24 @@ describe('the Track editor (GRD-83, GRD-85)', () => {
     expect(within(dialog).getByText(/Solvers stop seeing this Track/)).toBeTruthy();
     await userEvent.click(within(dialog).getByRole('button', { name: 'Archive Track' }));
     await waitFor(() => expect(api.archive).toHaveBeenCalledWith('team', 'basics'));
+  });
+
+  it('keeps the open section in the URL, and opens the one a link names', async () => {
+    renderInApp(<TrackEditor />, { space: makeSpace('owner') });
+    await userEvent.click(await screen.findByRole('tab', { name: 'Settings' }));
+    expect(currentUrl()).toBe('/spaces/team?tab=settings');
+    await userEvent.click(screen.getByRole('tab', { name: /Collections/ }));
+    expect(currentUrl()).toBe('/spaces/team');
+  });
+
+  it('starts on the section named in the URL, and ignores one it does not know', async () => {
+    resetNavigation('/spaces/team?tab=settings', { trackSlug: 'basics' });
+    const first = renderInApp(<TrackEditor />, { space: makeSpace('owner') });
+    expect((await screen.findByRole('tab', { name: 'Settings' })).getAttribute('aria-selected')).toBe('true');
+    first.unmount();
+    resetNavigation('/spaces/team?tab=nonsense', { trackSlug: 'basics' });
+    renderInApp(<TrackEditor />, { space: makeSpace('owner') });
+    expect((await screen.findByRole('tab', { name: /Collections/ })).getAttribute('aria-selected')).toBe('true');
   });
 
   it('says a missing Track is not found', async () => {
@@ -576,7 +612,7 @@ describe('Track members and invitations (GRD-85)', () => {
   it('creates a link with an expiry, shows it once, and offers to copy it', async () => {
     api.createInvite.mockResolvedValue({ link: '/invites/abc123token', token: 'abc123token' });
     renderAccess();
-    await userEvent.selectOptions(await screen.findByLabelText('Expires after'), '3');
+    await chooseOption('Expires after', '3 days');
     await userEvent.click(screen.getByRole('button', { name: 'Create invitation link' }));
     await waitFor(() =>
       expect(api.createInvite).toHaveBeenCalledWith('team', 'basics', { username: undefined, expires_in_days: 3 })
@@ -660,8 +696,18 @@ describe('member progress (GRD-84)', () => {
     expect(api.memberProgress).toHaveBeenCalledWith('team', 'basics');
   });
 
+  it('keeps the chosen Track in the URL', async () => {
+    api.list.mockResolvedValue([track(), track({ id: 't2', slug: 'advanced', name: 'Advanced' })]);
+    api.memberProgress.mockResolvedValue([]);
+    renderInApp(<ProgressPage />, { space: makeSpace('editor') });
+    await screen.findByRole('combobox', { name: 'Track' });
+    await chooseOption('Track', 'Advanced');
+    expect(currentUrl()).toBe('/spaces/team?track=advanced');
+    await waitFor(() => expect(api.memberProgress).toHaveBeenLastCalledWith('team', 'advanced'));
+  });
+
   it('is for owners and editors', () => {
     renderInApp(<ProgressPage />, { space: makeSpace('solver') });
-    expect(screen.getByText('Only owners and editors can manage Tracks')).toBeTruthy();
+    expect(screen.getByText('Only the Space’s staff can open Track management')).toBeTruthy();
   });
 });

@@ -1,212 +1,190 @@
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it, vi, type Mock } from 'vitest';
-import { SortableList, moveId } from './sortable-list';
-import { TransferLists } from './transfer-lists';
+import { useState } from 'react';
+import { describe, expect, it, vi } from 'vitest';
+import { MenuItem } from './menu';
+import { SortableListOf, SortableLists, moveItem } from './sortable-list';
 
-const ITEMS = [
-  { id: 'a', name: 'Alpha' },
-  { id: 'b', name: 'Beta' },
-  { id: 'c', name: 'Gamma' },
-];
+interface Item {
+  id: string;
+  name: string;
+}
+const ITEMS: Item[] = ['a', 'b', 'c'].map((id) => ({ id, name: `Testcase ${id.toUpperCase()}` }));
 
-function renderList(onReorder = vi.fn().mockResolvedValue(undefined), items = ITEMS) {
-  const view = render(
-    <SortableList
+function Single({ onReorder, readOnly }: { onReorder: (ids: string[]) => void | Promise<void>; readOnly?: boolean }) {
+  const [items, setItems] = useState(ITEMS);
+  return (
+    <SortableListOf
+      label="Testcases"
       items={items}
-      label="Problems"
-      itemLabel={(item) => item.name}
-      renderItem={(item) => <span>{item.name}</span>}
-      onReorder={onReorder}
+      readOnly={readOnly}
+      getId={(item) => item.id}
+      getLabel={(item) => item.name}
+      onReorder={async (ids) => {
+        await onReorder(ids);
+        setItems(ids.map((id) => ITEMS.find((item) => item.id === id)!));
+      }}
+      renderItem={(item, context) => (
+        <div>
+          {context.handle}
+          <span>{item.name}</span>
+          {context.moveMenu}
+        </div>
+      )}
     />
   );
-  return { ...view, onReorder };
 }
 
-const namesInOrder = () =>
-  within(screen.getByRole('list', { name: 'Problems' }))
+const names = () =>
+  within(screen.getByRole('list', { name: 'Testcases' }))
     .getAllByRole('listitem')
-    .map((row) => row.textContent);
+    .map((li) => li.textContent);
 
-describe('moveId', () => {
-  it('moves one id by an offset and leaves the rest in order', () => {
-    expect(moveId(['a', 'b', 'c'], 'b', -1)).toEqual(['b', 'a', 'c']);
-    expect(moveId(['a', 'b', 'c'], 'b', 1)).toEqual(['a', 'c', 'b']);
-  });
-  it('does nothing at the ends or for an unknown id', () => {
-    expect(moveId(['a', 'b'], 'a', -1)).toEqual(['a', 'b']);
-    expect(moveId(['a', 'b'], 'b', 1)).toEqual(['a', 'b']);
-    expect(moveId(['a', 'b'], 'zzz', 1)).toEqual(['a', 'b']);
+describe('moveItem', () => {
+  it('moves within a list and between lists', () => {
+    expect(moveItem({ x: ['a', 'b', 'c'] }, 'a', 'x', 2)).toEqual({ x: ['b', 'c', 'a'] });
+    expect(moveItem({ x: ['a', 'b'], y: ['c'] }, 'a', 'y', 0)).toEqual({ x: ['b'], y: ['a', 'c'] });
+    expect(moveItem({ x: ['a'] }, 'a', 'x', 9)).toEqual({ x: ['a'] });
   });
 });
 
 describe('SortableList', () => {
-  it('shows the items in order with a drag handle and move buttons for each, named after the item', () => {
-    renderList();
-    expect(namesInOrder().map((text) => text?.replace(/\d/g, ''))).toEqual(['Alpha', 'Beta', 'Gamma']);
-    for (const name of ['Alpha', 'Beta', 'Gamma']) {
-      expect((screen.getByRole('button', { name: `Drag to reorder ${name}` }) as HTMLButtonElement).disabled).toBe(
-        false
-      );
-      expect(screen.getByRole('button', { name: `Move ${name} up` })).toBeTruthy();
-    }
-  });
-
-  it('cannot move the first item up or the last item down', () => {
-    renderList();
-    expect((screen.getByRole('button', { name: 'Move Alpha up' }) as HTMLButtonElement).disabled).toBe(true);
-    expect((screen.getByRole('button', { name: 'Move Gamma down' }) as HTMLButtonElement).disabled).toBe(true);
-    expect((screen.getByRole('button', { name: 'Move Beta up' }) as HTMLButtonElement).disabled).toBe(false);
-  });
-
-  it('sends the whole new order in one call and shows it at once', async () => {
-    const user = userEvent.setup();
-    const { onReorder } = renderList();
-    await user.click(screen.getByRole('button', { name: 'Move Gamma up' }));
-    expect(onReorder).toHaveBeenCalledTimes(1);
+  it('moves an item with the menu and sends the whole new order in one call', async () => {
+    const onReorder = vi.fn();
+    render(<Single onReorder={onReorder} />);
+    await userEvent.click(screen.getByRole('button', { name: 'Move Testcase C, now 3 of 3' }));
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Move up' }));
+    await waitFor(() => expect(onReorder).toHaveBeenCalledTimes(1));
     expect(onReorder).toHaveBeenCalledWith(['a', 'c', 'b']);
-    await waitFor(() =>
-      expect(namesInOrder().map((text) => text?.replace(/\d/g, ''))).toEqual(['Alpha', 'Gamma', 'Beta'])
-    );
+    expect(screen.getByText('Testcase C moved to position 2 of 3.')).toBeTruthy();
+    expect(names()[1]).toContain('Testcase C');
   });
 
-  it('shows that it is saving and locks the controls until the save ends', async () => {
-    const user = userEvent.setup();
-    let finish: () => void = () => undefined;
-    const pending = new Promise<void>((resolve) => {
-      finish = resolve;
-    });
-    renderList(vi.fn().mockReturnValue(pending));
-    await user.click(screen.getByRole('button', { name: 'Move Beta down' }));
-    expect(screen.getByText('Saving the new order…')).toBeTruthy();
-    expect(screen.getByRole('list', { name: 'Problems' }).getAttribute('aria-busy')).toBe('true');
-    expect((screen.getByRole('button', { name: 'Move Alpha down' }) as HTMLButtonElement).disabled).toBe(true);
-    finish();
-    await waitFor(() => expect(screen.queryByText('Saving the new order…')).toBeNull());
-    expect((screen.getByRole('button', { name: 'Move Alpha down' }) as HTMLButtonElement).disabled).toBe(false);
+  it('offers move to top and bottom, and disables what cannot happen', async () => {
+    render(<Single onReorder={() => undefined} />);
+    await userEvent.click(screen.getByRole('button', { name: /Move Testcase A/ }));
+    expect(await screen.findByRole('menuitem', { name: 'Move up' })).toHaveProperty('dataset.disabled', '');
+    expect(screen.getByRole('menuitem', { name: 'Move to bottom' })).toBeTruthy();
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Move to bottom' }));
+    await waitFor(() => expect(names()[2]).toContain('Testcase A'));
   });
 
-  it('puts the old order back and says why when saving fails', async () => {
-    const user = userEvent.setup();
-    const { onReorder } = renderList(vi.fn().mockRejectedValue(new Error('Send every problem exactly once.')));
-    await user.click(screen.getByRole('button', { name: 'Move Beta up' }));
-    expect(onReorder).toHaveBeenCalledWith(['b', 'a', 'c']);
-    expect((await screen.findByRole('alert')).textContent).toContain(
-      'Send every problem exactly once. The order was put back.'
-    );
-    expect(namesInOrder().map((text) => text?.replace(/\d/g, ''))).toEqual(['Alpha', 'Beta', 'Gamma']);
+  it('shows the new order at once and puts it back when saving fails', async () => {
+    let fail: (reason: Error) => void = () => undefined;
+    const onReorder = vi.fn(() => new Promise<void>((_, reject) => (fail = reject)));
+    render(<Single onReorder={onReorder} />);
+    await userEvent.click(screen.getByRole('button', { name: /Move Testcase A/ }));
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Move down' }));
+    expect(names()[0]).toContain('Testcase B');
+    expect(screen.getByText('Saving order…')).toBeTruthy();
+    act(() => fail(new Error('offline')));
+    expect(await screen.findByText('Could not save the new order')).toBeTruthy();
+    expect(names()[0]).toContain('Testcase A');
+    expect(screen.getByText(/Testcase A is back where it was/)).toBeTruthy();
   });
 
-  it('follows the server when the items change', () => {
-    const { rerender, onReorder } = renderList();
-    rerender(
-      <SortableList
-        items={[ITEMS[2]!, ITEMS[0]!]}
-        label="Problems"
-        itemLabel={(item) => item.name}
-        renderItem={(item) => <span>{item.name}</span>}
-        onReorder={onReorder}
-      />
-    );
-    expect(namesInOrder().map((text) => text?.replace(/\d/g, ''))).toEqual(['Gamma', 'Alpha']);
+  it('has a keyboard-focusable handle with instructions', () => {
+    render(<Single onReorder={() => undefined} />);
+    const handle = screen.getByRole('button', { name: 'Drag to reorder Testcase B' });
+    expect(handle.getAttribute('aria-roledescription')).toBe('sortable');
+    expect(handle.hasAttribute('aria-describedby')).toBe(true);
+    handle.focus();
+    expect(document.activeElement).toBe(handle);
   });
 
-  it('is locked when disabled', () => {
-    render(
-      <SortableList
-        items={ITEMS}
-        label="Problems"
-        itemLabel={(item) => item.name}
-        renderItem={(item) => <span>{item.name}</span>}
-        onReorder={vi.fn()}
-        disabled
-      />
-    );
-    expect((screen.getByRole('button', { name: 'Move Beta up' }) as HTMLButtonElement).disabled).toBe(true);
-    expect((screen.getByRole('button', { name: 'Drag to reorder Beta' }) as HTMLButtonElement).disabled).toBe(true);
+  it('read only: the order is shown, with no handle and no menu', () => {
+    render(<Single onReorder={() => undefined} readOnly />);
+    expect(names()).toHaveLength(3);
+    expect(screen.queryByRole('button', { name: /Drag to reorder/ })).toBeNull();
+    expect(screen.queryByRole('button', { name: /Move Testcase/ })).toBeNull();
   });
 });
 
-describe('TransferLists', () => {
-  const AVAILABLE = [
-    { id: 'x', name: 'Xray' },
-    { id: 'y', name: 'Yankee' },
-    { id: 'z', name: 'Zulu' },
-  ];
-  type Handler = (ids: string[]) => Promise<unknown>;
-  function renderTransfer(handlers: Partial<Record<'onAdd' | 'onRemove' | 'onReorder', Mock<Handler>>> = {}) {
-    const props = {
-      onAdd: vi.fn<Handler>().mockResolvedValue(undefined),
-      onRemove: vi.fn<Handler>().mockResolvedValue(undefined),
-      onReorder: vi.fn<Handler>().mockResolvedValue(undefined),
-      ...handlers,
-    };
+describe('SortableLists (two lists)', () => {
+  it('moves an item to the other list from the menu', async () => {
+    const onReorder = vi.fn();
     render(
-      <TransferLists
-        available={AVAILABLE}
-        selected={ITEMS}
-        availableLabel="Not in this Collection"
-        selectedLabel="In this Collection"
-        renderItem={(item) => <span>{item.name}</span>}
-        itemLabel={(item) => item.name}
-        searchText={(item) => item.name}
-        {...props}
+      <SortableLists
+        lists={[
+          { id: 'one', label: 'Track A', items: ITEMS.slice(0, 2) },
+          { id: 'two', label: 'Track B', items: ITEMS.slice(2) },
+        ]}
+        getId={(item) => item.id}
+        getLabel={(item) => item.name}
+        onReorder={onReorder}
+        renderItem={(item, context) => (
+          <div>
+            {item.name}
+            {context.moveMenu}
+          </div>
+        )}
       />
     );
-    return props;
-  }
-
-  it('adds several items in one request', async () => {
-    const user = userEvent.setup();
-    const { onAdd } = renderTransfer();
-    await user.click(screen.getByRole('checkbox', { name: 'Select Zulu' }));
-    await user.click(screen.getByRole('checkbox', { name: 'Select Xray' }));
-    await user.click(screen.getByRole('button', { name: /Add 2 selected/ }));
-    expect(onAdd).toHaveBeenCalledTimes(1);
-    expect(onAdd).toHaveBeenCalledWith(['x', 'z']);
+    await userEvent.click(screen.getByRole('button', { name: /Move Testcase A/ }));
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Move to Track B' }));
+    await waitFor(() => expect(onReorder).toHaveBeenCalled());
+    expect(onReorder).toHaveBeenCalledWith({ one: ['b'], two: ['c', 'a'] }, { id: 'a', from: 'one', to: 'two' });
+    expect(screen.getByText('Testcase A moved to position 2 of 2 in Track B.')).toBeTruthy();
   });
 
-  it('removes several items in one request', async () => {
-    const user = userEvent.setup();
-    const { onRemove } = renderTransfer();
-    await user.click(screen.getByRole('checkbox', { name: 'Select Alpha' }));
-    await user.click(screen.getByRole('checkbox', { name: 'Select Gamma' }));
-    await user.click(screen.getByRole('button', { name: /Remove 2 selected/ }));
-    expect(onRemove).toHaveBeenCalledWith(['a', 'c']);
+  it('shows an empty list', () => {
+    render(
+      <SortableLists
+        lists={[{ id: 'one', label: 'Track A', items: [] as Item[] }]}
+        emptyLabel="Drop a problem here"
+        getId={(item) => item.id}
+        getLabel={(item) => item.name}
+        onReorder={() => undefined}
+        renderItem={(item) => item.name}
+      />
+    );
+    expect(screen.getByText('Drop a problem here')).toBeTruthy();
+  });
+});
+
+describe('SortableList extras', () => {
+  it('adds the page\u2019s own entries to the row menu', async () => {
+    const onRemove = vi.fn();
+    render(
+      <SortableListOf
+        label="Testcases"
+        items={ITEMS}
+        getId={(item) => item.id}
+        getLabel={(item) => item.name}
+        onReorder={() => undefined}
+        itemActions={(item) => <MenuItem onSelect={() => onRemove(item.id)}>Remove</MenuItem>}
+        renderItem={(item, context) => (
+          <div>
+            <span>{item.name}</span>
+            {context.moveMenu}
+          </div>
+        )}
+      />
+    );
+    await userEvent.click(screen.getByRole('button', { name: /Move Testcase B/ }));
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Remove' }));
+    expect(onRemove).toHaveBeenCalledWith('b');
   });
 
-  it('keeps the buttons off until something is ticked', () => {
-    renderTransfer();
-    expect((screen.getByRole('button', { name: 'Add selected' }) as HTMLButtonElement).disabled).toBe(true);
-    expect((screen.getByRole('button', { name: 'Remove selected' }) as HTMLButtonElement).disabled).toBe(true);
-  });
-
-  it('filters the list on the left', async () => {
-    const user = userEvent.setup();
-    renderTransfer();
-    await user.type(screen.getByRole('searchbox', { name: /Filter/ }), 'yan');
-    expect(screen.getByRole('checkbox', { name: 'Select Yankee' })).toBeTruthy();
-    expect(screen.queryByRole('checkbox', { name: 'Select Xray' })).toBeNull();
-    await user.clear(screen.getByRole('searchbox', { name: /Filter/ }));
-    await user.type(screen.getByRole('searchbox', { name: /Filter/ }), 'nothing');
-    expect(screen.getByText('Nothing matches.')).toBeTruthy();
-  });
-
-  it('reorders the right list with the move buttons', async () => {
-    const user = userEvent.setup();
-    const { onReorder } = renderTransfer();
-    await user.click(screen.getByRole('button', { name: 'Move Alpha down' }));
-    expect(onReorder).toHaveBeenCalledWith(['b', 'a', 'c']);
-  });
-
-  it('keeps the ticks and says why when adding fails', async () => {
-    const user = userEvent.setup();
-    renderTransfer({
-      onAdd: vi.fn<Handler>().mockRejectedValue(new Error('A Collection can hold at most 200 problems.')),
-    });
-    await user.click(screen.getByRole('checkbox', { name: 'Select Xray' }));
-    await user.click(screen.getByRole('button', { name: /Add 1 selected/ }));
-    expect((await screen.findByRole('alert')).textContent).toContain('A Collection can hold at most 200 problems.');
-    expect((screen.getByRole('checkbox', { name: 'Select Xray' }) as HTMLInputElement).checked).toBe(true);
+  it('keeps handles and menus but disables them while locked', () => {
+    render(
+      <SortableListOf
+        label="Testcases"
+        items={ITEMS}
+        locked
+        getId={(item) => item.id}
+        getLabel={(item) => item.name}
+        onReorder={() => undefined}
+        renderItem={(item, context) => (
+          <div>
+            {context.handle}
+            <span>{item.name}</span>
+            {context.moveMenu}
+          </div>
+        )}
+      />
+    );
+    expect(screen.getByRole('button', { name: 'Drag to reorder Testcase A' }).hasAttribute('disabled')).toBe(true);
+    expect(screen.getByRole('button', { name: /Move Testcase A/ }).hasAttribute('disabled')).toBe(true);
   });
 });

@@ -1,15 +1,20 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import * as React from 'react';
 import {
   DndContext,
+  DragOverlay,
   KeyboardSensor,
   PointerSensor,
+  TouchSensor,
   closestCenter,
+  useDroppable,
   useSensor,
   useSensors,
+  type Announcements,
   type DragEndEvent,
-  type UniqueIdentifier,
+  type DragOverEvent,
+  type DragStartEvent,
 } from '@dnd-kit/core';
 import {
   SortableContext,
@@ -19,274 +24,452 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { ChevronDown, ChevronUp, GripVertical } from 'lucide-react';
+import { ArrowDown, ArrowUp, ArrowUpToLine, ArrowDownToLine, Ellipsis, MoveRight } from 'lucide-react';
+import { Banner } from '@/components/ui/banner';
+import { DragHandle } from '@/components/ui/drag-handle';
+import { Menu, MenuItem, MenuLabel, MenuSeparator } from '@/components/ui/menu';
 import { useMediaQuery } from '@/lib/use-media-query';
 import { cn } from '@/lib/utils';
 
-/**
- * Reorderable lists (GRD-86): the base of every ordering screen (problems in a
- * Collection, Collections in a Track, Tracks in a Space).
- *
- * Library: @dnd-kit/core 6.3.1 + @dnd-kit/sortable 10.0.0, the stable line. The newer
- * @dnd-kit/react is still 0.x (see docs/decisions.md, 2026-10-12).
- *
- * How it works for everyone:
- *  - Mouse and touch: drag the handle. A finger on the handle drags instead of scrolling.
- *  - Keyboard: Tab to the handle, Space picks the row up, arrow keys move it, Space drops it,
- *    Escape cancels. dnd-kit announces each step to screen readers.
- *  - No dragging at all: the "Move up" and "Move down" buttons on every row (WCAG 2.2 SC 2.5.7).
- *
- * The whole new order goes to `onReorder` in one call. The list shows the new order at once,
- * disables itself while saving, and puts the old order back (with the error) if saving fails.
+/*
+ * Reorderable lists on dnd-kit (@dnd-kit/core + @dnd-kit/sortable 6.x/10.x, the stable packages; the
+ * rewrite @dnd-kit/react is still 0.x). Dragging is never the only way: every item also gets a ⋯ menu
+ * (Move up, Move down, to top, to bottom, and to the other list), the handle works with the keyboard
+ * (Space to pick up, arrows, Space to drop, Escape to cancel) and moves are announced to screen readers.
+ * The new order of the whole list goes out in one call; it is shown at once and rolled back if the call fails.
  */
 
-export interface SortableItem {
+export interface SortableGroup<T> {
   id: string;
+  /** Names the list for screen readers and the "Move to …" menu entry. */
+  label: string;
+  items: T[];
 }
 
-/** The order after moving one item; ids that are not found leave the order untouched. */
-export function moveId(ids: readonly string[], id: string, offset: number): string[] {
-  const from = ids.indexOf(id);
-  const to = from + offset;
-  if (from < 0 || to < 0 || to >= ids.length) return [...ids];
-  return arrayMove([...ids], from, to);
+export interface SortableItemContext {
+  listId: string;
+  /** 0-based. */
+  index: number;
+  count: number;
+  /** The grip to drag by, or null in a read-only list. Put it in the first cell of the row. */
+  handle: React.ReactNode;
+  /** The ⋯ button with the keyboard-friendly alternative, or null in a read-only list. */
+  moveMenu: React.ReactNode;
+  moveUp: () => void;
+  moveDown: () => void;
+  dragging: boolean;
+}
+
+type Order = Record<string, string[]>;
+
+/** Take `id` out of wherever it is and put it in `toList` at `toIndex`. */
+export function moveItem(order: Order, id: string, toList: string, toIndex: number): Order {
+  const next: Order = {};
+  for (const [list, ids] of Object.entries(order)) next[list] = ids.filter((existing) => existing !== id);
+  const target = next[toList] ?? [];
+  const at = Math.max(0, Math.min(toIndex, target.length));
+  next[toList] = [...target.slice(0, at), id, ...target.slice(at)];
+  return next;
+}
+
+function locate(order: Order, id: string): { list: string; index: number } | null {
+  for (const [list, ids] of Object.entries(order)) {
+    const index = ids.indexOf(id);
+    if (index >= 0) return { list, index };
+  }
+  return null;
+}
+
+const INSTRUCTIONS =
+  'To pick up an item, press Space or Enter on its handle. Use the arrow keys to move it, Space or Enter to drop it, Escape to cancel. The more actions menu moves it without dragging.';
+
+interface SortableListsProps<T> {
+  lists: SortableGroup<T>[];
+  getId: (item: T) => string;
+  /** A short name for an item, for announcements and the handle: "Testcase 3". */
+  getLabel: (item: T) => string;
+  renderItem: (item: T, context: SortableItemContext) => React.ReactNode;
+  /** Called with the new order of every list and what moved. Throw (reject) to roll the change back. */
+  onReorder: (order: Order, change: { id: string; from: string; to: string }) => void | Promise<void>;
+  /** A view-only person sees the order but gets no handle and no menu. */
+  readOnly?: boolean;
+  /** Busy: handles and menus stay in place but are disabled, e.g. while Generate runs. */
+  locked?: boolean;
+  /** More entries for the ⋯ menu, after the move entries (Replace files…, Remove). Use MenuItem. */
+  itemActions?: (item: T) => React.ReactNode;
+  /** Shown inside an empty list. */
+  emptyLabel?: string;
+  className?: string;
 }
 
 /**
- * Keeps the order a person sees: the optimistic order while saving, the rolled-back order
- * when saving fails, and the server's order whenever it changes.
+ * One or more lists whose items can be reordered, and moved between the lists. For a single list use SortableListOf.
  */
-export function useOrderedSave<T extends SortableItem>(
-  items: readonly T[],
-  save: (orderedIds: string[]) => Promise<unknown>
-) {
-  const serverIds = items.map((item) => item.id).join('|');
-  const [order, setOrder] = useState<string[]>(() => items.map((item) => item.id));
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const saveRef = useRef(save);
-  useEffect(() => {
-    saveRef.current = save;
-  });
+export function SortableLists<T>({
+  lists,
+  getId,
+  getLabel,
+  renderItem,
+  onReorder,
+  readOnly,
+  locked,
+  itemActions,
+  emptyLabel = 'Nothing here',
+  className,
+}: SortableListsProps<T>) {
+  const reduced = useMediaQuery('(prefers-reduced-motion: reduce)');
+  // dnd-kit numbers its contexts with a global counter, which differs between server and browser.
+  const contextId = React.useId();
+  const byId = React.useMemo(() => {
+    const map = new Map<string, T>();
+    for (const list of lists) for (const item of list.items) map.set(getId(item), item);
+    return map;
+  }, [lists, getId]);
+  const incoming = React.useMemo<Order>(
+    () => Object.fromEntries(lists.map((list) => [list.id, list.items.map(getId)])),
+    [lists, getId]
+  );
+  const signature = JSON.stringify(incoming);
 
-  // Follow the server unless a save is in flight (its answer will bring the new order).
-  const [followed, setFollowed] = useState(serverIds);
-  if (followed !== serverIds && !saving) {
-    setFollowed(serverIds);
-    setOrder(items.map((item) => item.id));
+  // `order` is what is on screen (it may run ahead of the props while a save is pending).
+  const [order, setOrder] = React.useState<Order>(incoming);
+  const [seen, setSeen] = React.useState(signature);
+  if (signature !== seen) {
+    setSeen(signature);
+    setOrder(incoming);
   }
+  const [activeId, setActiveId] = React.useState<string | null>(null);
+  const [saving, setSaving] = React.useState(false);
+  const [failed, setFailed] = React.useState(false);
+  const [message, setMessage] = React.useState('');
+  const dragStartOrder = React.useRef<Order>(order);
 
-  const commit = useCallback(
-    async (next: string[]) => {
-      if (saving || next.join('|') === order.join('|')) return;
-      const previous = order;
-      setOrder(next);
-      setSaving(true);
-      setError(null);
-      try {
-        await saveRef.current(next);
-      } catch (caught) {
-        setOrder(previous);
-        setError(caught instanceof Error ? caught.message : 'Could not save the new order.');
-      } finally {
-        setSaving(false);
-      }
-    },
-    [order, saving]
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 150, tolerance: 8 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
 
-  const byId = new Map(items.map((item) => [item.id, item]));
-  const ordered = order.flatMap((id) => {
+  const nameOf = (id: string) => {
     const item = byId.get(id);
-    return item ? [item] : [];
-  });
-  // An item the server added meanwhile still shows (at the end) until the next sync.
-  for (const item of items) if (!order.includes(item.id)) ordered.push(item);
-  return { ordered, saving, error, commit, clearError: () => setError(null) };
+    return item === undefined ? id : getLabel(item);
+  };
+  const listName = (id: string) => lists.find((list) => list.id === id)?.label ?? id;
+  const where = (current: Order, id: string) => {
+    const at = locate(current, id);
+    if (!at) return '';
+    const sameList = lists.length > 1 ? ` in ${listName(at.list)}` : '';
+    return `position ${at.index + 1} of ${current[at.list]!.length}${sameList}`;
+  };
+
+  async function commit(next: Order, change: { id: string; from: string; to: string }, before: Order) {
+    setOrder(next);
+    setFailed(false);
+    setSaving(true);
+    try {
+      await onReorder(next, change);
+    } catch {
+      setOrder(before);
+      setFailed(true);
+      setMessage(`Could not save the new order. ${nameOf(change.id)} is back where it was.`);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function moveBy(id: string, to: (current: { list: string; index: number }, count: number) => number) {
+    const at = locate(order, id);
+    if (!at || saving) return;
+    const count = order[at.list]!.length;
+    const index = Math.max(0, Math.min(to(at, count), count - 1));
+    if (index === at.index) return;
+    const next = moveItem(order, id, at.list, index);
+    setMessage(`${nameOf(id)} moved to ${where(next, id)}.`);
+    void commit(next, { id, from: at.list, to: at.list }, order);
+  }
+
+  function moveToList(id: string, listId: string) {
+    const at = locate(order, id);
+    if (!at || at.list === listId || saving) return;
+    const next = moveItem(order, id, listId, order[listId]!.length);
+    setMessage(`${nameOf(id)} moved to ${where(next, id)}.`);
+    void commit(next, { id, from: at.list, to: listId }, order);
+  }
+
+  const announcements: Announcements = {
+    onDragStart: ({ active }) => `Picked up ${nameOf(String(active.id))}, ${where(order, String(active.id))}.`,
+    onDragOver: ({ active, over }) =>
+      over ? `${nameOf(String(active.id))} is over ${where(order, String(active.id))}.` : undefined,
+    onDragEnd: ({ active }) => `Dropped ${nameOf(String(active.id))} at ${where(order, String(active.id))}.`,
+    onDragCancel: ({ active }) => `Cancelled. ${nameOf(String(active.id))} is back where it was.`,
+  };
+
+  const containerOf = (id: string) => (id in order ? id : (locate(order, id)?.list ?? null));
+
+  function onDragStart(event: DragStartEvent) {
+    dragStartOrder.current = order;
+    setActiveId(String(event.active.id));
+  }
+
+  // Dragging over another list moves the item there right away, so the list makes room for it.
+  function onDragOver(event: DragOverEvent) {
+    const { active, over } = event;
+    if (!over) return;
+    const id = String(active.id);
+    const from = containerOf(id);
+    const to = containerOf(String(over.id));
+    if (!from || !to || from === to) return;
+    setOrder((current) => {
+      const overIndex = current[to]!.indexOf(String(over.id));
+      return moveItem(current, id, to, overIndex >= 0 ? overIndex : current[to]!.length);
+    });
+  }
+
+  function onDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    const id = String(active.id);
+    const before = dragStartOrder.current;
+    setActiveId(null);
+    const to = over ? containerOf(String(over.id)) : null;
+    const from = locate(before, id)?.list;
+    if (!over || !to || !from) {
+      setOrder(before);
+      return;
+    }
+    let next = order;
+    const now = locate(order, id);
+    const overIndex = order[to]!.indexOf(String(over.id));
+    if (now && now.list === to && overIndex >= 0 && overIndex !== now.index) {
+      next = { ...order, [to]: arrayMove(order[to]!, now.index, overIndex) };
+    }
+    if (JSON.stringify(next) === JSON.stringify(before)) {
+      setOrder(before);
+      return;
+    }
+    void commit(next, { id, from, to }, before);
+  }
+
+  return (
+    <div className={cn('vd-sortable', className)} aria-busy={saving || undefined}>
+      <DndContext
+        id={contextId}
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        accessibility={{ announcements, screenReaderInstructions: { draggable: INSTRUCTIONS } }}
+        onDragStart={onDragStart}
+        onDragOver={onDragOver}
+        onDragEnd={onDragEnd}
+        onDragCancel={() => {
+          setActiveId(null);
+          setOrder(dragStartOrder.current);
+        }}
+      >
+        {lists.map((list) => (
+          <SortableListBody
+            key={list.id}
+            list={list}
+            ids={order[list.id] ?? []}
+            byId={byId}
+            lists={lists}
+            readOnly={readOnly}
+            locked={locked}
+            itemActions={itemActions}
+            reduced={reduced}
+            activeId={activeId}
+            emptyLabel={emptyLabel}
+            getLabel={getLabel}
+            renderItem={renderItem}
+            moveBy={moveBy}
+            moveToList={moveToList}
+            multiple={lists.length > 1}
+          />
+        ))}
+        <DragOverlay>{null}</DragOverlay>
+      </DndContext>
+      <p role="status" className="vd-sr">
+        {message}
+      </p>
+      {saving && (
+        <p className="vd-sortable__saving" aria-hidden>
+          Saving order…
+        </p>
+      )}
+      {failed && (
+        <Banner tone="danger" title="Could not save the new order">
+          The list is back in its previous order. Try again.
+        </Banner>
+      )}
+    </div>
+  );
 }
 
-interface RowControls {
-  position: number;
-  total: number;
-  saving: boolean;
-  disabled: boolean;
-  label: string;
-  onMove: (offset: number) => void;
+function SortableListBody<T>({
+  list,
+  ids,
+  byId,
+  lists,
+  readOnly,
+  locked,
+  itemActions,
+  reduced,
+  activeId,
+  emptyLabel,
+  getLabel,
+  renderItem,
+  moveBy,
+  moveToList,
+  multiple,
+}: {
+  list: SortableGroup<T>;
+  ids: string[];
+  byId: Map<string, T>;
+  lists: SortableGroup<T>[];
+  readOnly?: boolean;
+  locked?: boolean;
+  itemActions?: (item: T) => React.ReactNode;
+  reduced: boolean;
+  activeId: string | null;
+  emptyLabel: string;
+  getLabel: (item: T) => string;
+  renderItem: SortableListsProps<T>['renderItem'];
+  moveBy: (id: string, to: (current: { list: string; index: number }, count: number) => number) => void;
+  moveToList: (id: string, listId: string) => void;
+  multiple: boolean;
+}) {
+  const { setNodeRef } = useDroppable({ id: list.id });
+  return (
+    <SortableContext id={list.id} items={ids} strategy={verticalListSortingStrategy} disabled={readOnly}>
+      <ol ref={setNodeRef} className="vd-sortable__list" aria-label={list.label}>
+        {ids.map((id, index) => {
+          const item = byId.get(id);
+          if (item === undefined) return null;
+          return (
+            <SortableRow
+              key={id}
+              id={id}
+              label={getLabel(item)}
+              listId={list.id}
+              index={index}
+              count={ids.length}
+              readOnly={readOnly}
+              locked={locked}
+              actions={itemActions?.(item)}
+              reduced={reduced}
+              dragging={activeId === id}
+              otherLists={multiple ? lists.filter((other) => other.id !== list.id) : []}
+              moveBy={moveBy}
+              moveToList={moveToList}
+              render={(context) => renderItem(item, context)}
+            />
+          );
+        })}
+        {ids.length === 0 && <li className="vd-sortable__empty">{emptyLabel}</li>}
+      </ol>
+    </SortableContext>
+  );
 }
 
-/** One row with its handle and move buttons. Used inside a SortableContext. */
-export function SortableRow({
+function SortableRow({
   id,
-  controls,
-  className,
-  children,
+  label,
+  listId,
+  index,
+  count,
+  readOnly,
+  locked,
+  actions,
+  reduced,
+  dragging,
+  otherLists,
+  moveBy,
+  moveToList,
+  render,
 }: {
   id: string;
-  controls: RowControls;
-  className?: string;
-  children: React.ReactNode;
+  label: string;
+  listId: string;
+  index: number;
+  count: number;
+  readOnly?: boolean;
+  locked?: boolean;
+  actions?: React.ReactNode;
+  reduced: boolean;
+  dragging: boolean;
+  otherLists: Array<{ id: string; label: string }>;
+  moveBy: (id: string, to: (current: { list: string; index: number }, count: number) => number) => void;
+  moveToList: (id: string, listId: string) => void;
+  render: (context: SortableItemContext) => React.ReactNode;
 }) {
-  const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } = useSortable({
+  const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition } = useSortable({
     id,
-    disabled: controls.disabled || controls.saving,
+    disabled: readOnly || locked,
+    // Reduced motion: items jump to their place instead of sliding.
+    transition: reduced ? null : { duration: 180, easing: 'ease-out' },
   });
-  const reduceMotion = useMediaQuery('(prefers-reduced-motion: reduce)');
-  const locked = controls.disabled || controls.saving;
+  const moveUp = () => moveBy(id, (at) => at.index - 1);
+  const moveDown = () => moveBy(id, (at) => at.index + 1);
+  const handle = readOnly ? null : (
+    <DragHandle ref={setActivatorNodeRef} label={label} disabled={locked} {...attributes} {...listeners} />
+  );
+  const moveMenu = readOnly ? null : (
+    <Menu
+      trigger={
+        <button
+          type="button"
+          className="vd-iconbtn"
+          disabled={locked}
+          aria-label={`Move ${label}, now ${index + 1} of ${count}`}
+        >
+          <Ellipsis className="size-4" strokeWidth={1.75} aria-hidden />
+        </button>
+      }
+    >
+      <MenuLabel>
+        Move {label} · now {index + 1} of {count}
+      </MenuLabel>
+      <MenuItem icon={ArrowUp} disabled={index === 0} onSelect={moveUp}>
+        Move up
+      </MenuItem>
+      <MenuItem icon={ArrowDown} disabled={index === count - 1} onSelect={moveDown}>
+        Move down
+      </MenuItem>
+      <MenuItem icon={ArrowUpToLine} disabled={index === 0} onSelect={() => moveBy(id, () => 0)}>
+        Move to top
+      </MenuItem>
+      <MenuItem icon={ArrowDownToLine} disabled={index === count - 1} onSelect={() => moveBy(id, (_, n) => n - 1)}>
+        Move to bottom
+      </MenuItem>
+      {(otherLists.length > 0 || actions) && <MenuSeparator />}
+      {otherLists.map((other) => (
+        <MenuItem key={other.id} icon={MoveRight} onSelect={() => moveToList(id, other.id)}>
+          Move to {other.label}
+        </MenuItem>
+      ))}
+      {actions}
+    </Menu>
+  );
   return (
     <li
       ref={setNodeRef}
-      style={{ transform: CSS.Transform.toString(transform), transition: reduceMotion ? undefined : transition }}
-      className={cn('vd-sortable__row', isDragging && 'is-dragging', className)}
+      style={{ transform: CSS.Translate.toString(transform), transition }}
+      className={cn('vd-sortable__item', dragging && 'is-dragging')}
     >
-      <button
-        type="button"
-        ref={setActivatorNodeRef}
-        className="vd-sortable__handle"
-        aria-label={`Drag to reorder ${controls.label}`}
-        disabled={locked}
-        {...attributes}
-        {...listeners}
-      >
-        <GripVertical className="size-4" strokeWidth={1.75} aria-hidden />
-      </button>
-      <span className="vd-sortable__position" aria-hidden>
-        {controls.position}
-      </span>
-      <div className="vd-sortable__body">{children}</div>
-      <span className="vd-sortable__moves">
-        <button
-          type="button"
-          className="vd-iconbtn"
-          aria-label={`Move ${controls.label} up`}
-          disabled={locked || controls.position <= 1}
-          onClick={() => controls.onMove(-1)}
-        >
-          <ChevronUp className="size-4" strokeWidth={1.75} aria-hidden />
-        </button>
-        <button
-          type="button"
-          className="vd-iconbtn"
-          aria-label={`Move ${controls.label} down`}
-          disabled={locked || controls.position >= controls.total}
-          onClick={() => controls.onMove(1)}
-        >
-          <ChevronDown className="size-4" strokeWidth={1.75} aria-hidden />
-        </button>
-      </span>
+      {render({ listId, index, count, handle, moveMenu, moveUp, moveDown, dragging })}
     </li>
   );
 }
 
-export function useDragSensors() {
-  return useSensors(
-    // A small movement starts a drag, so a click on a link inside a row is still a click.
-    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
-  );
-}
-
-export function SaveStatus({ saving, error }: { saving: boolean; error: string | null }) {
-  return (
-    <>
-      <p role="status" aria-live="polite" className="text-small text-text-muted">
-        {saving ? 'Saving the new order…' : ''}
-      </p>
-      {error && (
-        <p role="alert" className="vd-hint vd-hint--error">
-          {error} The order was put back.
-        </p>
-      )}
-    </>
-  );
-}
-
-export function dragAnnouncements<T extends SortableItem>(items: readonly T[], labelOf: (item: T) => string) {
-  const name = (id: UniqueIdentifier) => {
-    const item = items.find((candidate) => candidate.id === String(id));
-    return item ? labelOf(item) : String(id);
-  };
-  const where = (id: UniqueIdentifier | undefined) =>
-    id === undefined
-      ? 'its place'
-      : `position ${items.findIndex((item) => item.id === String(id)) + 1} of ${items.length}`;
-  return {
-    onDragStart: ({ active }: { active: { id: UniqueIdentifier } }) =>
-      `Picked up ${name(active.id)}. Use the arrow keys to move it, Space to drop it.`,
-    onDragOver: ({ active, over }: { active: { id: UniqueIdentifier }; over: { id: UniqueIdentifier } | null }) =>
-      over ? `${name(active.id)} is over ${where(over.id)}.` : `${name(active.id)} is not over a place.`,
-    onDragEnd: ({ active, over }: { active: { id: UniqueIdentifier }; over: { id: UniqueIdentifier } | null }) =>
-      over ? `Dropped ${name(active.id)} at ${where(over.id)}.` : `Dropped ${name(active.id)}.`,
-    onDragCancel: ({ active }: { active: { id: UniqueIdentifier } }) => `Moving ${name(active.id)} was cancelled.`,
-  };
-}
-
-export interface SortableListProps<T extends SortableItem> {
-  items: readonly T[];
-  /** Names the list for assistive technology. */
-  label: string;
-  /** What a row shows. */
-  renderItem: (item: T, index: number) => React.ReactNode;
-  /** Names one item in button labels and announcements. */
-  itemLabel: (item: T) => string;
-  /** Called with every id in the new order. Throw (or reject) to put the old order back. */
-  onReorder: (orderedIds: string[]) => Promise<unknown>;
-  disabled?: boolean;
-  /** Extra classes for each row, e.g. to mark drafts. */
-  rowClassName?: (item: T) => string | undefined;
-}
-
-export function SortableList<T extends SortableItem>({
+/** A single reorderable list: `onReorder` gets the ids in their new order. */
+export function SortableListOf<T>({
   items,
   label,
-  renderItem,
-  itemLabel,
   onReorder,
-  disabled = false,
-  rowClassName,
-}: SortableListProps<T>) {
-  const { ordered, saving, error, commit } = useOrderedSave(items, onReorder);
-  const sensors = useDragSensors();
-  const ids = ordered.map((item) => item.id);
-
-  function onDragEnd({ active, over }: DragEndEvent) {
-    if (!over || active.id === over.id) return;
-    const from = ids.indexOf(String(active.id));
-    const to = ids.indexOf(String(over.id));
-    if (from < 0 || to < 0) return;
-    void commit(arrayMove(ids, from, to));
-  }
-
-  return (
-    <div className="flex flex-col gap-2">
-      <DndContext
-        sensors={sensors}
-        collisionDetection={closestCenter}
-        onDragEnd={onDragEnd}
-        accessibility={{ announcements: dragAnnouncements(ordered, itemLabel) }}
-      >
-        <SortableContext items={ids} strategy={verticalListSortingStrategy}>
-          <ol className="vd-sortable" aria-label={label} aria-busy={saving || undefined}>
-            {ordered.map((item, index) => (
-              <SortableRow
-                key={item.id}
-                id={item.id}
-                className={rowClassName?.(item)}
-                controls={{
-                  position: index + 1,
-                  total: ordered.length,
-                  saving,
-                  disabled,
-                  label: itemLabel(item),
-                  onMove: (offset) => void commit(moveId(ids, item.id, offset)),
-                }}
-              >
-                {renderItem(item, index)}
-              </SortableRow>
-            ))}
-          </ol>
-        </SortableContext>
-      </DndContext>
-      <SaveStatus saving={saving} error={error} />
-    </div>
-  );
+  ...rest
+}: Omit<SortableListsProps<T>, 'lists' | 'onReorder'> & {
+  items: T[];
+  label: string;
+  onReorder: (ids: string[]) => void | Promise<void>;
+}) {
+  const lists = React.useMemo(() => [{ id: 'list', label, items }], [label, items]);
+  return <SortableLists {...rest} lists={lists} onReorder={(order) => onReorder(order.list ?? [])} />;
 }

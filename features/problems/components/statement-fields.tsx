@@ -3,6 +3,7 @@
 import { ImagePlus } from 'lucide-react';
 import { useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { TextField } from '@/components/ui/field';
 import { cn } from '@/lib/utils';
 import { LANGUAGE_OPTIONS, type Language, type ProblemConstraints } from '../types';
@@ -59,7 +60,7 @@ export function DetailsFields({
           inputMode="numeric"
           value={draft.timeLimitMs}
           disabled={readOnly}
-          hint={`Per test, ${constraints.time_limit_ms.min} to ${constraints.time_limit_ms.max} ms.`}
+          hint={`Per testcase, ${constraints.time_limit_ms.min} to ${constraints.time_limit_ms.max} ms.`}
           error={error('timeLimitMs')}
           onChange={(event) => onChange('timeLimitMs', event.target.value)}
         />
@@ -69,7 +70,7 @@ export function DetailsFields({
           inputMode="numeric"
           value={draft.memoryLimitMb}
           disabled={readOnly}
-          hint={`Per test, ${Math.ceil(constraints.memory_limit_kb.min / 1024)} to ${Math.floor(constraints.memory_limit_kb.max / 1024)} MB.`}
+          hint={`Per testcase, ${Math.ceil(constraints.memory_limit_kb.min / 1024)} to ${Math.floor(constraints.memory_limit_kb.max / 1024)} MB.`}
           error={error('memoryLimitMb')}
           onChange={(event) => onChange('memoryLimitMb', event.target.value)}
         />
@@ -78,14 +79,12 @@ export function DetailsFields({
         <legend className="vd-label">Allowed languages</legend>
         <div className="flex flex-wrap gap-4">
           {LANGUAGE_OPTIONS.filter((option) => constraints.languages.includes(option.value)).map((option) => (
-            <label key={option.value} className="text-body flex items-center gap-2">
-              <input
-                type="checkbox"
-                checked={draft.languages.includes(option.value)}
-                onChange={() => toggleLanguage(option.value)}
-              />
-              {option.label}
-            </label>
+            <Checkbox
+              key={option.value}
+              label={option.label}
+              checked={draft.languages.includes(option.value)}
+              onCheckedChange={() => toggleLanguage(option.value)}
+            />
           ))}
         </div>
         {error('languages') && (

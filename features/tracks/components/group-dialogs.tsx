@@ -2,8 +2,10 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog } from '@/components/ui/dialog';
-import { Select, TextField } from '@/components/ui/field';
+import { Dropdown } from '@/components/ui/dropdown';
+import { TextField } from '@/components/ui/field';
 import { useToast } from '@/components/ui/toast';
 import { suggestProblemSlug } from '@/features/problems/slug';
 import { useSpace } from '@/features/spaces/components/space-shell';
@@ -119,11 +121,11 @@ export function NewTrackDialog({
           error={error?.fieldError('description')}
           onChange={(event) => setDescription(event.target.value)}
         />
-        <Select
+        <Dropdown
           label="Who can see it"
           value={visibility}
           options={VISIBILITY_OPTIONS}
-          onChange={(event) => setVisibility(event.target.value as TrackVisibility)}
+          onValueChange={(next) => setVisibility(next as TrackVisibility)}
         />
         <VisibilityExplanation value={visibility} />
         <div className="flex justify-end gap-2">
@@ -233,21 +235,19 @@ export function NewCollectionDialog({
           <fieldset className="flex flex-col gap-2">
             <legend className="vd-label">Put it in these Tracks</legend>
             {tracks.map((track) => (
-              <label key={track.id} className="text-body flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  checked={chosen.has(track.slug)}
-                  onChange={() =>
-                    setChosen((current) => {
-                      const next = new Set(current);
-                      if (next.has(track.slug)) next.delete(track.slug);
-                      else next.add(track.slug);
-                      return next;
-                    })
-                  }
-                />
-                {track.name}
-              </label>
+              <Checkbox
+                key={track.id}
+                label={track.name}
+                checked={chosen.has(track.slug)}
+                onCheckedChange={() =>
+                  setChosen((current) => {
+                    const next = new Set(current);
+                    if (next.has(track.slug)) next.delete(track.slug);
+                    else next.add(track.slug);
+                    return next;
+                  })
+                }
+              />
             ))}
             <p className="vd-hint">A Collection in no Track is seen by owners and editors only.</p>
             {error?.fieldError('track_slugs') && (

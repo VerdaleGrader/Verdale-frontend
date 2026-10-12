@@ -12,6 +12,12 @@ export type ProblemConstraints = Schemas['ProblemConstraints'];
 export type PublishCheck = Schemas['PublishCheck'];
 export type TestCase = Schemas['TestCase'];
 export type TestCaseList = Schemas['TestCaseList'];
+export type TestLimits = Schemas['TestLimits'];
+export type TextSlice = Schemas['TextSlice'];
+export type StagedFile = Schemas['StagedFile'];
+export type GenerateJob = Schemas['GenerateJob'];
+export type GenerateRun = Schemas['GenerateRun'];
+export type SaveTestCasesRequest = Schemas['SaveTestCasesRequest'];
 export type ReferenceSolution = Schemas['ReferenceSolution'];
 export type UpdateProblemRequest = Schemas['UpdateProblemRequest'];
 
@@ -31,9 +37,4 @@ export const STATUS_LABELS: Record<ProblemStatus, string> = {
 export const kilobytesToMegabytes = (kilobytes: number) => Math.round(kilobytes / 1024);
 export const megabytesToKilobytes = (megabytes: number) => Math.round(megabytes * 1024);
 
-/** "8 MiB", "1.5 KiB", "812 bytes" for sizes of files and totals. */
-export function formatBytes(bytes: number): string {
-  if (bytes >= 1024 * 1024) return `${Number((bytes / (1024 * 1024)).toFixed(1))} MiB`;
-  if (bytes >= 1024) return `${Number((bytes / 1024).toFixed(1))} KiB`;
-  return `${bytes} ${bytes === 1 ? 'byte' : 'bytes'}`;
-}
+export { formatBytes } from '@/lib/format';

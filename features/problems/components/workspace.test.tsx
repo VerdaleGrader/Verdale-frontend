@@ -39,7 +39,7 @@ describe('the authoring workspace', () => {
     expect(within(tabs).getByRole('link', { name: 'Statement' }).getAttribute('href')).toBe(
       '/spaces/team/problems/sum/edit'
     );
-    expect(within(tabs).getByRole('link', { name: /Tests/ }).textContent).toContain('2');
+    expect(within(tabs).getByRole('link', { name: /Testcases/ }).textContent).toContain('2');
     expect(
       within(tabs)
         .getByRole('link', { name: /Solutions/ })
@@ -54,7 +54,7 @@ describe('the authoring workspace', () => {
   it('turns away someone who cannot edit, and says what they can do instead', async () => {
     api.editor.mockRejectedValue(new ApiError(403, 'FORBIDDEN', 'Only owners and editors can do this.'));
     renderInApp(<ProblemWorkspace>x</ProblemWorkspace>, { space: makeSpace('solver') });
-    expect(await screen.findByText('Only owners and editors can edit problems')).toBeTruthy();
+    expect(await screen.findByText('Only the Space’s staff can open the editor')).toBeTruthy();
     expect(screen.getByRole('link', { name: 'Back to Team' }).getAttribute('href')).toBe('/spaces/team');
   });
 
@@ -87,6 +87,12 @@ describe('the authoring workspace', () => {
   it('says an archived Space makes everything read-only', async () => {
     renderWorkspace(makeEditor({ editable: false }), makeSpace('owner', { archived_at: '2026-10-11T00:00:00Z' }));
     expect(await screen.findByText(/This Space is archived, so its problems are read-only/)).toBeTruthy();
+  });
+
+  it('lets an observer read the draft but offers no publishing and says it is read-only', async () => {
+    renderWorkspace(makeEditor(), makeSpace('observer'));
+    expect(await screen.findByText(/You can read everything here as an observer/)).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Publish' })).toBeNull();
   });
 });
 
@@ -122,7 +128,7 @@ describe('publishing', () => {
           {
             key: 'sample_test',
             ok: false,
-            message: 'Mark at least one test as a sample so solvers can see an example.',
+            message: 'Mark at least one testcase as a sample so solvers can see an example.',
           },
           { key: 'solution', ok: false, message: 'Attach a reference solution and mark it as primary.' },
         ],
@@ -130,9 +136,15 @@ describe('publishing', () => {
     );
     expect(await screen.findByRole('heading', { name: 'Before you publish (3 of 5 ready)' })).toBeTruthy();
     expect((screen.getByRole('button', { name: 'Publish' }) as HTMLButtonElement).disabled).toBe(true);
-    expect(screen.getByText('Mark at least one test as a sample so solvers can see an example.')).toBeTruthy();
+    expect(screen.getByText('Mark at least one testcase as a sample so solvers can see an example.')).toBeTruthy();
     expect(screen.getAllByLabelText('Still to do')).toHaveLength(2);
     expect(screen.getAllByLabelText('Done')).toHaveLength(3);
+  });
+
+  it('keeps Publish off in an archived Space, even when every check is green', async () => {
+    renderWorkspace(makeEditor({ can_publish: true }), { ...makeSpace('editor'), archived_at: '2026-10-11T00:00:00Z' });
+    await screen.findByRole('heading', { name: /Before you publish/ });
+    expect((screen.getByRole('button', { name: 'Publish' }) as HTMLButtonElement).disabled).toBe(true);
   });
 
   it('shows what Core says is missing when it refuses, even though the page thought it was ready', async () => {
