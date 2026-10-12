@@ -127,7 +127,7 @@ export function ProblemWorkspace({ children }: { children: React.ReactNode }) {
 
   return (
     <WorkspaceContext.Provider value={{ target, editor, setEditor, refresh }}>
-      <PageContainer>
+      <PageContainer tight className="max-w-7xl">
         <header className="flex flex-wrap items-start justify-between gap-3">
           <div className="flex min-w-0 flex-col gap-1">
             <p className="text-mono-label text-text-muted">

@@ -92,7 +92,7 @@ function ProblemPage({ problem, target }: { problem: Problem; target: ProblemTar
   const { auth } = useAuth();
   const base = `/spaces/${space.slug}/problems/${problem.slug}`;
   return (
-    <PageContainer className="max-w-7xl">
+    <PageContainer tight className="max-w-7xl">
       <nav aria-label="Breadcrumb" className="text-small text-text-muted flex flex-wrap items-center gap-1.5">
         <Link href={`/spaces/${space.slug}`} className="vd-link">
           {space.name}
