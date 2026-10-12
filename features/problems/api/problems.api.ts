@@ -1,5 +1,5 @@
 import { coreApi } from '@/lib/api-client';
-import { ApiError, unwrap } from '@/lib/api';
+import { unwrap } from '@/lib/api';
 import type { components } from '@/lib/contracts/core-public.gen';
 import type { Language, UpdateProblemRequest } from '../types';
 
@@ -35,75 +35,6 @@ function formData(parts: Record<string, Blob | string | undefined>, fileNames: R
 export const testFileUrl = (target: Target, testId: string, side: 'input' | 'output') =>
   `/api/v1/spaces/${encodeURIComponent(target.slug)}/problems/${encodeURIComponent(target.problemSlug)}/tests/${testId}/${side}`;
 
-/** Where the PDF statement is served from. `draft` is for staff previewing the draft they are editing. */
-export const statementPdfUrl = (target: Target, draft = false) =>
-  `/api/v1/spaces/${encodeURIComponent(target.slug)}/problems/${encodeURIComponent(target.problemSlug)}/statement.pdf${draft ? '?draft=true' : ''}`;
-
-const NETWORK_ERROR = () =>
-  new ApiError(0, 'NETWORK', 'Could not reach the server. Check your connection and try again.');
-
-/** An ApiError from the standard error body of a response that is not ok. */
-function apiErrorOf(status: number, body: unknown): ApiError {
-  const error = typeof body === 'object' && body !== null ? (body as Partial<Schemas['ErrorResponse']>) : {};
-  return new ApiError(
-    status,
-    error.error_code ?? 'UNKNOWN',
-    error.message ?? 'Something went wrong. Try again.',
-    error.details,
-    error.request_id
-  );
-}
-
-/** The bytes of the PDF statement, fetched with the session cookie through the same /api proxy as everything else. */
-async function fetchStatementPdf(target: Target, draft: boolean): Promise<ArrayBuffer> {
-  let response: Response;
-  try {
-    response = await fetch(statementPdfUrl(target, draft), { credentials: 'include' });
-  } catch {
-    throw NETWORK_ERROR();
-  }
-  if (response.ok) return response.arrayBuffer();
-  throw apiErrorOf(response.status, await response.json().catch(() => undefined));
-}
-
-/**
- * PUT the PDF. fetch cannot report upload progress, so this uses XMLHttpRequest;
- * the request still goes through the /api proxy with the session cookie.
- */
-function uploadStatementPdf(target: Target, file: File, onProgress?: (percent: number) => void) {
-  return new Promise<Schemas['ProblemEditor']>((resolve, reject) => {
-    const request = new XMLHttpRequest();
-    request.open(
-      'PUT',
-      `/api/v1/spaces/${encodeURIComponent(target.slug)}/problems/${encodeURIComponent(target.problemSlug)}/statement-pdf`
-    );
-    request.withCredentials = true;
-    request.responseType = 'json';
-    request.upload.onprogress = (event) => {
-      if (event.lengthComputable) onProgress?.((event.loaded / event.total) * 100);
-    };
-    request.onerror = () => reject(NETWORK_ERROR());
-    request.onload = () => {
-      if (request.status >= 200 && request.status < 300) resolve(request.response as Schemas['ProblemEditor']);
-      else reject(apiErrorOf(request.status, request.response));
-    };
-    request.send(formData({ file }));
-  });
-}
-
-/** Does the Space already have a problem with this slug? Asked by owners and editors before they save a new one. */
-async function problemSlugTaken(slug: string, problemSlug: string): Promise<boolean> {
-  try {
-    await unwrap(
-      coreApi.GET('/api/v1/spaces/{slug}/problems/{problemSlug}/editor', { params: { path: { slug, problemSlug } } })
-    );
-    return true;
-  } catch (caught) {
-    if (caught instanceof ApiError && caught.status === 404) return false;
-    throw caught;
-  }
-}
-
 /** Repository: pure calls to Core for problems, tests and reference solutions. Errors are ApiError (lib/api.ts). */
 export const problemsApi = {
   list: (slug: string, { q, status, mine, page, pageSize }: ProblemListParams) =>
@@ -115,8 +46,6 @@ export const problemsApi = {
         },
       })
     ),
-
-  slugTaken: problemSlugTaken,
 
   create: (slug: string, body: Schemas['CreateProblemRequest']) =>
     unwrap(coreApi.POST('/api/v1/spaces/{slug}/problems', { params: { path: { slug } }, body })),
@@ -149,70 +78,59 @@ export const problemsApi = {
       })
     ),
 
-  /** Replaces the PDF of the draft; Core switches the draft to PDF mode. */
-  uploadStatementPdf,
-
-  /** Takes the PDF off the draft; Core switches back to Markdown. */
-  removeStatementPdf: (target: Target) =>
-    unwrap(
-      coreApi.DELETE('/api/v1/spaces/{slug}/problems/{problemSlug}/statement-pdf', { params: { path: path(target) } })
-    ),
-
-  statementPdf: fetchStatementPdf,
-
   // --- tests -------------------------------------------------------------
 
   tests: (target: Target) =>
     unwrap(coreApi.GET('/api/v1/spaces/{slug}/problems/{problemSlug}/tests', { params: { path: path(target) } })),
 
-  /** Check and store one file (or pasted text) for a later save; the problem does not change until `saveTests`. */
-  stageFile: (target: Target, source: File | { text: string }) =>
+  addTest: (
+    target: Target,
+    input: Blob,
+    output: Blob,
+    isSample: boolean,
+    names?: { input?: string; output?: string }
+  ) =>
     unwrap(
-      source instanceof Blob
-        ? coreApi.POST('/api/v1/spaces/{slug}/problems/{problemSlug}/tests/files', {
-            params: { path: path(target) },
-            body: { file: source as unknown as string },
-            bodySerializer: () => formData({ file: source }),
-          })
-        : coreApi.POST('/api/v1/spaces/{slug}/problems/{problemSlug}/tests/files', {
-            params: { path: path(target) },
-            body: source,
-          })
-    ),
-
-  /** Everything the testcases page changed, in one go. 409 TESTS_CHANGED when someone saved meanwhile. */
-  saveTests: (target: Target, body: Schemas['SaveTestCasesRequest']) =>
-    unwrap(coreApi.PUT('/api/v1/spaces/{slug}/problems/{problemSlug}/tests', { params: { path: path(target) }, body })),
-
-  /** A window of lines of a saved testcase file, for the preview (10 lines) and View all (1000 at a time). */
-  testFileSlice: (target: Target, testId: string, side: 'input' | 'output', fromLine: number, maxLines: number) =>
-    unwrap(
-      coreApi.GET('/api/v1/spaces/{slug}/problems/{problemSlug}/tests/{testId}/files/{side}', {
-        params: {
-          path: { ...path(target), testId, side },
-          query: { from_line: fromLine, max_lines: maxLines },
-        },
+      coreApi.POST('/api/v1/spaces/{slug}/problems/{problemSlug}/tests', {
+        params: { path: path(target) },
+        body: { input: input as unknown as string, output: output as unknown as string, is_sample: isSample },
+        bodySerializer: () =>
+          formData(
+            { input, output, is_sample: String(isSample) },
+            { input: names?.input ?? 'input.txt', output: names?.output ?? 'output.txt' }
+          ),
       })
     ),
 
-  // --- generate expected output ------------------------------------------------
-
-  startGenerate: (target: Target, body: Schemas['StartGenerateRequest']) =>
+  replaceTest: (target: Target, testId: string, files: { input?: File; output?: File }) =>
     unwrap(
-      coreApi.POST('/api/v1/spaces/{slug}/problems/{problemSlug}/generate', { params: { path: path(target) }, body })
-    ),
-
-  generateJob: (target: Target, jobId: string) =>
-    unwrap(
-      coreApi.GET('/api/v1/spaces/{slug}/problems/{problemSlug}/generate/{jobId}', {
-        params: { path: { ...path(target), jobId } },
+      coreApi.PUT('/api/v1/spaces/{slug}/problems/{problemSlug}/tests/{testId}', {
+        params: { path: { ...path(target), testId } },
+        body: { input: files.input as unknown as string, output: files.output as unknown as string },
+        bodySerializer: () => formData({ input: files.input, output: files.output }),
       })
     ),
 
-  stopGenerate: (target: Target, jobId: string) =>
+  setTestSample: (target: Target, testId: string, isSample: boolean) =>
     unwrap(
-      coreApi.POST('/api/v1/spaces/{slug}/problems/{problemSlug}/generate/{jobId}/stop', {
-        params: { path: { ...path(target), jobId } },
+      coreApi.PATCH('/api/v1/spaces/{slug}/problems/{problemSlug}/tests/{testId}', {
+        params: { path: { ...path(target), testId } },
+        body: { is_sample: isSample },
+      })
+    ),
+
+  removeTest: (target: Target, testId: string) =>
+    unwrap(
+      coreApi.DELETE('/api/v1/spaces/{slug}/problems/{problemSlug}/tests/{testId}', {
+        params: { path: { ...path(target), testId } },
+      })
+    ),
+
+  reorderTests: (target: Target, testIds: string[]) =>
+    unwrap(
+      coreApi.POST('/api/v1/spaces/{slug}/problems/{problemSlug}/tests/reorder', {
+        params: { path: path(target) },
+        body: { test_ids: testIds },
       })
     ),
 

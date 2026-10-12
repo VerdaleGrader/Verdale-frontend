@@ -42,15 +42,6 @@ export const spacesApi = {
       })
     ),
 
-  /** Hands the Space to a member (owner only): they become the owner and the caller an administrator. */
-  transferOwnership: (slug: string, username: string) =>
-    unwrap(
-      coreApi.PATCH('/api/v1/spaces/{slug}/members/{username}', {
-        params: { path: { slug, username } },
-        body: { role: 'owner' },
-      })
-    ),
-
   removeMember: (slug: string, username: string) =>
     unwrap(coreApi.DELETE('/api/v1/spaces/{slug}/members/{username}', { params: { path: { slug, username } } })),
 

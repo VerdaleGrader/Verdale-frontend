@@ -2,25 +2,22 @@
 
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
+import { useState } from 'react';
 import { PageContainer, PageHeader } from '@/components/layout/page';
 import { SubmissionTable, type SubmissionRow } from '@/components/grader/submission-table';
 import { EmptyState, ErrorState, Loading } from '@/components/states/states';
 import { buttonVariants } from '@/components/ui/button';
-import { Dropdown } from '@/components/ui/dropdown';
+import { Select } from '@/components/ui/field';
 import { Pagination } from '@/components/ui/pagination';
 import { useAuth } from '@/features/auth/hooks/auth-provider';
 import { LANGUAGE_LABELS } from '@/features/problems/types';
 import { useSpace } from '@/features/spaces/components/space-shell';
 import { timeAgo } from '@/lib/format';
 import { useApiQuery } from '@/lib/use-api-query';
-import { param, useUrlQuery } from '@/lib/use-url-query';
 import { submissionsApi, type SubmissionSummary } from '../api/submissions.api';
 import { displayVerdict, outcomeLine } from '../verdicts';
 
 const PAGE_SIZE = 20;
-
-// Scope and page live in the URL (?scope=all&page=2); defaults are left out.
-const QUERY = { scope: param.oneOf(['mine', 'all'] as const, 'mine'), page: param.page() };
 
 export function toRow(submission: SubmissionSummary, base: string, now?: Date): SubmissionRow {
   return {
@@ -29,7 +26,6 @@ export function toRow(submission: SubmissionSummary, base: string, now?: Date): 
     problem: submission.problem.title,
     href: `${base}/submissions/${submission.id}`,
     author: submission.author.display_name,
-    authorAvatarUrl: submission.author.avatar_url,
     language: LANGUAGE_LABELS[submission.language],
     verdict: displayVerdict(submission),
     detail: submission.status === 'completed' ? outcomeLine({ ...submission, results: [] }) : undefined,
@@ -43,10 +39,8 @@ export function SubmissionHistory() {
   const params = useParams<{ problemSlug: string }>();
   const { space, abilities } = useSpace();
   const { auth } = useAuth();
-  const { values, set } = useUrlQuery(QUERY);
-  // Only people who can see everyone's submissions may ask for them.
-  const scope = abilities.canAuthorProblems ? values.scope : 'mine';
-  const { page } = values;
+  const [page, setPage] = useState(1);
+  const [scope, setScope] = useState<'mine' | 'all'>('mine');
   const target = { slug: space.slug, problemSlug: params.problemSlug };
   const base = `/spaces/${space.slug}/problems/${params.problemSlug}`;
   const list = useApiQuery(
@@ -70,14 +64,17 @@ export function SubmissionHistory() {
         }
       />
       {abilities.canAuthorProblems && (
-        <Dropdown
+        <Select
           label="Show"
           value={scope}
           options={[
             { value: 'mine', label: 'My submissions' },
             { value: 'all', label: 'Everyone’s submissions' },
           ]}
-          onValueChange={(next) => set({ scope: next as 'mine' | 'all' })}
+          onChange={(event) => {
+            setScope(event.target.value as 'mine' | 'all');
+            setPage(1);
+          }}
           className="w-64"
         />
       )}
@@ -97,12 +94,7 @@ export function SubmissionHistory() {
         ) : (
           <>
             <SubmissionTable rows={list.data.items.map((item) => toRow(item, base))} />
-            <Pagination
-              page={page}
-              pageSize={PAGE_SIZE}
-              total={list.data.total}
-              onPage={(next) => set({ page: next })}
-            />
+            <Pagination page={page} pageSize={PAGE_SIZE} total={list.data.total} onPage={setPage} />
           </>
         ))}
     </PageContainer>

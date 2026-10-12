@@ -5,21 +5,17 @@ export function PageContainer({
   children,
   className,
   narrow,
-  tight,
 }: {
   children: React.ReactNode;
   className?: string;
   /** Reading width (72ch) instead of the full working width. */
   narrow?: boolean;
-  /** Smaller side margins for pages that need room (problem page, problem editor). */
-  tight?: boolean;
 }) {
   return (
     <main
       id="main"
       className={cn(
-        'mx-auto flex w-full flex-col gap-6 py-8',
-        tight ? 'px-3 md:px-4' : 'px-6 md:px-8',
+        'mx-auto flex w-full flex-col gap-6 px-6 py-8 md:px-8',
         narrow ? 'max-w-[var(--measure)]' : 'max-w-5xl',
         className
       )}

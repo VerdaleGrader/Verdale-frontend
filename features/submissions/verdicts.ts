@@ -27,7 +27,7 @@ export function resultRows(results: Submission['results']): TestResultRow[] {
   }));
 }
 
-/** "Accepted", "Wrong answer on testcase 4", "Compilation error", "Passed 3 of 10": the one line that says how it went. */
+/** "Accepted", "Wrong answer on test 4", "Compilation error", "Passed 3 of 10": the one line that says how it went. */
 export function outcomeLine(
   submission: Pick<Submission, 'status' | 'verdict' | 'results' | 'tests_passed' | 'tests_total'>
 ): string {
@@ -37,7 +37,7 @@ export function outcomeLine(
   const label = VERDICTS[submission.verdict].label;
   if (submission.verdict === 'AC' || submission.verdict === 'CE' || submission.verdict === 'ISE') return label;
   const failed = submission.results.find((result) => result.verdict !== 'AC' && result.verdict !== 'SKIPPED');
-  if (failed) return `${label} on testcase ${failed.position}`;
+  if (failed) return `${label} on test ${failed.position}`;
   return `${label}`;
 }
 

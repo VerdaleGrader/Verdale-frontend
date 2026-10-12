@@ -1,5 +1,5 @@
-import { TestcasesPage } from '@/features/problems/components/testcases-page';
+import { TestManager } from '@/features/problems/components/test-manager';
 
 export default function EditTestsPage() {
-  return <TestcasesPage />;
+  return <TestManager />;
 }

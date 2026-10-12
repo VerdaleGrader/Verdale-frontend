@@ -4,8 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { PageContainer, PageHeader } from '@/components/layout/page';
 import { Button } from '@/components/ui/button';
-import { Dropdown } from '@/components/ui/dropdown';
-import { TextField } from '@/components/ui/field';
+import { Select, TextField } from '@/components/ui/field';
 import { useToast } from '@/components/ui/toast';
 import { useRequireAuth } from '@/features/auth/hooks/use-require-auth';
 import { ApiError, errorMessage } from '@/lib/api';
@@ -89,11 +88,11 @@ export function CreateSpaceForm() {
           error={error?.fieldError('description')}
           onChange={(event) => setDescription(event.target.value)}
         />
-        <Dropdown
+        <Select
           label="Visibility"
           value={visibility}
           options={VISIBILITY_OPTIONS}
-          onValueChange={(next) => setVisibility(next as Visibility)}
+          onChange={(event) => setVisibility(event.target.value as Visibility)}
         />
         <div className="flex gap-2">
           <Button type="submit" variant="primary" disabled={saving || !name.trim() || !slug}>

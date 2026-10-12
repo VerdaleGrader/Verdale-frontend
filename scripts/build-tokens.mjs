@@ -51,8 +51,7 @@ ${block(':root', [...shared, ...light])}
 @media (prefers-color-scheme: dark) {
 ${block('  :root:not([data-theme="light"])', dark).replace(/^/gm, '  ').trimEnd()}
 }
-${block('[data-theme="dark"]', [...dark, 'color-scheme: dark;'])}
-${block('[data-theme="light"]', [...light, 'color-scheme: light;'])}
+${block(':root[data-theme="dark"]', dark)}
 ${styles.join('\n')}`;
 writeFileSync(path.join(root, 'app/tokens.css'), css);
 console.log(`app/tokens.css: ${light.length} colors and shadows, ${shared.length} sizes, ${styles.length} text styles`);

@@ -1,4 +1,3 @@
-import { Avatar } from '@/components/ui/avatar';
 import { formatTime } from '@/lib/format';
 
 /**
@@ -11,15 +10,12 @@ export function ProblemStatement({
   space,
   limits,
   author,
-  authorAvatarUrl,
   children,
 }: {
   title: string;
   space?: string;
   limits?: { timeMs?: number; memoryMb?: number };
   author?: string;
-  /** The author's picture; their initials show when it is missing. */
-  authorAvatarUrl?: string | null;
   /** Rendered Markdown (maths typeset with KaTeX in M3). */
   children?: React.ReactNode;
 }) {
@@ -43,10 +39,7 @@ export function ProblemStatement({
         {author && (
           <div>
             <dt>Author</dt>
-            <dd className="vd-inline">
-              <Avatar name={author} src={authorAvatarUrl} size="sm" />
-              {author}
-            </dd>
+            <dd>{author}</dd>
           </div>
         )}
       </dl>

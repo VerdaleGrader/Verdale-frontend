@@ -121,13 +121,13 @@ export function ProblemWorkspace({ children }: { children: React.ReactNode }) {
   const base = `/spaces/${space.slug}/problems/${editor.slug}`;
   const tabs = [
     { href: `${base}/edit`, label: 'Statement' },
-    { href: `${base}/edit/tests`, label: 'Testcases', count: editor.tests.count },
+    { href: `${base}/edit/tests`, label: 'Tests', count: editor.tests.count },
     { href: `${base}/edit/solutions`, label: 'Solutions', count: editor.solutions.count },
   ];
 
   return (
     <WorkspaceContext.Provider value={{ target, editor, setEditor, refresh }}>
-      <PageContainer tight className="max-w-7xl">
+      <PageContainer>
         <header className="flex flex-wrap items-start justify-between gap-3">
           <div className="flex min-w-0 flex-col gap-1">
             <p className="text-mono-label text-text-muted">
@@ -268,7 +268,7 @@ export function PublishPanel() {
         <Button
           variant="primary"
           size="sm"
-          disabled={!editor.can_publish || busy || !abilities.canEditProblems}
+          disabled={!editor.can_publish || busy}
           onClick={() => setConfirming('publish')}
         >
           Publish
@@ -304,7 +304,7 @@ export function PublishPanel() {
         open={confirming === 'publish'}
         onClose={() => setConfirming(null)}
         title={`Publish “${editor.version.title}”?`}
-        description="The statement, limits, testcases and solutions of this version are frozen once it is published. Solvers will see the statement and the sample testcases only."
+        description="The statement, limits, tests and solutions of this version are frozen once it is published. Solvers will see the statement and the sample tests only."
         footer={
           <>
             <Button onClick={() => setConfirming(null)} disabled={busy}>

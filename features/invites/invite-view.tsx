@@ -5,12 +5,11 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { PageContainer } from '@/components/layout/page';
 import { EmptyState, ErrorState, Loading } from '@/components/states/states';
-import { Avatar } from '@/components/ui/avatar';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { useToast } from '@/components/ui/toast';
 import { useAuth } from '@/features/auth/hooks/auth-provider';
 import { spacesApi } from '@/features/spaces/api/spaces.api';
-import { ROLE_DESCRIPTIONS, ROLE_LABELS } from '@/features/spaces/types';
+import { ROLE_HINTS, ROLE_LABELS } from '@/features/spaces/types';
 import { ApiError, errorMessage } from '@/lib/api';
 import { useApiQuery } from '@/lib/use-api-query';
 
@@ -39,9 +38,7 @@ export function InviteView({ token }: { token: string }) {
           title: `Joined ${joined.space.name}`,
           description: `You are ${ROLE_LABELS[joined.role].toLowerCase()}.`,
         });
-        router.push(
-          joined.track ? `/spaces/${joined.space.slug}/tracks/${joined.track.slug}` : `/spaces/${joined.space.slug}`
-        );
+        router.push(`/spaces/${joined.space.slug}`);
       } else {
         await spacesApi.declineInvite(token);
         toast({ tone: 'neutral', title: 'Invitation declined' });
@@ -103,21 +100,11 @@ export function InviteView({ token }: { token: string }) {
     <PageContainer narrow>
       <section className="border-border bg-surface flex flex-col gap-4 rounded-lg border p-5">
         <header className="flex flex-col gap-1">
-          <p className="text-small text-text-muted vd-inline">
-            <Avatar name={data.invited_by.display_name} src={data.invited_by.avatar_url} size="sm" />
-            {data.invited_by.display_name} invited you to join
-          </p>
+          <p className="text-small text-text-muted">{data.invited_by.display_name} invited you to join</p>
           <h1 className="text-h1 break-words">{data.space.name}</h1>
-          {data.track ? (
-            <p className="text-prose">
-              To the Track <strong>{data.track.name}</strong>. If you are not a member yet, you join the Space as a{' '}
-              <strong>solver</strong>; your role does not change if you already are one.
-            </p>
-          ) : (
-            <p className="text-prose">
-              As <strong>{ROLE_LABELS[data.role].toLowerCase()}</strong>. {ROLE_DESCRIPTIONS[data.role]}
-            </p>
-          )}
+          <p className="text-prose">
+            As <strong>{ROLE_LABELS[data.role].toLowerCase()}</strong>. {ROLE_HINTS[data.role]}
+          </p>
         </header>
         {auth.status === 'authenticated' ? (
           <div className="flex gap-2">

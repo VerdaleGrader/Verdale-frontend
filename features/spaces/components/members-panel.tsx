@@ -1,25 +1,22 @@
 'use client';
 
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { Avatar } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Dialog } from '@/components/ui/dialog';
-import { Dropdown } from '@/components/ui/dropdown';
+import { Select } from '@/components/ui/field';
 import { useToast } from '@/components/ui/toast';
 import { EmptyState, ErrorState, Loading } from '@/components/states/states';
 import { useAuth } from '@/features/auth/hooks/auth-provider';
 import { errorMessage } from '@/lib/api';
 import { useApiQuery } from '@/lib/use-api-query';
 import { spacesApi } from '../api/spaces.api';
-import { canRemoveMember } from '../abilities';
-import { canChangeRoleOf, roleOptions } from '../role-options';
-import { ROLE_DESCRIPTIONS, ROLE_LABELS, type Member, type Role } from '../types';
+import { ROLE_HINTS, ROLE_LABELS, type Member, type Role } from '../types';
 import { InvitePanel } from './invite-panel';
 import { useSpace } from './space-shell';
 
-const ROLE_ORDER = Object.keys(ROLE_LABELS) as Role[];
+const ROLE_OPTIONS = (Object.keys(ROLE_LABELS) as Role[]).map((role) => ({ value: role, label: ROLE_LABELS[role] }));
 
 type Pending = { kind: 'remove'; member: Member } | { kind: 'leave' } | null;
 
@@ -42,6 +39,8 @@ export function MembersPanel() {
   }
 
   const me = auth.status === 'authenticated' ? auth.user.username : null;
+  const owners = members.status === 'success' ? members.data.filter((member) => member.role === 'owner') : [];
+  const iAmLastOwner = space.my_role === 'owner' && owners.length === 1;
 
   async function changeRole(member: Member, role: Role) {
     setBusy(true);
@@ -91,25 +90,19 @@ export function MembersPanel() {
             Members
           </h2>
           {abilities.canLeave && (
-            <Button size="sm" disabled={busy} onClick={() => setPending({ kind: 'leave' })}>
+            <Button
+              size="sm"
+              disabled={busy || iAmLastOwner}
+              onClick={() => setPending({ kind: 'leave' })}
+              title={iAmLastOwner ? 'Make someone else an owner before you leave.' : undefined}
+            >
               Leave Space
             </Button>
           )}
         </div>
-        {space.my_role === 'owner' && (
+        {iAmLastOwner && abilities.canLeave && (
           <p className="text-small text-text-muted">
-            You are the owner, so you cannot leave.{' '}
-            {abilities.canManageDanger ? (
-              <>
-                Hand the Space over to another member in{' '}
-                <Link href={`/spaces/${space.slug}/settings`} className="vd-link">
-                  Settings
-                </Link>{' '}
-                first.
-              </>
-            ) : (
-              'A Space has exactly one owner.'
-            )}
+            You are the only owner. Make someone else an owner before you leave.
           </p>
         )}
 
@@ -135,17 +128,13 @@ export function MembersPanel() {
                 </thead>
                 <tbody>
                   {members.data.map((member) => {
-                    const changeable = abilities.canManageMembers && canChangeRoleOf(space.my_role, member.role);
-                    const removable =
-                      abilities.canManageMembers &&
-                      member.username !== me &&
-                      canRemoveMember(space.my_role, member.role);
+                    const isLastOwner = member.role === 'owner' && owners.length === 1;
                     return (
                       <tr key={member.username}>
                         <td>
                           <span className="vd-inline">
-                            <Avatar name={member.display_name} src={member.avatar_url} size="md" />
-                            <span className="flex flex-col gap-0.5 leading-tight">
+                            <Avatar name={member.display_name} size="md" />
+                            <span className="flex flex-col leading-tight">
                               <span className="text-body-strong">{member.display_name}</span>
                               <span className="text-mono-label text-text-muted">
                                 {member.username}
@@ -155,33 +144,32 @@ export function MembersPanel() {
                           </span>
                         </td>
                         <td>
-                          {changeable ? (
-                            <Dropdown
+                          {abilities.canManageMembers ? (
+                            <Select
                               aria-label={`Role of ${member.username}`}
                               size="sm"
                               className="min-w-[8rem]"
                               value={member.role}
-                              options={roleOptions(space.my_role, member.role)}
-                              disabled={busy}
-                              onValueChange={(next) => changeRole(member, next as Role)}
+                              options={ROLE_OPTIONS}
+                              disabled={busy || isLastOwner}
+                              title={isLastOwner ? 'A Space needs at least one owner.' : ROLE_HINTS[member.role]}
+                              onChange={(event) => changeRole(member, event.target.value as Role)}
                             />
                           ) : (
-                            <span title={ROLE_DESCRIPTIONS[member.role]}>{ROLE_LABELS[member.role]}</span>
+                            <span title={ROLE_HINTS[member.role]}>{ROLE_LABELS[member.role]}</span>
                           )}
                         </td>
                         {abilities.canManageMembers && (
                           <td className="is-num">
-                            {removable && (
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                disabled={busy}
-                                aria-label={`Remove ${member.username}`}
-                                onClick={() => setPending({ kind: 'remove', member })}
-                              >
-                                Remove
-                              </Button>
-                            )}
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              disabled={busy || isLastOwner}
+                              aria-label={`Remove ${member.username}`}
+                              onClick={() => setPending({ kind: 'remove', member })}
+                            >
+                              Remove
+                            </Button>
                           </td>
                         )}
                       </tr>
@@ -192,10 +180,10 @@ export function MembersPanel() {
             </div>
           ))}
         <dl className="text-small text-text-muted mt-2 grid gap-x-4 gap-y-1 sm:grid-cols-[auto_1fr]">
-          {ROLE_ORDER.map((role) => (
-            <div key={role} className="contents">
-              <dt className="text-body-strong text-text">{ROLE_LABELS[role]}</dt>
-              <dd>{ROLE_DESCRIPTIONS[role]}</dd>
+          {ROLE_OPTIONS.map((option) => (
+            <div key={option.value} className="contents">
+              <dt className="text-body-strong text-text">{option.label}</dt>
+              <dd>{ROLE_HINTS[option.value as Role]}</dd>
             </div>
           ))}
         </dl>
