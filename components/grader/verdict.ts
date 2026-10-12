@@ -1,14 +1,14 @@
 import {
+  Ban,
   CircleCheck,
   CircleX,
   Clock,
   Code,
   Ellipsis,
-  FileWarning,
   Layers,
   LoaderCircle,
   Minus,
-  TriangleAlert,
+  Wrench,
   Zap,
   type LucideIcon,
 } from 'lucide-react';
@@ -22,8 +22,8 @@ interface VerdictMeta {
   code: string;
   icon: LucideIcon;
   /** vd-verdict--<tone> and vd-cell--<cell> suffixes. */
-  tone: 'ac' | 'wa' | 'tle' | 'mle' | 're' | 'ce' | 'pending';
-  cell: 'ac' | 'wa' | 'tle' | 'mle' | 're' | 'ce' | 'queued' | 'running' | 'skipped';
+  tone: 'ac' | 'wa' | 'tle' | 'mle' | 're' | 'ce' | 'ole' | 'ise' | 'pending';
+  cell: 'ac' | 'wa' | 'tle' | 'mle' | 're' | 'ce' | 'ole' | 'ise' | 'queued' | 'running' | 'skipped';
 }
 
 // Labels are fixed by the design system (Voice and copy); icons are Lucide, as listed in Iconography.
@@ -34,9 +34,10 @@ export const VERDICTS: Record<Verdict, VerdictMeta> = {
   MLE: { label: 'Memory limit exceeded', code: 'MLE', icon: Layers, tone: 'mle', cell: 'mle' },
   RE: { label: 'Runtime error', code: 'RE', icon: Zap, tone: 're', cell: 're' },
   CE: { label: 'Compilation error', code: 'CE', icon: Code, tone: 'ce', cell: 'ce' },
-  // Output limit shares the resource-limit colours; a system error is neutral because it is not the solver's result.
-  OLE: { label: 'Output limit exceeded', code: 'OLE', icon: FileWarning, tone: 'mle', cell: 'mle' },
-  ISE: { label: 'System error', code: 'ISE', icon: TriangleAlert, tone: 'pending', cell: 'queued' },
+  // Output limit has its own teal. An internal error is the judge's fault, not the solver's result:
+  // it has its own rose and a dashed outline so it never reads as a normal verdict.
+  OLE: { label: 'Output limit exceeded', code: 'OLE', icon: Ban, tone: 'ole', cell: 'ole' },
+  ISE: { label: 'Internal error', code: 'ISE', icon: Wrench, tone: 'ise', cell: 'ise' },
   QUEUED: { label: 'Queued', code: '', icon: Ellipsis, tone: 'pending', cell: 'queued' },
   RUNNING: { label: 'Running', code: '', icon: LoaderCircle, tone: 'pending', cell: 'running' },
   SKIPPED: { label: 'Skipped', code: '', icon: Minus, tone: 'pending', cell: 'skipped' },
@@ -57,4 +58,19 @@ export const VERDICT_EXPLANATIONS: Record<Verdict, string> = {
   QUEUED: 'Your solution is waiting for a free judge.',
   RUNNING: 'Your solution is being run against the tests.',
   SKIPPED: 'This test was not run because an earlier test did not pass.',
+};
+
+/** One line per verdict for the info popover (VerdictInfo); the longer text above is for a submission's own page. */
+export const VERDICT_SUMMARIES: Record<Verdict, string> = {
+  AC: 'Every testcase gave the expected output within the limits.',
+  WA: 'The output differs from the expected output on at least one testcase.',
+  TLE: 'The program ran longer than the time limit.',
+  MLE: 'The program used more memory than the limit.',
+  RE: 'The program crashed or exited with a non-zero code.',
+  CE: 'The code did not compile, so no testcase was run.',
+  OLE: 'The program printed more output than allowed.',
+  ISE: 'The judge failed while running it. Not the solver’s fault.',
+  QUEUED: 'Waiting for a free judge.',
+  RUNNING: 'Being run against the testcases.',
+  SKIPPED: 'Not run, because an earlier testcase did not pass.',
 };
