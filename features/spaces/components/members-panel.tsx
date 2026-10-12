@@ -134,7 +134,7 @@ export function MembersPanel() {
                         <td>
                           <span className="vd-inline">
                             <Avatar name={member.display_name} size="md" />
-                            <span className="flex flex-col leading-tight">
+                            <span className="flex flex-col gap-0.5 leading-tight">
                               <span className="text-body-strong">{member.display_name}</span>
                               <span className="text-mono-label text-text-muted">
                                 {member.username}
