@@ -1,5 +1,5 @@
 import { coreApi } from '@/lib/api-client';
-import { unwrap } from '@/lib/api';
+import { ApiError, unwrap } from '@/lib/api';
 import type { components } from '@/lib/contracts/core-public.gen';
 import type { Language, UpdateProblemRequest } from '../types';
 
@@ -35,6 +35,19 @@ function formData(parts: Record<string, Blob | string | undefined>, fileNames: R
 export const testFileUrl = (target: Target, testId: string, side: 'input' | 'output') =>
   `/api/v1/spaces/${encodeURIComponent(target.slug)}/problems/${encodeURIComponent(target.problemSlug)}/tests/${testId}/${side}`;
 
+/** Does the Space already have a problem with this slug? Asked by owners and editors before they save a new one. */
+async function problemSlugTaken(slug: string, problemSlug: string): Promise<boolean> {
+  try {
+    await unwrap(
+      coreApi.GET('/api/v1/spaces/{slug}/problems/{problemSlug}/editor', { params: { path: { slug, problemSlug } } })
+    );
+    return true;
+  } catch (caught) {
+    if (caught instanceof ApiError && caught.status === 404) return false;
+    throw caught;
+  }
+}
+
 /** Repository: pure calls to Core for problems, tests and reference solutions. Errors are ApiError (lib/api.ts). */
 export const problemsApi = {
   list: (slug: string, { q, status, mine, page, pageSize }: ProblemListParams) =>
@@ -46,6 +59,8 @@ export const problemsApi = {
         },
       })
     ),
+
+  slugTaken: problemSlugTaken,
 
   create: (slug: string, body: Schemas['CreateProblemRequest']) =>
     unwrap(coreApi.POST('/api/v1/spaces/{slug}/problems', { params: { path: { slug } }, body })),
