@@ -15,6 +15,7 @@ import { cn } from '@/lib/utils';
 import { problemsApi, testFileUrl } from '../api/problems.api';
 import { pairTestFiles, type Pair } from '../test-files';
 import { formatBytes, type TestCase, type TestCaseList } from '../types';
+import { useSpace } from '@/features/spaces/components/space-shell';
 import { useProblemWorkspace } from './problem-workspace';
 
 /** Core's message for a failed upload: the file-level details when there are any. */
@@ -54,6 +55,7 @@ function Meter({ label, value, max, text }: { label: string; value: number; max:
 /** The Tests tab: add, check, order and mark tests, with the totals against the limits. */
 export function TestManager() {
   const { target, editor, refresh } = useProblemWorkspace();
+  const { abilities } = useSpace();
   const toast = useToast();
   const loaded = useRefreshableQuery(() => problemsApi.tests(target), `tests-${target.slug}-${target.problemSlug}`);
   const [busy, setBusy] = useState<string | null>(null);
@@ -62,7 +64,8 @@ export function TestManager() {
 
   if (loaded.status === 'loading') return <Loading label="Loading testcases" />;
   if (loaded.status === 'error') return <ErrorState error={loaded.error} onRetry={loaded.reload} />;
-  const data: TestCaseList = loaded.data;
+  // Observers read the testcases but never change them, whatever the draft allows.
+  const data: TestCaseList = { ...loaded.data, editable: loaded.data.editable && abilities.canEditProblems };
   // Fetch again quietly: the upload list below must survive it.
   const reload = async () => {
     await Promise.all([loaded.refetch(), refresh()]);

@@ -9,7 +9,7 @@ import { Button, buttonVariants } from '@/components/ui/button';
 import { useToast } from '@/components/ui/toast';
 import { useAuth } from '@/features/auth/hooks/auth-provider';
 import { spacesApi } from '@/features/spaces/api/spaces.api';
-import { ROLE_HINTS, ROLE_LABELS } from '@/features/spaces/types';
+import { ROLE_DESCRIPTIONS, ROLE_LABELS } from '@/features/spaces/types';
 import { ApiError, errorMessage } from '@/lib/api';
 import { useApiQuery } from '@/lib/use-api-query';
 
@@ -109,11 +109,12 @@ export function InviteView({ token }: { token: string }) {
           {data.track ? (
             <p className="text-prose">
               It is part of <strong>{data.space.name}</strong>. You will join {data.space.name} as a{' '}
-              <strong>solver</strong> if you are not a member yet, and keep your role if you are. {ROLE_HINTS.solver}
+              <strong>solver</strong> if you are not a member yet, and keep your role if you are.{' '}
+              {ROLE_DESCRIPTIONS.solver}
             </p>
           ) : (
             <p className="text-prose">
-              As <strong>{ROLE_LABELS[data.role].toLowerCase()}</strong>. {ROLE_HINTS[data.role]}
+              As <strong>{ROLE_LABELS[data.role].toLowerCase()}</strong>. {ROLE_DESCRIPTIONS[data.role]}
             </p>
           )}
         </header>

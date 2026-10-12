@@ -2,7 +2,7 @@ import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiError } from '@/lib/api';
-import { makeEditor, renderInApp } from '@/features/test-support';
+import { makeEditor, makeSpace, renderInApp } from '@/features/test-support';
 import type { TestCaseList } from '../types';
 import { WorkspaceContext } from './problem-workspace';
 
@@ -62,7 +62,8 @@ function renderManager(list: TestCaseList) {
       value={{ target: { slug: 'team', problemSlug: 'sum' }, editor, setEditor: vi.fn(), refresh }}
     >
       <TestManager />
-    </WorkspaceContext.Provider>
+    </WorkspaceContext.Provider>,
+    { space: makeSpace('editor') }
   );
 }
 /** jsdom's Blob has no text(). */

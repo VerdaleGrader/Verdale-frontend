@@ -1187,6 +1187,8 @@
 }
 .vd-dropdown__list {
   min-width: var(--radix-select-trigger-width);
+  /* A long description wraps instead of making the list wider than the screen. */
+  max-width: min(26rem, var(--radix-popper-available-width, 26rem));
 }
 .vd-popup__item {
   display: flex;
@@ -1247,6 +1249,7 @@
 .vd-dropdown__text {
   display: flex;
   flex-direction: column;
+  min-width: 0;
 }
 .vd-dropdown__desc {
   font-size: 12px;

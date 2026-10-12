@@ -286,9 +286,20 @@ describe('a Track as a solver sees it (GRD-84)', () => {
 });
 
 describe('manage Tracks and Collections (GRD-83)', () => {
-  it('is for owners and editors only', () => {
+  it('lets administrators create Tracks and keeps observers view-only', async () => {
+    api.list.mockResolvedValue([]);
+    api.collections.mockResolvedValue([]);
+    const first = renderInApp(<ManageView />, { space: makeSpace('administrator') });
+    expect(await screen.findByRole('button', { name: 'New Track' })).toBeTruthy();
+    first.unmount();
+    renderInApp(<ManageView />, { space: makeSpace('observer') });
+    expect(await screen.findByRole('heading', { name: 'Tracks' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'New Track' })).toBeNull();
+  });
+
+  it('is for the staff only', () => {
     renderInApp(<ManageView />, { space: makeSpace('solver') });
-    expect(screen.getByText('Only owners and editors can manage Tracks')).toBeTruthy();
+    expect(screen.getByText('Only the Space’s staff can open Track management')).toBeTruthy();
     expect(api.list).not.toHaveBeenCalled();
   });
 
@@ -460,7 +471,7 @@ describe('the Collection editor (GRD-83)', () => {
 
   it('is for owners and editors only', () => {
     renderInApp(<CollectionEditor />, { space: makeSpace('solver') });
-    expect(screen.getByText('Only owners and editors can manage Tracks')).toBeTruthy();
+    expect(screen.getByText('Only the Space’s staff can open Track management')).toBeTruthy();
   });
 });
 
@@ -697,6 +708,6 @@ describe('member progress (GRD-84)', () => {
 
   it('is for owners and editors', () => {
     renderInApp(<ProgressPage />, { space: makeSpace('solver') });
-    expect(screen.getByText('Only owners and editors can manage Tracks')).toBeTruthy();
+    expect(screen.getByText('Only the Space’s staff can open Track management')).toBeTruthy();
   });
 });

@@ -43,12 +43,12 @@ const TONE = { draft: 'warning', published: 'brand', archived: 'neutral' } as co
 
 /**
  * The authoring workspace of one problem: header, publish checklist and the
- * Statement / Tests / Solutions tabs. Only owners and editors get in; Core
+ * Statement / Tests / Solutions tabs. Only the staff (owner, administrator, editor, observer) get in; Core
  * answers 403 to everyone else and this shows why.
  */
 export function ProblemWorkspace({ children }: { children: React.ReactNode }) {
   useRequireAuth();
-  const { space } = useSpace();
+  const { space, abilities } = useSpace();
   const { auth, expire } = useAuth();
   const params = useParams<{ problemSlug: string }>();
   const target = useMemo(
@@ -97,7 +97,7 @@ export function ProblemWorkspace({ children }: { children: React.ReactNode }) {
       <PageContainer narrow>
         {status === 403 || status === 404 ? (
           <EmptyState
-            title={status === 403 ? 'Only owners and editors can edit problems' : 'Problem not found'}
+            title={status === 403 ? 'Only the Space’s staff can open the editor' : 'Problem not found'}
             description={
               status === 403
                 ? 'You can read published problems and solve them, but changing them is for the people who run this Space.'
@@ -117,7 +117,9 @@ export function ProblemWorkspace({ children }: { children: React.ReactNode }) {
   }
 
   // A fresher copy set by a save wins until the next load replaces it.
-  const editor = override && override.source === loaded.data ? override.next : loaded.data;
+  const fresh = override && override.source === loaded.data ? override.next : loaded.data;
+  // Observers open the editor to read drafts and hidden testcases, but cannot change anything.
+  const editor = { ...fresh, editable: fresh.editable && abilities.canEditProblems };
   const base = `/spaces/${space.slug}/problems/${editor.slug}`;
   const tabs = [
     { href: `${base}/edit`, label: 'Statement' },
@@ -161,9 +163,11 @@ function ReadOnlyNotice({ editor }: { editor: ProblemEditor }) {
   const { abilities } = useSpace();
   const text = abilities.archived
     ? 'This Space is archived, so its problems are read-only.'
-    : editor.status === 'archived'
-      ? 'This problem is archived and cannot be changed.'
-      : 'This version is published and can no longer be changed. Solvers always see the version they submitted to.';
+    : !abilities.canEditProblems
+      ? 'You can read everything here as an observer, but only owners, administrators and editors can change problems.'
+      : editor.status === 'archived'
+        ? 'This problem is archived and cannot be changed.'
+        : 'This version is published and can no longer be changed. Solvers always see the version they submitted to.';
   return (
     <p role="status" className="bg-surface-sunken text-small text-text-muted rounded-md p-3">
       {text}
@@ -218,7 +222,7 @@ export function PublishPanel() {
     }
   }
 
-  if (editor.status === 'archived') return null;
+  if (editor.status === 'archived' || !abilities.canEditProblems) return null;
 
   if (editor.version.status === 'published') {
     return (

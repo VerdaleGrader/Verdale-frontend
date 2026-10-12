@@ -54,7 +54,7 @@ describe('the authoring workspace', () => {
   it('turns away someone who cannot edit, and says what they can do instead', async () => {
     api.editor.mockRejectedValue(new ApiError(403, 'FORBIDDEN', 'Only owners and editors can do this.'));
     renderInApp(<ProblemWorkspace>x</ProblemWorkspace>, { space: makeSpace('solver') });
-    expect(await screen.findByText('Only owners and editors can edit problems')).toBeTruthy();
+    expect(await screen.findByText('Only the Space’s staff can open the editor')).toBeTruthy();
     expect(screen.getByRole('link', { name: 'Back to Team' }).getAttribute('href')).toBe('/spaces/team');
   });
 
@@ -87,6 +87,12 @@ describe('the authoring workspace', () => {
   it('says an archived Space makes everything read-only', async () => {
     renderWorkspace(makeEditor({ editable: false }), makeSpace('owner', { archived_at: '2026-10-11T00:00:00Z' }));
     expect(await screen.findByText(/This Space is archived, so its problems are read-only/)).toBeTruthy();
+  });
+
+  it('lets an observer read the draft but offers no publishing and says it is read-only', async () => {
+    renderWorkspace(makeEditor(), makeSpace('observer'));
+    expect(await screen.findByText(/You can read everything here as an observer/)).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Publish' })).toBeNull();
   });
 });
 

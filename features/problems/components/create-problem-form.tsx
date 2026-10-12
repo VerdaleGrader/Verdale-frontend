@@ -49,7 +49,7 @@ export function CreateProblemForm() {
           description={
             abilities.archived
               ? 'This Space is archived, so problems are read-only.'
-              : 'Only owners and editors of a Space can create problems.'
+              : 'Only owners, administrators and editors of a Space can create problems.'
           }
           action={
             <Link href={`/spaces/${space.slug}`} className={buttonVariants({ variant: 'secondary' })}>

@@ -93,7 +93,7 @@ export function SpaceChrome({ children }: { children: React.ReactNode }) {
   const base = `/spaces/${data.slug}`;
   const tabs = [
     { href: base, label: 'Overview' },
-    // Owners and editors also get the whole problem list, drafts included, and the tools behind it.
+    // The staff also get the whole problem list, drafts included, and the tools behind it.
     ...(abilities.canAuthorProblems
       ? [
           { href: `${base}/problems`, label: 'Problems' },
@@ -102,7 +102,9 @@ export function SpaceChrome({ children }: { children: React.ReactNode }) {
         ]
       : []),
     ...(abilities.canViewMembers ? [{ href: `${base}/members`, label: 'Members', count: data.member_count }] : []),
-    ...(data.my_role === 'owner' ? [{ href: `${base}/settings`, label: 'Settings' }] : []),
+    ...(data.my_role === 'owner' || data.my_role === 'administrator'
+      ? [{ href: `${base}/settings`, label: 'Settings' }]
+      : []),
   ];
 
   return (

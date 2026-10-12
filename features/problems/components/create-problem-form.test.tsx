@@ -165,7 +165,7 @@ describe('the create page (GRD-72)', () => {
   it('does not offer the form to someone who cannot add problems', async () => {
     renderInApp(<CreateProblemForm />, { space: makeSpace('solver') });
     expect(await screen.findByText('You cannot add problems here')).toBeTruthy();
-    expect(screen.getByText(/Only owners and editors/)).toBeTruthy();
+    expect(screen.getByText(/Only owners, administrators and editors/)).toBeTruthy();
     expect(screen.queryByLabelText('Title')).toBeNull();
   });
 
