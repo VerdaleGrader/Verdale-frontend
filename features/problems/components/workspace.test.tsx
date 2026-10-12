@@ -135,6 +135,12 @@ describe('publishing', () => {
     expect(screen.getAllByLabelText('Done')).toHaveLength(3);
   });
 
+  it('keeps Publish off in an archived Space, even when every check is green', async () => {
+    renderWorkspace(makeEditor({ can_publish: true }), { ...makeSpace('editor'), archived_at: '2026-10-11T00:00:00Z' });
+    await screen.findByRole('heading', { name: /Before you publish/ });
+    expect((screen.getByRole('button', { name: 'Publish' }) as HTMLButtonElement).disabled).toBe(true);
+  });
+
   it('shows what Core says is missing when it refuses, even though the page thought it was ready', async () => {
     api.publish.mockRejectedValue(
       new ApiError(409, 'PUBLISH_BLOCKED', 'The problem is not ready to publish.', [
