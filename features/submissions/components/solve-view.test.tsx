@@ -316,6 +316,20 @@ describe('the problem page (GRD-48)', () => {
     expect(await screen.findByRole('heading', { name: 'Sum of two numbers' })).toBeTruthy();
   });
 
+  it('a problem outside every Track you can open is a 404, with the way to your earlier submissions for people who are logged in', async () => {
+    problemsApi.get.mockRejectedValue(new ApiError(404, 'NOT_FOUND', 'Problem not found.'));
+    const signedIn = renderInApp(<SolveView />);
+    expect(await screen.findByText('Problem not found')).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'Your earlier submissions' }).getAttribute('href')).toBe(
+      '/spaces/team/problems/sum/submissions'
+    );
+    expect(screen.queryByRole('textbox')).toBeNull();
+    signedIn.unmount();
+    renderInApp(<SolveView />, { auth: ANONYMOUS });
+    expect(await screen.findByText('Problem not found')).toBeTruthy();
+    expect(screen.queryByRole('link', { name: 'Your earlier submissions' })).toBeNull();
+  });
+
   it('on a small screen it says writing code is easier on a larger one, and still works', async () => {
     renderInApp(<SolveView />);
     await editorBox();

@@ -1835,6 +1835,21 @@
   }
 }
 
+/* Meter: how far someone has got, such as problems solved in a Track. The wording beside it carries the number. */
+.vd-meter {
+  height: 6px;
+  min-width: 96px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-sunken);
+  overflow: hidden;
+}
+.vd-meter > span {
+  display: block;
+  height: 100%;
+  border-radius: var(--radius-sm);
+  background: var(--primary);
+}
+
 /* /design gallery: a panel that carries its own theme tokens (data-theme on the element). */
 .vd-themepanel {
   background: var(--bg);

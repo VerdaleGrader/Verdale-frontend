@@ -93,6 +93,7 @@ export function SpaceChrome({ children }: { children: React.ReactNode }) {
   const base = `/spaces/${data.slug}`;
   const tabs = [
     { href: base, label: 'Overview' },
+    { href: `${base}/tracks`, label: 'Tracks' },
     ...(abilities.canViewMembers ? [{ href: `${base}/members`, label: 'Members', count: data.member_count }] : []),
     ...(data.my_role === 'owner' || data.my_role === 'administrator'
       ? [{ href: `${base}/settings`, label: 'Settings' }]

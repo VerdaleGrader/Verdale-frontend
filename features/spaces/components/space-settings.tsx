@@ -10,6 +10,7 @@ import { useToast } from '@/components/ui/toast';
 import { useAuth } from '@/features/auth/hooks/auth-provider';
 import { ApiError, errorMessage } from '@/lib/api';
 import { useApiQuery } from '@/lib/use-api-query';
+import { ProgressionLinks } from '@/features/catalog/components/progression-links';
 import { spacesApi } from '../api/spaces.api';
 import type { Visibility } from '../types';
 import { VISIBILITY_OPTIONS } from './create-space-form';
@@ -135,6 +136,8 @@ export function SpaceSettings() {
           </div>
         )}
       </form>
+
+      {abilities.canReviewSubmissions && <ProgressionLinks />}
 
       {abilities.canManageDanger && (
         <section aria-labelledby="danger-heading" className="border-border flex flex-col gap-6 border-t pt-6">

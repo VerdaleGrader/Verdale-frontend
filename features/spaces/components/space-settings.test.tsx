@@ -12,6 +12,8 @@ const api = vi.hoisted(() => ({
   transferOwnership: vi.fn(),
 }));
 vi.mock('../api/spaces.api', () => ({ spacesApi: api }));
+const catalog = vi.hoisted(() => ({ tracks: vi.fn() }));
+vi.mock('@/features/catalog/api/catalog.api', () => ({ catalogApi: catalog }));
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }) }));
 
 const member = (username: string, role: Role) => ({
@@ -27,7 +29,10 @@ function renderSettings(role: Role, overrides = {}) {
   return renderInApp(<SpaceSettings />, { space: makeSpace(role, { visibility: 'private', ...overrides }) });
 }
 
-beforeEach(() => vi.clearAllMocks());
+beforeEach(() => {
+  vi.clearAllMocks();
+  catalog.tracks.mockResolvedValue([{ id: 't1', name: 'Warm-up', slug: 'warm-up', archived: false }]);
+});
 
 describe('SpaceSettings', () => {
   it('gives the owner the details form and the danger zone', () => {
@@ -37,6 +42,14 @@ describe('SpaceSettings', () => {
     expect(screen.getByRole('combobox', { name: 'Who can see this Space' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Archive Space' })).toBeTruthy();
     expect(screen.getByRole('heading', { name: 'Hand over ownership' })).toBeTruthy();
+  });
+
+  it('links to the progression of every Track for the staff who manage settings', async () => {
+    renderSettings('administrator');
+    expect((await screen.findByRole('link', { name: 'Warm-up' })).getAttribute('href')).toBe(
+      '/spaces/team/tracks/warm-up/progress'
+    );
+    expect(catalog.tracks).toHaveBeenCalledWith('team', true);
   });
 
   it('lets an administrator edit name and description but hides every danger action', async () => {

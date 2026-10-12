@@ -75,11 +75,22 @@ export function SolveView() {
         {notFound ? (
           <EmptyState
             title="Problem not found"
-            description="It may not exist, may not be published yet, or may be in a private Space you are not a member of."
+            description="It may not exist, may not be published yet, may not be in a Track you can open, or may be in a private Space you are not a member of."
             action={
-              <Link href={`/spaces/${space.slug}`} className={buttonVariants({ variant: 'secondary' })}>
-                Back to {space.name}
-              </Link>
+              <span className="flex flex-wrap justify-center gap-2">
+                <Link href={`/spaces/${space.slug}`} className={buttonVariants({ variant: 'secondary' })}>
+                  Back to {space.name}
+                </Link>
+                {/* A problem taken out of its last Track closes for solving, but the history of your submissions stays. */}
+                {auth.status === 'authenticated' && (
+                  <Link
+                    href={`/spaces/${space.slug}/problems/${target.problemSlug}/submissions`}
+                    className={buttonVariants({ variant: 'secondary' })}
+                  >
+                    Your earlier submissions
+                  </Link>
+                )}
+              </span>
             }
           />
         ) : (
