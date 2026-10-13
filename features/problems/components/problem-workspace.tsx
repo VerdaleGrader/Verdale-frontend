@@ -1,9 +1,9 @@
 'use client';
 
 import Link from 'next/link';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import { CircleCheck, CircleDashed, Eye } from 'lucide-react';
+import { CircleCheck, Eye } from 'lucide-react';
 import { PageContainer } from '@/components/layout/page';
 import { TabNav } from '@/components/layout/tab-nav';
 import { EmptyState, ErrorState, Loading } from '@/components/states/states';
@@ -17,7 +17,10 @@ import { useSpace } from '@/features/spaces/components/space-shell';
 import { ApiError, errorMessage } from '@/lib/api';
 import { isUnauthorized, useApiQuery } from '@/lib/use-api-query';
 import { problemsApi, type ProblemTarget } from '../api/problems.api';
-import { STATUS_LABELS, type ProblemEditor } from '../types';
+import { STATUS_LABELS, VERSION_STATUS_LABELS, type ProblemEditor } from '../types';
+import { hasMajorDraft, isUpdatable } from '../versioning';
+import { MajorDraftBanner } from './major-draft';
+import { PublishGate } from './publish-gate';
 
 interface WorkspaceValue {
   target: ProblemTarget;
@@ -39,7 +42,19 @@ export function useProblemWorkspace(): WorkspaceValue {
 /** Exported for tests, which render panels without loading a problem. */
 export { WorkspaceContext };
 
-const TONE = { draft: 'warning', published: 'brand', archived: 'neutral' } as const;
+const TONE = {
+  draft: 'warning',
+  verifying: 'info',
+  verified: 'brand',
+  published: 'brand',
+  archived: 'neutral',
+} as const;
+
+/** One status for the header: Archived, or the state of the version (Draft, Verifying, Verified, Published). */
+export function statusOf(editor: Pick<ProblemEditor, 'status' | 'version'>) {
+  const key = editor.status === 'archived' ? 'archived' : editor.version.status;
+  return { tone: TONE[key], label: key === 'archived' ? STATUS_LABELS.archived : VERSION_STATUS_LABELS[key] };
+}
 
 /**
  * The authoring workspace of one problem: header, publish checklist and the
@@ -125,7 +140,9 @@ export function ProblemWorkspace({ children }: { children: React.ReactNode }) {
     { href: `${base}/edit`, label: 'Statement' },
     { href: `${base}/edit/tests`, label: 'Testcases', count: editor.tests.count },
     { href: `${base}/edit/solutions`, label: 'Solutions', count: editor.solutions.count },
+    { href: `${base}/edit/history`, label: 'History' },
   ];
+  const status = statusOf(editor);
 
   return (
     <WorkspaceContext.Provider value={{ target, editor, setEditor, refresh }}>
@@ -140,8 +157,11 @@ export function ProblemWorkspace({ children }: { children: React.ReactNode }) {
             </p>
             <h1 className="text-h1 break-words">{editor.version.title}</h1>
             <span className="flex flex-wrap items-center gap-1.5">
-              <Badge tone={TONE[editor.status]}>{STATUS_LABELS[editor.status]}</Badge>
-              <Badge>Version {editor.version.number}</Badge>
+              <Badge tone={status.tone}>{status.label}</Badge>
+              <Badge>{editor.version.label}</Badge>
+              {hasMajorDraft(editor) && editor.open_version && (
+                <Badge tone="brand">Open: {editor.open_version.label}</Badge>
+              )}
             </span>
           </div>
           <Link href={base} className={buttonVariants({ variant: 'secondary' })}>
@@ -150,6 +170,7 @@ export function ProblemWorkspace({ children }: { children: React.ReactNode }) {
           </Link>
         </header>
 
+        <MajorDraftBanner />
         {!editor.editable && <ReadOnlyNotice editor={editor} />}
         <PublishPanel />
         <TabNav items={tabs} label="Problem sections" />
@@ -167,7 +188,11 @@ function ReadOnlyNotice({ editor }: { editor: ProblemEditor }) {
       ? 'You can read everything here as an observer, but only owners, administrators and editors can change problems.'
       : editor.status === 'archived'
         ? 'This problem is archived and cannot be changed.'
-        : 'This version is published and can no longer be changed. Solvers always see the version they submitted to.';
+        : editor.version.status === 'verifying'
+          ? 'Verification is running, so editing is paused until it finishes.'
+          : isUpdatable(editor)
+            ? 'Edit the statement, title, limits and languages on the Statement tab. Testcases and solutions change in a Major draft.'
+            : 'This version is published and can no longer be changed. Solvers always see the version they submitted to.';
   return (
     <p role="status" className="bg-surface-sunken text-small text-text-muted rounded-md p-3">
       {text}
@@ -175,35 +200,13 @@ function ReadOnlyNotice({ editor }: { editor: ProblemEditor }) {
   );
 }
 
-/** The checklist that decides whether the draft can be published, and the button. */
+/** Archive for a published problem; verify, checklist and Publish for a draft. */
 export function PublishPanel() {
   const { target, editor, setEditor } = useProblemWorkspace();
   const { abilities } = useSpace();
-  const router = useRouter();
   const toast = useToast();
   const [busy, setBusy] = useState(false);
-  const [blocked, setBlocked] = useState<string[]>([]);
-  const [confirming, setConfirming] = useState<'publish' | 'archive' | null>(null);
-
-  async function publish() {
-    setBusy(true);
-    setBlocked([]);
-    try {
-      const next = await problemsApi.publish(target);
-      setEditor(next);
-      toast({ tone: 'success', title: 'Published', description: 'Solvers can see and submit to this problem now.' });
-      router.refresh();
-    } catch (caught) {
-      if (caught instanceof ApiError && caught.errorCode === 'PUBLISH_BLOCKED') {
-        setBlocked((caught.details ?? []).map((detail) => detail.message));
-      } else {
-        toast({ tone: 'danger', title: 'Could not publish', description: errorMessage(caught) });
-      }
-    } finally {
-      setBusy(false);
-      setConfirming(null);
-    }
-  }
+  const [confirming, setConfirming] = useState(false);
 
   async function archive() {
     setBusy(true);
@@ -218,13 +221,14 @@ export function PublishPanel() {
       toast({ tone: 'danger', title: 'Could not archive', description: errorMessage(caught) });
     } finally {
       setBusy(false);
-      setConfirming(null);
+      setConfirming(false);
     }
   }
 
-  if (editor.status === 'archived' || !abilities.canEditProblems) return null;
+  if (editor.status === 'archived') return null;
 
   if (editor.version.status === 'published') {
+    if (!abilities.canEditProblems) return null;
     return (
       <section
         aria-label="Publishing"
@@ -232,21 +236,19 @@ export function PublishPanel() {
       >
         <p className="text-small">
           <CircleCheck className="text-success mr-1.5 inline size-4" strokeWidth={1.75} aria-hidden />
-          Published. Solvers can read it and submit solutions.
+          Published as {editor.version.label}. Solvers can read it and submit solutions.
         </p>
-        {abilities.canEditProblems && (
-          <Button variant="destructive" size="sm" onClick={() => setConfirming('archive')} disabled={busy}>
-            Archive
-          </Button>
-        )}
+        <Button variant="destructive" size="sm" onClick={() => setConfirming(true)} disabled={busy}>
+          Archive
+        </Button>
         <Dialog
-          open={confirming === 'archive'}
-          onClose={() => setConfirming(null)}
+          open={confirming}
+          onClose={() => setConfirming(false)}
           title={`Archive “${editor.version.title}”?`}
           description="It stays readable and old submissions are kept, but nobody can submit new solutions."
           footer={
             <>
-              <Button onClick={() => setConfirming(null)} disabled={busy}>
+              <Button onClick={() => setConfirming(false)} disabled={busy}>
                 Cancel
               </Button>
               <Button variant="destructive" onClick={archive} disabled={busy}>
@@ -259,67 +261,5 @@ export function PublishPanel() {
     );
   }
 
-  const done = editor.publish_checks.filter((check) => check.ok).length;
-  return (
-    <section
-      aria-labelledby="publish-heading"
-      className="border-border bg-surface flex flex-col gap-3 rounded-md border p-4"
-    >
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 id="publish-heading" className="text-body-strong">
-          Before you publish ({done} of {editor.publish_checks.length} ready)
-        </h2>
-        <Button
-          variant="primary"
-          size="sm"
-          disabled={!editor.can_publish || busy || !abilities.canEditProblems}
-          onClick={() => setConfirming('publish')}
-        >
-          Publish
-        </Button>
-      </div>
-      <ul className="flex flex-col gap-1.5">
-        {editor.publish_checks.map((check) => (
-          <li key={check.key} className="text-small flex items-start gap-2">
-            {check.ok ? (
-              <CircleCheck className="text-success mt-0.5 size-4 shrink-0" strokeWidth={1.75} aria-label="Done" />
-            ) : (
-              <CircleDashed
-                className="text-text-muted mt-0.5 size-4 shrink-0"
-                strokeWidth={1.75}
-                aria-label="Still to do"
-              />
-            )}
-            <span className={check.ok ? 'text-text-muted' : undefined}>{check.message}</span>
-          </li>
-        ))}
-      </ul>
-      {blocked.length > 0 && (
-        <div role="alert" className="bg-danger-soft text-small rounded-md p-3">
-          <p className="text-danger text-body-strong">Core says it is not ready:</p>
-          <ul className="list-disc pl-5">
-            {blocked.map((message) => (
-              <li key={message}>{message}</li>
-            ))}
-          </ul>
-        </div>
-      )}
-      <Dialog
-        open={confirming === 'publish'}
-        onClose={() => setConfirming(null)}
-        title={`Publish “${editor.version.title}”?`}
-        description="The statement, limits, testcases and solutions of this version are frozen once it is published. Solvers will see the statement and the sample testcases only."
-        footer={
-          <>
-            <Button onClick={() => setConfirming(null)} disabled={busy}>
-              Cancel
-            </Button>
-            <Button variant="primary" onClick={publish} disabled={busy}>
-              {busy ? 'Publishing…' : 'Publish'}
-            </Button>
-          </>
-        }
-      />
-    </section>
-  );
+  return <PublishGate />;
 }
