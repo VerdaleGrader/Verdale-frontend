@@ -15,6 +15,7 @@ import { timeAgo } from '@/lib/format';
 import { useApiQuery } from '@/lib/use-api-query';
 import { param, useUrlQuery } from '@/lib/use-url-query';
 import { submissionsApi, type SubmissionSummary } from '../api/submissions.api';
+import { SubmissionVersion } from './submission-version';
 import { displayVerdict, outcomeLine } from '../verdicts';
 
 const PAGE_SIZE = 20;
@@ -33,6 +34,7 @@ export function toRow(submission: SubmissionSummary, base: string, now?: Date): 
     language: LANGUAGE_LABELS[submission.language],
     verdict: displayVerdict(submission),
     detail: submission.status === 'completed' ? outcomeLine({ ...submission, results: [] }) : undefined,
+    version: <SubmissionVersion major={submission.version_major} outdated={submission.outdated} />,
     timeMs: submission.time_ms ?? undefined,
     memoryKb: submission.memory_kb ?? undefined,
   };

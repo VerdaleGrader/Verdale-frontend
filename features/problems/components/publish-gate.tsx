@@ -77,7 +77,7 @@ export function PublishGate() {
         {editor.publish_checks.map((check) => (
           <li key={check.key} className="text-small flex items-start gap-2">
             {check.ok ? (
-              <CircleCheck className="text-success mt-0.5 size-4 shrink-0" strokeWidth={1.75} aria-label="Done" />
+              <CircleCheck className="text-verdict-ac mt-0.5 size-4 shrink-0" strokeWidth={1.75} aria-label="Done" />
             ) : (
               <CircleDashed
                 className="text-text-muted mt-0.5 size-4 shrink-0"

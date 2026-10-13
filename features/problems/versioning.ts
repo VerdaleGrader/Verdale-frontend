@@ -1,5 +1,11 @@
 import { ApiError } from '@/lib/api';
-import type { ProblemEditor, ProblemVersion, VersionFields } from './types';
+import {
+  VERSION_STATUS_LABELS,
+  type ProblemEditor,
+  type ProblemVersion,
+  type VersionFields,
+  type VersionHistoryEntry,
+} from './types';
 
 /** Display names of the fields Core lists in `constraints.version_fields`; an unknown name is shown as it is. */
 const FIELD_LABELS: Record<string, string> = {
@@ -83,4 +89,24 @@ export function conflictLabel(error: ApiError): string | undefined {
     details.find((detail) => /^v\d+\.\d+$/.test(detail.message))?.message ??
     /v\d+\.\d+/.exec(error.message)?.[0]
   );
+}
+
+/** How a history entry reads in the list: its kind and, for state changes, "draft → verified". */
+export function describeHistoryEntry(entry: VersionHistoryEntry): {
+  kind: 'minor' | 'major' | 'state';
+  label: string;
+} {
+  switch (entry.type) {
+    case 'minor_update':
+      return { kind: 'minor', label: 'Minor update' };
+    case 'major_draft_created':
+      return { kind: 'major', label: 'Major draft started' };
+    case 'major_draft_discarded':
+      return { kind: 'major', label: 'Major draft discarded' };
+    case 'state_change': {
+      const from = entry.state_from ? VERSION_STATUS_LABELS[entry.state_from] : '–';
+      const to = entry.state_to ? VERSION_STATUS_LABELS[entry.state_to] : '–';
+      return { kind: 'state', label: `${from} → ${to}` };
+    }
+  }
 }

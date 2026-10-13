@@ -19,6 +19,8 @@ export interface SubmissionRow {
   detail?: string;
   timeMs?: number;
   memoryKb?: number;
+  /** The Major the submission was sent to, with the outdated mark; drawn under the problem name. */
+  version?: React.ReactNode;
   /** The current user's latest row. */
   selected?: boolean;
 }
@@ -71,6 +73,7 @@ export function SubmissionTable({ rows }: { rows: SubmissionRow[] }) {
                 ) : (
                   row.problem
                 )}
+                {row.version && <span className="vd-cell-sub">{row.version}</span>}
               </td>
               <td>
                 <span className="vd-inline">

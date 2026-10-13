@@ -280,6 +280,7 @@ export function SolverPreview({ draft, editor }: { draft: StatementDraft; editor
       title={draft.title}
       spaceName={space.name}
       author={editor.created_by.display_name}
+      versionLabel={editor.version.label}
       timeLimitMs={Number.isFinite(time) && time > 0 ? time : editor.version.time_limit_ms}
       memoryLimitKb={
         Number.isFinite(memory) && memory > 0 ? megabytesToKilobytes(memory) : editor.version.memory_limit_kb

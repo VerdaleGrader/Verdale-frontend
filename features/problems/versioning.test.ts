@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { ApiError } from '@/lib/api';
 import { CONSTRAINTS } from '../test-support';
-import { conflictLabel, fieldLabels, predictUpdate, versionErrorMessage } from './versioning';
+import { conflictLabel, describeHistoryEntry, fieldLabels, predictUpdate, versionErrorMessage } from './versioning';
 
 const fields = CONSTRAINTS.version_fields;
 
@@ -53,5 +53,26 @@ describe('messages', () => {
   });
   it('names fields, falling back to the raw name', () => {
     expect(fieldLabels(['time_limit_ms', 'whatever'])).toBe('Time limit, whatever');
+  });
+});
+
+describe('describeHistoryEntry', () => {
+  const entry = {
+    id: 'h1',
+    type: 'state_change' as const,
+    label: 'v3.0',
+    actor: { username: 'edith', display_name: 'Edith', avatar_url: null },
+    at: '2026-10-13T00:00:00Z',
+    forced: false,
+    changes: [],
+    state_from: 'draft' as const,
+    state_to: 'verified' as const,
+  };
+  it('reads a state change as from and to', () => {
+    expect(describeHistoryEntry(entry)).toEqual({ kind: 'state', label: 'Draft → Verified' });
+  });
+  it('tells Minor from Major', () => {
+    expect(describeHistoryEntry({ ...entry, type: 'minor_update' }).kind).toBe('minor');
+    expect(describeHistoryEntry({ ...entry, type: 'major_draft_created' }).kind).toBe('major');
   });
 });

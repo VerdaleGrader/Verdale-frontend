@@ -10,6 +10,8 @@ export interface ProblemReaderProps {
   title: string;
   spaceName?: string;
   author?: string;
+  /** "v2.1" */
+  versionLabel?: string;
   timeLimitMs: number;
   memoryLimitKb: number;
   statement: string;
@@ -29,6 +31,7 @@ export function ProblemReader({
   title,
   spaceName,
   author,
+  versionLabel,
   timeLimitMs,
   memoryLimitKb,
   statement,
@@ -43,6 +46,7 @@ export function ProblemReader({
         title={title || 'Untitled problem'}
         space={spaceName}
         author={author}
+        version={versionLabel}
         limits={{ timeMs: timeLimitMs, memoryMb: kilobytesToMegabytes(memoryLimitKb) }}
       >
         {statementMode === 'pdf' ? (

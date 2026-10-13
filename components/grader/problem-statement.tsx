@@ -10,12 +10,15 @@ export function ProblemStatement({
   space,
   limits,
   author,
+  version,
   children,
 }: {
   title: string;
   space?: string;
   limits?: { timeMs?: number; memoryMb?: number };
   author?: string;
+  /** The version label, e.g. "v2.1". */
+  version?: string;
   /** Rendered Markdown (maths typeset with KaTeX in M3). */
   children?: React.ReactNode;
 }) {
@@ -34,6 +37,12 @@ export function ProblemStatement({
           <div>
             <dt>Memory limit</dt>
             <dd>{limits.memoryMb} MB</dd>
+          </div>
+        )}
+        {version && (
+          <div>
+            <dt>Version</dt>
+            <dd>{version}</dd>
           </div>
         )}
         {author && (
