@@ -427,6 +427,9 @@ describe('the Collection editor (GRD-83)', () => {
     await userEvent.click(await screen.findByRole('checkbox', { name: 'Select Problem 3' }));
     await userEvent.click(screen.getByRole('checkbox', { name: 'Select Problem 4' }));
     await userEvent.click(screen.getByRole('button', { name: /Add 2 selected/ }));
+    // Changes are a draft until Save problems (GRD-83: one save instead of one call per move)
+    expect(api.addProblems).not.toHaveBeenCalled();
+    await userEvent.click(screen.getByRole('button', { name: 'Save problems' }));
     await waitFor(() => expect(api.addProblems).toHaveBeenCalledWith('team', 'week-1', ['prob-3', 'prob-4']));
   });
 
@@ -435,9 +438,12 @@ describe('the Collection editor (GRD-83)', () => {
     api.reorderProblems.mockResolvedValue(collection());
     renderInApp(<CollectionEditor />, { space: makeSpace('owner') });
     await userEvent.click(await screen.findByRole('button', { name: 'Move Problem 2 up' }));
+    expect(api.reorderProblems).not.toHaveBeenCalled();
+    await userEvent.click(screen.getByRole('button', { name: 'Save problems' }));
     await waitFor(() => expect(api.reorderProblems).toHaveBeenCalledWith('team', 'week-1', ['p2', 'p1']));
-    await userEvent.click(screen.getByRole('checkbox', { name: 'Select Problem 1' }));
+    await userEvent.click(await screen.findByRole('checkbox', { name: 'Select Problem 1' }));
     await userEvent.click(screen.getByRole('button', { name: /Remove 1 selected/ }));
+    await userEvent.click(screen.getByRole('button', { name: 'Save problems' }));
     await waitFor(() => expect(api.removeProblems).toHaveBeenCalledWith('team', 'week-1', ['prob-1']));
   });
 
