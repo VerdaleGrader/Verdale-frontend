@@ -20,6 +20,8 @@ const problem = (slug: string, overrides: Partial<ProblemSummary> = {}): Problem
   title: `Problem ${slug}`,
   status: 'published',
   version_number: 1,
+  version_minor: 0,
+  version_label: 'v1.0',
   time_limit_ms: 1000,
   memory_limit_kb: 262144,
   allowed_languages: ['c', 'python'],

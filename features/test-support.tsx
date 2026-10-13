@@ -63,6 +63,8 @@ export function makeProblem(overrides: Partial<Problem> = {}): Problem {
     statement_mode: 'markdown',
     statement_pdf: null,
     version_number: 1,
+    version_minor: 0,
+    version_label: 'v1.0',
     time_limit_ms: 1000,
     memory_limit_kb: 262144,
     allowed_languages: ['c', 'cpp', 'python'],
@@ -91,6 +93,11 @@ export const CONSTRAINTS: ProblemConstraints = {
   solutions: { max_count: 5 },
   source_max_bytes: 65536,
   pdf: { max_bytes: 10485760, max_pages: 10 },
+  version_fields: {
+    major: ['time_limit_ms', 'memory_limit_kb', 'allowed_languages', 'tests', 'solutions'],
+    minor: ['title', 'statement', 'statement_mode'],
+  },
+  publish: { min_hidden_tests: 1 },
 };
 
 export function makeEditor(overrides: Partial<ProblemEditor> = {}): ProblemEditor {
@@ -102,6 +109,9 @@ export function makeEditor(overrides: Partial<ProblemEditor> = {}): ProblemEdito
     version: {
       id: 'v1',
       number: 1,
+      major: 1,
+      minor: 0,
+      label: 'v1.0',
       status: 'draft',
       title: 'Sum of two numbers',
       statement: 'Read $a$ and $b$.',
@@ -114,6 +124,8 @@ export function makeEditor(overrides: Partial<ProblemEditor> = {}): ProblemEdito
       updated_at: '2026-10-11T00:00:00Z',
       published_at: null,
     },
+    open_version: null,
+    verification: null,
     editable: true,
     created_by: { username: 'edith', display_name: 'Edith', avatar_url: null },
     created_at: '2026-10-11T00:00:00Z',
@@ -136,6 +148,8 @@ export function makeEditor(overrides: Partial<ProblemEditor> = {}): ProblemEdito
 export function makeSubmission(overrides: Partial<Submission> = {}): Submission {
   return {
     id: 's1',
+    version_major: 1,
+    outdated: false,
     number: 1,
     problem: { slug: 'sum', title: 'Sum of two numbers' },
     space: { name: 'Team', slug: 'team' },
@@ -164,6 +178,8 @@ export function makeSummary(overrides: Partial<SubmissionSummary> = {}): Submiss
   const full = makeSubmission();
   return {
     id: full.id,
+    version_major: full.version_major,
+    outdated: full.outdated,
     number: full.number,
     problem: full.problem,
     space: full.space,

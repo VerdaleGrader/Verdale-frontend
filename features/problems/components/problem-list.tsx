@@ -191,12 +191,18 @@ function ProblemTable({
                   {problem.title}
                 </Link>
                 <span className="text-mono-label text-text-muted vd-cell-sub">
-                  <RowText>{problem.slug}</RowText>
+                  <RowText>
+                    {problem.slug}
+                    {!author && ` · ${problem.version_label}`}
+                  </RowText>
                 </span>
               </td>
               {author && (
                 <td>
-                  <Badge tone={STATUS_TONE[problem.status]}>{STATUS_LABELS[problem.status]}</Badge>
+                  <span className="vd-inline">
+                    <Badge tone={STATUS_TONE[problem.status]}>{STATUS_LABELS[problem.status]}</Badge>
+                    <Badge>{problem.version_label}</Badge>
+                  </span>
                 </td>
               )}
               <td className="vd-muted">

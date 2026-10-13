@@ -34,7 +34,7 @@ describe('the authoring workspace', () => {
     renderWorkspace();
     expect(await screen.findByRole('heading', { name: 'Sum of two numbers' })).toBeTruthy();
     expect(screen.getByText('Draft')).toBeTruthy();
-    expect(screen.getByText('Version 1')).toBeTruthy();
+    expect(screen.getByText('v1.0')).toBeTruthy();
     const tabs = screen.getByRole('navigation', { name: 'Problem sections' });
     expect(within(tabs).getByRole('link', { name: 'Statement' }).getAttribute('href')).toBe(
       '/spaces/team/problems/sum/edit'
@@ -80,7 +80,7 @@ describe('the authoring workspace', () => {
         version: { ...makeEditor().version, status: 'published', published_at: '2026-10-11T00:00:00Z' },
       })
     );
-    expect(await screen.findByText(/published and can no longer be changed/)).toBeTruthy();
+    expect(await screen.findByText(/Testcases and solutions change in a Major draft/)).toBeTruthy();
     expect(screen.getByRole('link', { name: 'View as solver' })).toBeTruthy();
   });
 
@@ -113,7 +113,7 @@ describe('publishing', () => {
     expect(api.publish).not.toHaveBeenCalled();
     await userEvent.click(within(dialog).getByRole('button', { name: 'Publish' }));
     await waitFor(() => expect(api.publish).toHaveBeenCalledWith({ slug: 'team', problemSlug: 'sum' }));
-    expect(await screen.findByText(/Published\. Solvers can read it/)).toBeTruthy();
+    expect(await screen.findByText(/Published as v1\.0\. Solvers can read it/)).toBeTruthy();
     expect(screen.getByText('Published', { selector: 'span' })).toBeTruthy();
   });
 
@@ -144,7 +144,7 @@ describe('publishing', () => {
   it('keeps Publish off in an archived Space, even when every check is green', async () => {
     renderWorkspace(makeEditor({ can_publish: true }), { ...makeSpace('editor'), archived_at: '2026-10-11T00:00:00Z' });
     await screen.findByRole('heading', { name: /Before you publish/ });
-    expect((screen.getByRole('button', { name: 'Publish' }) as HTMLButtonElement).disabled).toBe(true);
+    expect(screen.queryByRole('button', { name: 'Publish' })).toBeNull();
   });
 
   it('shows what Core says is missing when it refuses, even though the page thought it was ready', async () => {

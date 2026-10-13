@@ -8,6 +8,7 @@ import { formatMemory, formatTime, timeAgo } from '@/lib/format';
 import type { Submission } from '../api/submissions.api';
 import type { Connection } from '../hooks/use-submission-live';
 import { displayVerdict, outcomeLine, progressCells } from '../verdicts';
+import { SubmissionVersion } from './submission-version';
 import { TestcaseExplorer } from './testcase-explorer';
 
 /** Time, memory and how many tests passed: the three numbers under a verdict. */
@@ -76,6 +77,7 @@ export function ResultPanel({
         <span className="text-small text-text-muted">
           Submission #{submission.number} · {timeAgo(submission.created_at)}
         </span>
+        <SubmissionVersion major={submission.version_major} outdated={submission.outdated} />
         <span className="flex-1" />
         <Link href={detailHref} className="vd-link">
           Full result

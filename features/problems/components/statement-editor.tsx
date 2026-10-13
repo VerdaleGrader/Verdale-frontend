@@ -255,7 +255,7 @@ function omit(record: Record<string, string>, key: string) {
 }
 
 /** The statement as a solver will read it, from what is in the form right now. The examples come from the sample tests. */
-function SolverPreview({ draft, editor }: { draft: StatementDraft; editor: ProblemEditor }) {
+export function SolverPreview({ draft, editor }: { draft: StatementDraft; editor: ProblemEditor }) {
   const { target } = useProblemWorkspace();
   const { space } = useSpace();
   const [samples, setSamples] = useState<Array<{ position: number; input: string; output: string }> | null>(null);
@@ -280,6 +280,7 @@ function SolverPreview({ draft, editor }: { draft: StatementDraft; editor: Probl
       title={draft.title}
       spaceName={space.name}
       author={editor.created_by.display_name}
+      versionLabel={editor.version.label}
       timeLimitMs={Number.isFinite(time) && time > 0 ? time : editor.version.time_limit_ms}
       memoryLimitKb={
         Number.isFinite(memory) && memory > 0 ? megabytesToKilobytes(memory) : editor.version.memory_limit_kb

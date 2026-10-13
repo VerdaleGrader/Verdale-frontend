@@ -1,5 +1,6 @@
 'use client';
 
+import { SubmissionVersion } from './submission-version';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { Check, ChevronDown, ChevronRight, RotateCcw } from 'lucide-react';
@@ -183,6 +184,7 @@ export function SubmissionsTab({
                       {item.time_ms === null ? '—' : formatTime(item.time_ms)}
                     </span>
                     <span className="text-small text-text-muted w-[88px] text-right">{timeAgo(item.created_at)}</span>
+                    <SubmissionVersion major={item.version_major} outdated={item.outdated} />
                   </button>
                   {open && (
                     <div className="flex flex-col gap-3 px-3 pt-2 pb-3">
