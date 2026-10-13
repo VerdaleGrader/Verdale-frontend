@@ -1,4 +1,5 @@
 import type { components } from '@/lib/contracts/core-public.gen';
+import { acceptTermsUrl, LEGAL_EXEMPT_PATHS } from '@/lib/legal';
 
 type ErrorBody = components['schemas']['ErrorResponse'];
 
@@ -31,6 +32,19 @@ function isErrorBody(value: unknown): value is ErrorBody {
   return typeof value === 'object' && value !== null && 'error_code' in value && 'message' in value;
 }
 
+const LEGAL_REQUIRED = 'LEGAL_ACCEPTANCE_REQUIRED';
+
+/**
+ * Core refuses every call of a signed-in person who has not accepted the current Terms and Privacy Policy
+ * (GRD-122), for instance when the documents changed while a page was open: take them to the notice.
+ */
+function sendToAcceptTerms() {
+  if (typeof window === 'undefined') return;
+  const { pathname, search } = window.location;
+  if (LEGAL_EXEMPT_PATHS.includes(pathname)) return;
+  window.location.assign(acceptTermsUrl(pathname + search));
+}
+
 /** Turns an openapi-fetch result into the data, or throws an ApiError. */
 export async function unwrap<T>(request: Promise<FetchResult<T>>): Promise<T> {
   let result: FetchResult<T>;
@@ -42,6 +56,7 @@ export async function unwrap<T>(request: Promise<FetchResult<T>>): Promise<T> {
   const { data, error, response } = result;
   if (response.ok) return data as T;
   if (isErrorBody(error)) {
+    if (error.error_code === LEGAL_REQUIRED) sendToAcceptTerms();
     throw new ApiError(error.status, error.error_code, error.message, error.details, error.request_id);
   }
   throw new ApiError(response.status, 'UNKNOWN', 'Something went wrong. Try again.');

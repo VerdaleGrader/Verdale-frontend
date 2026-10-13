@@ -4,3 +4,4 @@ node_modules
 package-lock.json
 app/tokens.css
 /contracts
+/content/legal

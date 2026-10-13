@@ -16,8 +16,9 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  // Everything that needs an account. Public: /, /login, /explore, /spaces/<slug> (public Spaces), a published problem's page, /invites/<token>.
+  // Everything that needs an account. Public: /, /login, /terms, /privacy, /explore, /spaces/<slug> (public Spaces), a published problem's page, /invites/<token>.
   matcher: [
+    '/accept-terms',
     '/settings/:path*',
     '/spaces',
     '/spaces/new',
