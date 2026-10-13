@@ -98,7 +98,10 @@ function Editor({ editable }: { editable: boolean }) {
     const removedSlugs = savedIds.filter((id) => !draftSet.has(id)).map((id) => everyProblem.get(id)!.slug);
     const addedSlugs = draftIds.filter((id) => !savedSet.has(id)).map((id) => everyProblem.get(id)!.slug);
     // What the server will hold once the removals and additions land: kept problems in their old order, then the new ones.
-    const afterMembership = [...savedIds.filter((id) => draftSet.has(id)), ...draftIds.filter((id) => !savedSet.has(id))];
+    const afterMembership = [
+      ...savedIds.filter((id) => draftSet.has(id)),
+      ...draftIds.filter((id) => !savedSet.has(id)),
+    ];
     setSavingProblems(true);
     try {
       let result: CollectionDetail = data;

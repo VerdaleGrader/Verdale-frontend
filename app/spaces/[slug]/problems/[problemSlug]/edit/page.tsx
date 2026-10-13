@@ -1,5 +1,5 @@
-import { StatementEditor } from '@/features/problems/components/statement-editor';
+import { EditProblemPage } from '@/features/problems/components/edit-problem-page';
 
 export default function EditStatementPage() {
-  return <StatementEditor />;
+  return <EditProblemPage />;
 }
