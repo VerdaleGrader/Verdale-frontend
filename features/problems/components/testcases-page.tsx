@@ -486,7 +486,15 @@ export function TestcasesEditor({ initial }: { initial: TestCaseList }) {
                         : '';
                 return (
                   <>
-                    <div className={`${canEdit ? 'tc-grid' : 'tc-grid is-view'} tc-row ${kind}`}>
+                    <div
+                      className={`${canEdit ? 'tc-grid' : 'tc-grid is-view'} tc-row ${kind}`}
+                      onClick={(event) => {
+                        // Controls inside the row (chevron, drag handle, toggle, menu, undo) keep their own behaviour.
+                        if ((event.target as HTMLElement).closest('button, a, input, [role="switch"], [role="menu"]'))
+                          return;
+                        toggleOpen(test.key);
+                      }}
+                    >
                       <button
                         type="button"
                         className="vd-iconbtn"
