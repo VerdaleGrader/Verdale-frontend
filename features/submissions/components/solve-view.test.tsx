@@ -31,6 +31,7 @@ vi.mock('../api/submissions.api', async (importOriginal) => ({
   submissionsApi,
 }));
 
+import type { SubmissionSummary } from '../api/submissions.api';
 import { SolveView, fromSummary, submitErrorMessage } from './solve-view';
 
 const summary = makeSummary();
@@ -197,7 +198,150 @@ describe('the problem page (GRD-48)', () => {
     });
     submissionsApi.get.mockResolvedValue(makeSubmission({ id: 'old', status: 'completed', verdict: 'WA' }));
     renderInApp(<SolveView />);
-    expect(await screen.findByText(/Wrong answer/)).toBeTruthy();
+    // Once under the editor as the current result, once in the list of earlier submissions.
+    expect((await screen.findAllByText(/Wrong answer/)).length).toBeGreaterThan(0);
+  });
+
+  describe('earlier submissions (GRD-112)', () => {
+    const runs = (verdicts: Array<[string, number]>) =>
+      verdicts.map(([verdict, count]) => ({ verdict, count })) as SubmissionSummary['test_runs'];
+    const best = {
+      ...summary,
+      id: 'best',
+      status: 'completed' as const,
+      verdict: 'WA' as const,
+      tests_passed: 3,
+      tests_total: 4,
+      time_ms: 40,
+      memory_kb: 2048,
+      test_runs: runs([
+        ['AC', 3],
+        ['WA', 1],
+      ]),
+    };
+    const newer = {
+      ...summary,
+      id: 'newer',
+      status: 'completed' as const,
+      verdict: 'WA' as const,
+      tests_passed: 1,
+      tests_total: 4,
+      time_ms: 30,
+      memory_kb: 2048,
+      test_runs: runs([
+        ['AC', 1],
+        ['WA', 3],
+      ]),
+    };
+    const list = () =>
+      submissionsApi.list.mockResolvedValue({ items: [newer, best], best, page: 1, page_size: 10, total: 2 });
+
+    const useBest = async () => {
+      await screen.findByRole('combobox', { name: 'Previous submissions' });
+      await userEvent.click(await screen.findByRole('button', { name: 'Use this code' }));
+    };
+
+    it('keeps the progress of the latest result on the page, with a cell for every test', async () => {
+      list();
+      renderInApp(<SolveView />);
+      await screen.findByRole('combobox', { name: 'Previous submissions' });
+      const bars = await screen.findAllByRole('progressbar');
+      expect(bars[0]!.querySelectorAll('.vd-cell')).toHaveLength(4);
+    });
+
+    it('lists the best submission first and apart, selected, with its tests shown', async () => {
+      list();
+      renderInApp(<SolveView />);
+      const select = await screen.findByRole('combobox', { name: 'Previous submissions' });
+      expect(select.textContent).toMatch(/Best submission/);
+      expect(screen.getByText(/passed 3 of 4/)).toBeTruthy();
+      await userEvent.click(select);
+      const options = await screen.findAllByRole('option');
+      expect(options).toHaveLength(2);
+      expect(options[0]!.textContent).toMatch(/Best submission/);
+      expect(options[1]!.textContent).not.toMatch(/Best submission/);
+      await userEvent.click(options[1]!);
+      expect(await screen.findByText(/passed 1 of 4/)).toBeTruthy();
+    });
+
+    it('puts the chosen code in the editor, in its language, without asking when nothing is unsubmitted', async () => {
+      list();
+      problemsApi.get.mockResolvedValue(makeProblem({ allowed_languages: ['cpp', 'python'] }));
+      submissionsApi.get.mockResolvedValue(
+        makeSubmission({ id: 'best', language: 'python', source: 'print(42)\n', status: 'completed', verdict: 'WA' })
+      );
+      renderInApp(<SolveView />);
+      await useBest();
+      await waitFor(async () => expect((await editorBox()).value).toBe('print(42)\n'));
+      expect(screen.getByRole('combobox', { name: 'Language' }).textContent).toBe('Python 3');
+      expect(screen.queryByRole('dialog')).toBeNull();
+    });
+
+    it('asks before replacing code that was not submitted, and keeps it when the person says so', async () => {
+      list();
+      submissionsApi.get.mockResolvedValue(makeSubmission({ id: 'best', source: 'int old;', status: 'completed' }));
+      renderInApp(<SolveView />);
+      fireEvent.change(await editorBox(), { target: { value: 'my new idea' } });
+      await useBest();
+      const dialog = await screen.findByRole('dialog');
+      expect(within(dialog).getByText(/not submitted/)).toBeTruthy();
+      // The dialog hides the page from assistive technology, so the editor is read straight from the page.
+      expect((document.querySelector('textarea') as HTMLTextAreaElement).value).toBe('my new idea');
+      await userEvent.click(within(dialog).getByRole('button', { name: 'Keep my code' }));
+      expect(screen.queryByRole('dialog')).toBeNull();
+      expect((await editorBox()).value).toBe('my new idea');
+
+      await userEvent.click(screen.getByRole('button', { name: 'Use this code' }));
+      await userEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Replace code' }));
+      await waitFor(async () => expect((await editorBox()).value).toBe('int old;'));
+    });
+
+    it('does not ask when the editor holds code that was just submitted', async () => {
+      list();
+      submissionsApi.create.mockResolvedValue(makeSummary({ id: 'fresh' }));
+      submissionsApi.get.mockResolvedValue(makeSubmission({ id: 'best', source: 'int old;', status: 'completed' }));
+      renderInApp(<SolveView />);
+      fireEvent.change(await editorBox(), { target: { value: 'sent code' } });
+      await userEvent.click(screen.getByRole('button', { name: 'Submit' }));
+      await waitFor(() => expect(submissionsApi.create).toHaveBeenCalled());
+      await useBest();
+      await waitFor(async () => expect((await editorBox()).value).toBe('int old;'));
+      expect(screen.queryByRole('dialog')).toBeNull();
+    });
+
+    it('says so when the language is no longer allowed, and leaves the editor alone', async () => {
+      list();
+      problemsApi.get.mockResolvedValue(makeProblem({ allowed_languages: ['cpp'] }));
+      submissionsApi.get.mockResolvedValue(
+        makeSubmission({ id: 'best', language: 'python', source: 'x', status: 'completed' })
+      );
+      renderInApp(<SolveView />);
+      await useBest();
+      expect((await screen.findByRole('alert')).textContent).toMatch(/no longer accepts Python 3/);
+    });
+
+    it('loads more of them from the end of the list', async () => {
+      const many = Array.from({ length: 10 }, (_, index) => ({ ...newer, id: `n${index}` }));
+      submissionsApi.list.mockImplementation(async (_target, query: { page: number }) =>
+        query.page === 1
+          ? { items: many, best: null, page: 1, page_size: 10, total: 12 }
+          : {
+              items: [
+                { ...newer, id: 'older' },
+                { ...newer, id: 'oldest' },
+              ],
+              best: null,
+              page: 2,
+              page_size: 10,
+              total: 12,
+            }
+      );
+      renderInApp(<SolveView />);
+      await userEvent.click(await screen.findByRole('combobox', { name: 'Previous submissions' }));
+      await userEvent.click(await screen.findByRole('option', { name: 'Show more…' }));
+      await userEvent.click(await screen.findByRole('combobox', { name: 'Previous submissions' }));
+      await waitFor(async () => expect(await screen.findAllByRole('option')).toHaveLength(12));
+    });
   });
 
   describe('when Core refuses', () => {

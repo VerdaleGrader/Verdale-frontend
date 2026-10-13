@@ -8,7 +8,8 @@ import { CodeEditor } from '@/components/code/code-editor';
 import { PageContainer, PageHeader } from '@/components/layout/page';
 import { SubmissionTable } from '@/components/grader/submission-table';
 import { EmptyState, ErrorState, Loading } from '@/components/states/states';
-import { buttonVariants } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
+import { Dialog } from '@/components/ui/dialog';
 import { useAuth } from '@/features/auth/hooks/auth-provider';
 import { problemsApi, type ProblemTarget } from '@/features/problems/api/problems.api';
 import { ProblemReader } from '@/features/problems/components/problem-reader';
@@ -22,6 +23,7 @@ import { submissionsApi, type Submission, type SubmissionSummary } from '../api/
 import { STARTER_CODE, codeStorageKey, languageStorageKey } from '../code-templates';
 import { useSubmissionLive } from '../hooks/use-submission-live';
 import { LiveStatus } from './live-status';
+import { PreviousSubmissions } from './previous-submissions';
 import { toRow } from './submission-history';
 
 /** A summary (what creating or listing returns) in the shape the live view works with. */
@@ -231,11 +233,15 @@ function SolvePanel({ problem, target }: { problem: Problem; target: ProblemTarg
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [current, setCurrent] = useState<Submission | undefined>();
+  // A chosen earlier submission waits here while the person confirms replacing code they have not submitted.
+  const [replacement, setReplacement] = useState<Submission | null>(null);
   const loggedIn = auth.status === 'authenticated';
   const open = problem.accepts_submissions;
 
   // Remember what is typed, shortly after typing stops.
   const latest = useRef({ code, language });
+  // The last code that went to Core, or came from it: anything else in the editor has not been submitted.
+  const submittedSource = useRef<string | null>(null);
   useEffect(() => {
     latest.current = { code, language };
   });
@@ -295,7 +301,9 @@ function SolvePanel({ problem, target }: { problem: Problem; target: ProblemTarg
     setSubmitting(true);
     setError(null);
     try {
-      const created = await submissionsApi.create(target, { language, source: latest.current.code });
+      const sent = latest.current.code;
+      const created = await submissionsApi.create(target, { language, source: sent });
+      submittedSource.current = sent;
       setCurrent(fromSummary(created));
     } catch (caught) {
       if (caught instanceof ApiError && caught.status === 401) {
@@ -308,6 +316,40 @@ function SolvePanel({ problem, target }: { problem: Problem; target: ProblemTarg
       setSubmitting(false);
     }
   }, [loggedIn, open, submitting, waiting, problem, space.archived_at, target, language, router, pathname, expire]);
+
+  const putInEditor = useCallback(
+    (chosen: Submission) => {
+      const source = chosen.source ?? '';
+      if (chosen.language !== latest.current.language) changeLanguage(chosen.language);
+      editCode(source);
+      submittedSource.current = source;
+      setReplacement(null);
+    },
+    [changeLanguage, editCode]
+  );
+
+  const chooseEarlier = useCallback(
+    (chosen: Submission) => {
+      if (chosen.source === undefined) {
+        setError('The code of this submission is not available.');
+        return;
+      }
+      if (!languages.includes(chosen.language)) {
+        setError(`This problem no longer accepts ${LANGUAGE_LABELS[chosen.language]}, so this code cannot be used.`);
+        return;
+      }
+      setError(null);
+      const typed = latest.current.code;
+      const unsubmitted =
+        typed.trim() !== '' &&
+        typed !== STARTER_CODE[latest.current.language] &&
+        typed !== submittedSource.current &&
+        typed !== chosen.source;
+      if (unsubmitted) setReplacement(chosen);
+      else putInEditor(chosen);
+    },
+    [languages, putInEditor]
+  );
 
   const base = `/spaces/${target.slug}/problems/${target.problemSlug}`;
   return (
@@ -362,6 +404,30 @@ function SolvePanel({ problem, target }: { problem: Problem; target: ProblemTarg
           Writing code is easier on a larger screen, but you can read the problem, submit and follow the result here.
         </p>
       )}
+      {loggedIn && (
+        <PreviousSubmissions
+          target={target}
+          refreshKey={`${submission?.id ?? 'none'}-${submission?.status ?? 'none'}`}
+          detailBase={`${base}/submissions`}
+          onUse={chooseEarlier}
+        />
+      )}
+      <Dialog
+        open={replacement !== null}
+        onClose={() => setReplacement(null)}
+        title="Replace the code in the editor?"
+        description="The editor holds code you have not submitted. Using the earlier submission replaces it, and it cannot be brought back."
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setReplacement(null)}>
+              Keep my code
+            </Button>
+            <Button variant="destructive" onClick={() => replacement && putInEditor(replacement)}>
+              Replace code
+            </Button>
+          </>
+        }
+      />
     </div>
   );
 }

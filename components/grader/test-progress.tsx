@@ -14,11 +14,47 @@ export function progressSummary(results: Verdict[]): string {
   return done === 0 ? 'Queued' : `Passed ${done} of ${total}`;
 }
 
+/** Above this many tests the bar groups neighbours, so hundreds of tests stay a few short rows. */
+export const MAX_CELLS = 120;
+
+const PENDING: Verdict[] = ['QUEUED', 'RUNNING'];
+
+/** The one verdict that stands for a group of tests: a failure first, then still running, queued, passed. */
+function groupVerdict(group: Verdict[]): Verdict {
+  const failed = group.find((verdict) => !['AC', 'QUEUED', 'RUNNING', 'SKIPPED'].includes(verdict));
+  if (failed) return failed;
+  if (group.includes('RUNNING')) return 'RUNNING';
+  if (group.includes('QUEUED')) return 'QUEUED';
+  return group.includes('AC') ? 'AC' : 'SKIPPED';
+}
+
+interface Cell {
+  verdict: Verdict;
+  /** 1-based first and last testcase the cell stands for. */
+  from: number;
+  to: number;
+}
+
+/** One cell per test, or one per group of neighbours when there are more than `MAX_CELLS` tests. */
+export function toCells(results: Verdict[], maxCells = MAX_CELLS): Cell[] {
+  if (results.length <= maxCells) {
+    return results.map((verdict, index) => ({ verdict, from: index + 1, to: index + 1 }));
+  }
+  const size = Math.ceil(results.length / maxCells);
+  const cells: Cell[] = [];
+  for (let start = 0; start < results.length; start += size) {
+    const group = results.slice(start, start + size);
+    cells.push({ verdict: groupVerdict(group), from: start + 1, to: start + group.length });
+  }
+  return cells;
+}
+
 /** Live judging progress: one cell per test, filled with its verdict colour when it finishes. */
 export function TestProgress({
   results,
   label,
   ariaLabel = 'Judging progress',
+  compact = false,
 }: {
   results: Verdict[];
   /**
@@ -28,14 +64,16 @@ export function TestProgress({
   label?: string;
   /** Names the progress bar for screen readers: "Generation progress". */
   ariaLabel?: string;
+  /** Smaller cells and no status line, for a row in a list; the count stays. */
+  compact?: boolean;
 }) {
   const total = results.length;
-  const finished = results.filter((verdict) => !['QUEUED', 'RUNNING'].includes(verdict)).length;
+  const finished = results.filter((verdict) => !PENDING.includes(verdict)).length;
   const summary = label ?? progressSummary(results);
   return (
-    <div className="vd-progress">
+    <div className={cn('vd-progress', compact && 'vd-progress--compact')}>
       <div className="vd-progress__head">
-        <span className="vd-progress__status" aria-live="polite">
+        <span className={cn('vd-progress__status', compact && 'vd-sr')} aria-live={compact ? undefined : 'polite'}>
           {summary}
         </span>
         <span className="vd-progress__count">
@@ -51,11 +89,11 @@ export function TestProgress({
         aria-valuenow={finished}
         aria-valuetext={summary}
       >
-        {results.map((verdict, index) => (
+        {toCells(results).map((cell) => (
           <span
-            key={index}
-            className={cn('vd-cell', `vd-cell--${VERDICTS[verdict].cell}`)}
-            title={`Testcase ${index + 1}: ${VERDICTS[verdict].label}`}
+            key={cell.from}
+            className={cn('vd-cell', `vd-cell--${VERDICTS[cell.verdict].cell}`)}
+            title={`${cell.from === cell.to ? `Testcase ${cell.from}` : `Testcases ${cell.from} to ${cell.to}`}: ${VERDICTS[cell.verdict].label}`}
           />
         ))}
       </div>

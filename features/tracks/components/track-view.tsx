@@ -188,7 +188,7 @@ function ProblemRow({
         {number}
       </span>
       <span className="min-w-0 flex-1">
-        <Link href={href} className="vd-link">
+        <Link href={href} className="vd-link vd-problemrow__link">
           {problem.title}
         </Link>
         <span className="text-mono-label text-text-muted vd-cell-sub">{problem.slug}</span>

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Submission } from './api/submissions.api';
-import { displayVerdict, outcomeLine, progressCells, resultRows, sampleFeedback } from './verdicts';
+import { displayVerdict, expandRuns, outcomeLine, progressCells, resultRows, sampleFeedback } from './verdicts';
 
 const result = (
   position: number,
@@ -87,5 +87,40 @@ describe('sampleFeedback', () => {
       result(4, 'WA', { is_sample: true }),
     ];
     expect(sampleFeedback(rows).map((row) => row.position)).toEqual([1]);
+  });
+});
+
+describe('test runs (GRD-112)', () => {
+  it('turns runs into one verdict per test', () => {
+    expect(
+      expandRuns([
+        { verdict: 'AC', count: 3 },
+        { verdict: 'WA', count: 1 },
+        { verdict: 'SKIPPED', count: 2 },
+      ])
+    ).toEqual(['AC', 'AC', 'AC', 'WA', 'SKIPPED', 'SKIPPED']);
+    expect(expandRuns(undefined)).toEqual([]);
+  });
+
+  it('draws a judged summary from its runs when it has no results', () => {
+    expect(
+      progressCells({
+        status: 'completed',
+        results: [],
+        tests_total: 2,
+        test_runs: [{ verdict: 'AC', count: 2 }],
+      })
+    ).toEqual(['AC', 'AC']);
+  });
+
+  it('prefers the full results when it has them', () => {
+    expect(
+      progressCells({
+        status: 'completed',
+        results: [result(1, 'WA')],
+        tests_total: 1,
+        test_runs: [{ verdict: 'AC', count: 1 }],
+      })
+    ).toEqual(['WA']);
   });
 });

@@ -50,6 +50,7 @@ const submission = (overrides: Partial<Submission> = {}): Submission => ({
   memory_kb: null,
   tests_passed: null,
   tests_total: 2,
+  test_runs: [],
   created_at: '2026-10-11T00:00:00Z',
   judged_at: null,
   compile_message: null,

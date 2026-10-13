@@ -564,6 +564,13 @@
   grid-template-columns: repeat(auto-fill, minmax(14px, 1fr));
   gap: var(--space-1);
 }
+.vd-progress--compact .vd-progress__cells {
+  grid-template-columns: repeat(auto-fill, minmax(8px, 1fr));
+  gap: 2px;
+}
+.vd-progress--compact .vd-cell {
+  height: 8px;
+}
 .vd-cell {
   height: 14px;
   border-radius: var(--radius-sm);
@@ -1218,6 +1225,8 @@
   min-width: var(--radix-select-trigger-width);
   /* A long description wraps instead of making the list wider than the screen. */
   max-width: min(26rem, var(--radix-popper-available-width, 26rem));
+  /* Design System: the list scrolls at 296px. */
+  max-height: min(296px, var(--radix-popper-available-height, 296px));
 }
 .vd-popup__item {
   display: flex;
@@ -1271,18 +1280,42 @@
   color: var(--text-muted);
 }
 .vd-dropdown__item {
+  align-items: flex-start;
   justify-content: space-between;
-  padding-top: 6px;
-  padding-bottom: 6px;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
 }
 .vd-dropdown__text {
   display: flex;
+  flex: 1;
   flex-direction: column;
+  gap: 2px;
   min-width: 0;
 }
+.vd-dropdown__extra {
+  display: block;
+  padding-top: var(--space-1);
+}
+/* The name is 500, and 600 for the chosen option (which also carries the tick). */
+.vd-dropdown__label {
+  font-weight: 500;
+}
+.vd-dropdown__item[data-state='checked'] .vd-dropdown__label {
+  font-weight: 600;
+}
+.vd-dropdown__item[data-disabled] .vd-dropdown__label {
+  font-weight: 400;
+}
 .vd-dropdown__desc {
-  font-size: 12px;
-  line-height: 16px;
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--text-muted);
+}
+.vd-dropdown__item .vd-icon {
+  margin-top: 2px;
+  color: var(--brand-text);
+}
+.vd-dropdown__item[data-disabled] .vd-icon {
   color: var(--text-muted);
 }
 
@@ -2020,6 +2053,22 @@ a.vd-trackcard:hover {
 }
 .vd-problemrow:last-child {
   border-bottom: 0;
+}
+/* The whole row is the click target: the title link stretches over it. */
+.vd-problemrow {
+  position: relative;
+}
+.vd-problemrow:hover {
+  background: var(--surface-hover);
+}
+.vd-problemrow__link::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+}
+.vd-problemrow__link:focus-visible::after {
+  outline: 2px solid var(--focus-ring, currentColor);
+  outline-offset: -2px;
 }
 
 /* PDF statements (GRD-74) */

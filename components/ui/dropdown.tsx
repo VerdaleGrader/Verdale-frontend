@@ -12,6 +12,8 @@ interface DropdownOption {
   label: string;
   /** A second line in the list; the closed field shows the label only. */
   description?: string;
+  /** Something small under the description, drawn but not read aloud (the option's label already says it). */
+  extra?: React.ReactNode;
   /** Stays in the list, greyed out with a lock icon and no reason text. */
   locked?: boolean;
 }
@@ -89,8 +91,15 @@ function Dropdown({
                   className="vd-popup__item vd-dropdown__item"
                 >
                   <span className="vd-dropdown__text">
-                    <SelectPrimitive.ItemText>{option.label}</SelectPrimitive.ItemText>
+                    <SelectPrimitive.ItemText>
+                      <span className="vd-dropdown__label">{option.label}</span>
+                    </SelectPrimitive.ItemText>
                     {option.description && <span className="vd-dropdown__desc">{option.description}</span>}
+                    {option.extra && (
+                      <span className="vd-dropdown__extra" aria-hidden>
+                        {option.extra}
+                      </span>
+                    )}
                   </span>
                   {option.locked ? (
                     <Lock className="vd-icon size-3.5" strokeWidth={1.75} aria-hidden />

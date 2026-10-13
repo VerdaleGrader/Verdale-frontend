@@ -74,7 +74,8 @@ export function LiveStatus({
           )}
         </dl>
       )}
-      {finished && cells.length > 0 && <TestProgress results={cells} />}
+      {/* Shown from the moment the submission is accepted and kept once it is judged, with one cell per test. */}
+      {cells.length > 0 && <TestProgress results={cells} />}
       {finished && submission.verdict === 'ISE' && detailHref && (
         <p className="text-small text-text-muted">
           {VERDICTS.ISE.label}: this is not caused by your code. Open the result to check it again.
