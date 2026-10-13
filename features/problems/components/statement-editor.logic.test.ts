@@ -19,6 +19,8 @@ export const constraints: ProblemConstraints = {
   solutions: { max_count: 5 },
   source_max_bytes: 65536,
   pdf: { max_bytes: 10485760, max_pages: 10 },
+  version_fields: { major: ['time_limit_ms', 'memory_limit_kb', 'allowed_languages'], minor: ['title', 'statement'] },
+  publish: { min_hidden_tests: 1 },
 };
 
 const base: StatementDraft = {
