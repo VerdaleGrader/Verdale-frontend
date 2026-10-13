@@ -58,7 +58,7 @@ export function StatementFormat({
       <legend className="vd-label">Statement format</legend>
       <RadioGroup
         aria-label="Statement format"
-        className="vd-radiogroup--row"
+        className="vd-radiogroup--row mt-2"
         value={mode}
         disabled={readOnly || busy}
         onValueChange={(next) => onMode(next as Mode)}

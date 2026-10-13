@@ -1,10 +1,11 @@
 'use client';
 
-import { ImagePlus } from 'lucide-react';
+import { ImagePlus, Info } from 'lucide-react';
 import { useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { TextField } from '@/components/ui/field';
+import { Tooltip } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { LANGUAGE_OPTIONS, type Language, type ProblemConstraints } from '../types';
 import type { DraftErrors, StatementDraft } from './statement-draft';
@@ -77,7 +78,7 @@ export function DetailsFields({
       </div>
       <fieldset className="flex flex-col gap-2" disabled={readOnly}>
         <legend className="vd-label">Allowed languages</legend>
-        <div className="flex flex-wrap gap-4">
+        <div className="mt-2 flex flex-wrap gap-4">
           {LANGUAGE_OPTIONS.filter((option) => constraints.languages.includes(option.value)).map((option) => (
             <Checkbox
               key={option.value}
@@ -107,6 +108,7 @@ export function MarkdownStatementField({
   onChange,
   imageUpload,
   imageDisabledReason,
+  format,
 }: {
   statement: string;
   constraints: ProblemConstraints;
@@ -117,11 +119,14 @@ export function MarkdownStatementField({
   /** Uploads a picture and returns the Markdown to insert. */
   imageUpload?: (file: File) => Promise<string>;
   imageDisabledReason?: string;
+  /** The statement-format switch, shown between the heading and the hint. */
+  format?: React.ReactNode;
 }) {
   const [view, setView] = useState<'write' | 'preview'>('write');
   const [imageError, setImageError] = useState<string | null>(null);
   const textarea = useRef<HTMLTextAreaElement>(null);
   const fileInput = useRef<HTMLInputElement>(null);
+  const formattingHelp = `Markdown with maths: write $a + b$ inline or $$ … $$ on its own lines. Images come from “Insert image” (PNG, JPEG or WebP, up to ${Math.round(constraints.images.max_bytes / (1024 * 1024))} MB).`;
 
   async function insertImage(file: File) {
     setImageError(null);
@@ -143,9 +148,16 @@ export function MarkdownStatementField({
   return (
     <section aria-labelledby="statement-heading" className="flex flex-col gap-3">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 id="statement-heading" className="text-h2">
-          Statement
-        </h2>
+        <div className="flex items-center gap-2">
+          <h2 id="statement-heading" className="text-h2">
+            Statement
+          </h2>
+          <Tooltip label={formattingHelp} side="bottom" wide>
+            <Button size="icon" variant="ghost" aria-label="Formatting help">
+              <Info aria-hidden />
+            </Button>
+          </Tooltip>
+        </div>
         <div className="flex items-center gap-2">
           <div className="flex gap-1 lg:hidden" role="group" aria-label="Editor view">
             <Button
@@ -188,17 +200,13 @@ export function MarkdownStatementField({
           />
         </div>
       </div>
+      {format}
       {imageError && (
         <p role="alert" className="vd-hint vd-hint--error">
           {imageError}
         </p>
       )}
-      <p className="text-small text-text-muted">
-        Markdown with maths: write <code className="vd-mono">$a + b$</code> inline or{' '}
-        <code className="vd-mono">$$ … $$</code> on its own lines. Images come from “Insert image” (PNG, JPEG or WebP,
-        up to {Math.round(constraints.images.max_bytes / (1024 * 1024))} MB).
-        {!imageUpload && imageDisabledReason ? ` ${imageDisabledReason}` : ''}
-      </p>
+      {!imageUpload && imageDisabledReason && <p className="text-small text-text-muted">{imageDisabledReason}</p>}
       <div className="grid gap-4 lg:grid-cols-2">
         <div className={cn(view === 'write' ? 'block' : 'hidden', 'min-w-0 lg:block')}>
           <TextField
@@ -216,7 +224,7 @@ export function MarkdownStatementField({
         <div
           className={cn(
             view === 'preview' ? 'block' : 'hidden',
-            'border-border bg-surface min-w-0 rounded-md border p-4 lg:block'
+            'border-border bg-surface mt-6 min-w-0 rounded-md border p-4 lg:block'
           )}
           aria-label="Preview as a solver sees it"
         >

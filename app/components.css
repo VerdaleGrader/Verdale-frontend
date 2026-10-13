@@ -294,6 +294,13 @@
   bottom: auto;
   top: calc(100% + 6px);
 }
+.vd-tip--wide .vd-tip__bubble {
+  left: 0;
+  transform: none;
+  width: max-content;
+  max-width: min(20rem, 80vw);
+  white-space: normal;
+}
 .vd-tip:hover .vd-tip__bubble,
 .vd-tip:focus-within .vd-tip__bubble,
 .vd-tip.is-open .vd-tip__bubble {
@@ -2165,6 +2172,7 @@ a.vd-trackcard:hover {
   white-space: nowrap;
 }
 .tc-row {
+  cursor: pointer;
   min-height: 44px;
   padding: var(--space-1) var(--space-3) var(--space-1) var(--space-2);
 }
@@ -2172,7 +2180,13 @@ a.vd-trackcard:hover {
   background: var(--surface-hover);
 }
 .tc-row.is-open {
-  background: var(--surface-sunken);
+  background: var(--surface-hover);
+  box-shadow: inset 3px 0 0 var(--primary);
+}
+.tc-row.is-open .tc-file b,
+.tc-row.is-open .tc-num {
+  color: var(--primary);
+  font-weight: 600;
 }
 .tc-row.is-removed {
   background: var(--surface-sunken);
@@ -2246,8 +2260,10 @@ a.vd-trackcard:hover {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--space-3);
   padding: var(--space-3) var(--space-3) var(--space-4) 104px;
-  background: var(--surface-sunken);
+  background: var(--bg);
   border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  box-shadow: inset 3px 0 0 var(--primary);
 }
 .tc-detail.is-view {
   padding-left: 76px;

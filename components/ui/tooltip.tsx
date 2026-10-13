@@ -7,10 +7,13 @@ import { cn } from '@/lib/utils';
 export function Tooltip({
   label,
   side = 'top',
+  wide = false,
   children,
 }: {
   label: string;
   side?: 'top' | 'bottom';
+  /** Wrap long text in a fixed-width bubble instead of one line. */
+  wide?: boolean;
   children: React.ReactElement<{ 'aria-describedby'?: string }>;
 }) {
   // Derived from the label, not useId(): stable between server and client rendering.
@@ -19,7 +22,7 @@ export function Tooltip({
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-|-$/g, '')}`;
   return (
-    <span className={cn('vd-tip', side === 'bottom' && 'vd-tip--bottom')}>
+    <span className={cn('vd-tip', side === 'bottom' && 'vd-tip--bottom', wide && 'vd-tip--wide')}>
       {React.cloneElement(children, { 'aria-describedby': id })}
       <span role="tooltip" id={id} className="vd-tip__bubble">
         {label}
