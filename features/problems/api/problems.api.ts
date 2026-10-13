@@ -133,6 +133,37 @@ export const problemsApi = {
   archive: (target: Target) =>
     unwrap(coreApi.POST('/api/v1/spaces/{slug}/problems/{problemSlug}/archive', { params: { path: path(target) } })),
 
+  // --- verify, versions, history --------------------------------------------------
+
+  /** Starts a verification run of the draft (202). 409: VERIFY_BLOCKED, VERIFY_IN_PROGRESS, NO_DRAFT. */
+  verify: (target: Target) =>
+    unwrap(coreApi.POST('/api/v1/spaces/{slug}/problems/{problemSlug}/verify', { params: { path: path(target) } })),
+
+  /** The latest run of the draft; 404 NO_VERIFICATION when none was started. */
+  verification: (target: Target) =>
+    unwrap(coreApi.GET('/api/v1/spaces/{slug}/problems/{problemSlug}/verify', { params: { path: path(target) } })),
+
+  /** Edit a published problem. Core classifies it (Minor applies at once, Major makes a draft). 409 VERSION_CONFLICT. */
+  updatePublished: (target: Target, body: Schemas['PublishedUpdateRequest']) =>
+    unwrap(
+      coreApi.POST('/api/v1/spaces/{slug}/problems/{problemSlug}/updates', { params: { path: path(target) }, body })
+    ),
+
+  /** Copies the open version into a draft of the next Major (needed to change tests and solutions). */
+  createMajorDraft: (target: Target) =>
+    unwrap(coreApi.POST('/api/v1/spaces/{slug}/problems/{problemSlug}/draft', { params: { path: path(target) } })),
+
+  /** Throws the Major draft away; the open version is untouched. */
+  discardMajorDraft: (target: Target) =>
+    unwrap(coreApi.DELETE('/api/v1/spaces/{slug}/problems/{problemSlug}/draft', { params: { path: path(target) } })),
+
+  history: (target: Target, page: number, pageSize: number) =>
+    unwrap(
+      coreApi.GET('/api/v1/spaces/{slug}/problems/{problemSlug}/history', {
+        params: { path: path(target), query: { page, page_size: pageSize } },
+      })
+    ),
+
   uploadImage: (target: Target, file: File) =>
     unwrap(
       coreApi.POST('/api/v1/spaces/{slug}/problems/{problemSlug}/images', {

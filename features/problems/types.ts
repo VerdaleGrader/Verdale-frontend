@@ -20,6 +20,13 @@ export type GenerateRun = Schemas['GenerateRun'];
 export type SaveTestCasesRequest = Schemas['SaveTestCasesRequest'];
 export type ReferenceSolution = Schemas['ReferenceSolution'];
 export type UpdateProblemRequest = Schemas['UpdateProblemRequest'];
+export type ProblemVersion = Schemas['ProblemVersion'];
+export type VerificationRun = Schemas['VerificationRun'];
+export type VerificationTestResult = Schemas['VerificationTestResult'];
+export type PublishedUpdateRequest = Schemas['PublishedUpdateRequest'];
+export type UpdateOutcome = Schemas['UpdateOutcome'];
+export type VersionHistoryEntry = Schemas['VersionHistoryEntry'];
+export type VersionFields = Schemas['VersionFields'];
 
 export const LANGUAGE_LABELS: Record<Language, string> = { c: 'C', cpp: 'C++', python: 'Python 3' };
 export const LANGUAGE_OPTIONS = (Object.keys(LANGUAGE_LABELS) as Language[]).map((value) => ({
@@ -31,6 +38,14 @@ export const STATUS_LABELS: Record<ProblemStatus, string> = {
   draft: 'Draft',
   published: 'Published',
   archived: 'Archived',
+};
+
+/** The state of one version, which the publish gate moves through: draft, verifying, verified, published. */
+export const VERSION_STATUS_LABELS: Record<ProblemVersion['status'], string> = {
+  draft: 'Draft',
+  verifying: 'Verifying',
+  verified: 'Verified',
+  published: 'Published',
 };
 
 /** Memory is shown in MB (whole numbers); the API counts kilobytes. */
