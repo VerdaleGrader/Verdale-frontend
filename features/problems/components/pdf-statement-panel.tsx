@@ -144,7 +144,7 @@ export function PdfStatementPanel() {
       {uploading && (
         <div className="flex max-w-md flex-col gap-1">
           <progress
-            className="vd-progress"
+            className="vd-bar"
             aria-label="Uploading the PDF"
             value={Math.round((progress ?? 0) * 100)}
             max={100}
