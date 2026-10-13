@@ -31,6 +31,7 @@ vi.mock('../api/submissions.api', async (importOriginal) => ({
   submissionsApi,
 }));
 
+import type { SubmissionSummary } from '../api/submissions.api';
 import { SolveView, fromSummary, submitErrorMessage } from './solve-view';
 
 const summary = makeSummary();
@@ -130,7 +131,7 @@ describe('the problem page (GRD-48)', () => {
     expect((await screen.findAllByText('Accepted')).length).toBeGreaterThan(0);
     expect(screen.getByText('12 ms')).toBeTruthy();
     expect(screen.getByText('2.0 MB')).toBeTruthy();
-    expect(screen.getByText('2 of 2')).toBeTruthy();
+    expect(screen.getAllByText('2 / 2').length).toBeGreaterThan(0);
     expect(screen.getByRole('link', { name: 'Full result' }).getAttribute('href')).toBe(
       '/spaces/team/problems/sum/submissions/s9'
     );
@@ -198,6 +199,162 @@ describe('the problem page (GRD-48)', () => {
     submissionsApi.get.mockResolvedValue(makeSubmission({ id: 'old', status: 'completed', verdict: 'WA' }));
     renderInApp(<SolveView />);
     expect(await screen.findByText(/Wrong answer/)).toBeTruthy();
+  });
+
+  describe('result, testcases and earlier submissions (GRD-112, GRD-115)', () => {
+    const runs = (verdicts: Array<[string, number]>) =>
+      verdicts.map(([verdict, count]) => ({ verdict, count })) as SubmissionSummary['test_runs'];
+    const best: SubmissionSummary = {
+      ...summary,
+      id: 'best',
+      number: 2,
+      status: 'completed',
+      verdict: 'WA',
+      tests_passed: 3,
+      tests_total: 4,
+      time_ms: 40,
+      memory_kb: 2048,
+      test_runs: runs([
+        ['AC', 3],
+        ['WA', 1],
+      ]),
+    };
+    const newer: SubmissionSummary = {
+      ...best,
+      id: 'newer',
+      number: 3,
+      tests_passed: 1,
+      test_runs: runs([
+        ['AC', 1],
+        ['WA', 3],
+      ]),
+    };
+    const list = () =>
+      submissionsApi.list.mockResolvedValue({ items: [newer, best], best, page: 1, page_size: 10, total: 3 });
+    const openSubmissions = async () => {
+      await userEvent.click(await screen.findByRole('tab', { name: /Submissions/ }));
+      return screen.findByRole('region', { name: 'Best submission' });
+    };
+
+    it('keeps the result and every testcase of the latest submission on the page', async () => {
+      list();
+      const full = makeSubmission({
+        id: 'newer',
+        number: 3,
+        status: 'completed',
+        verdict: 'WA',
+        tests_passed: 1,
+        tests_total: 4,
+        time_ms: 30,
+        memory_kb: 2048,
+        test_runs: newer.test_runs,
+        results: [
+          { position: 1, is_sample: true, verdict: 'AC', time_ms: 5, memory_kb: 1024, stdout_preview: '3\n' },
+          { position: 2, is_sample: false, verdict: 'WA', time_ms: 6, memory_kb: 1024 },
+          { position: 3, is_sample: false, verdict: 'WA', time_ms: 6, memory_kb: 1024 },
+          { position: 4, is_sample: false, verdict: 'WA', time_ms: 6, memory_kb: 1024 },
+        ],
+      });
+      renderInApp(<SolveView />);
+      // The live stream opens on the latest submission and starts with its full result.
+      await waitFor(() => expect(FakeEventSource.instances.length).toBeGreaterThan(0));
+      act(() => FakeEventSource.last.push(full));
+      const result = await screen.findByRole('region', { name: 'Result' });
+      expect(within(result).getByText(/Submission #3/)).toBeTruthy();
+      // One button per testcase, the first failing one chosen, a hidden one explained.
+      const grid = await within(result).findByRole('button', { name: /Testcase 2: Wrong answer/ });
+      expect(grid.getAttribute('aria-pressed')).toBe('true');
+      expect(within(result).getAllByRole('button', { name: /^Testcase \d/ })).toHaveLength(4);
+      expect(within(result).getByText(/Hidden testcase/)).toBeTruthy();
+      // The filter keeps only what did not pass; a passed example opens beside its expected output.
+      await userEvent.click(within(result).getByRole('button', { name: 'Not passed 3' }));
+      expect(within(result).getAllByRole('button', { name: /^Testcase \d/ })).toHaveLength(3);
+      await userEvent.click(within(result).getByRole('button', { name: 'All 4' }));
+      await userEvent.click(within(result).getByRole('button', { name: /Testcase 1: Accepted/ }));
+      expect(within(result).getByText(/Expected output/)).toBeTruthy();
+    });
+
+    it('pins the best submission above the list, which still holds it', async () => {
+      list();
+      renderInApp(<SolveView />);
+      const bestRegion = await openSubmissions();
+      expect(within(bestRegion).getByText('Best submission')).toBeTruthy();
+      expect(within(bestRegion).getByText(/#2/)).toBeTruthy();
+      expect(within(bestRegion).getByText('3 / 4')).toBeTruthy();
+      const all = screen.getByRole('region', { name: 'All submissions' });
+      expect(within(all).getByText('3 total')).toBeTruthy();
+      expect(within(all).getAllByRole('button', { expanded: false })).toHaveLength(2);
+      expect(screen.getByRole('tab', { name: /Submissions/ }).textContent).toMatch(/3/);
+    });
+
+    it('opens a row to show its tests and its code', async () => {
+      list();
+      submissionsApi.get.mockResolvedValue(makeSubmission({ id: 'newer', source: 'print(1)' }));
+      renderInApp(<SolveView />);
+      await openSubmissions();
+      const all = screen.getByRole('region', { name: 'All submissions' });
+      await userEvent.click(within(all).getAllByRole('button', { expanded: false })[0]!);
+      expect(await within(all).findByLabelText('Code of submission #3')).toBeTruthy();
+      expect(within(all).getByRole('progressbar')).toBeTruthy();
+    });
+
+    it('replaces the code from a submission, shows where it came from, and undoes it', async () => {
+      list();
+      submissionsApi.get.mockResolvedValue(
+        makeSubmission({ id: 'best', number: 2, language: 'c', source: 'int old;' })
+      );
+      renderInApp(<SolveView />);
+      fireEvent.change(await editorBox(), { target: { value: 'my own code' } });
+      const bestRegion = await openSubmissions();
+      await userEvent.click(within(bestRegion).getByRole('button', { name: 'Replace code' }));
+      // Back on the Code tab, loaded, not submitted, and nothing was sent.
+      await waitFor(async () => expect((await editorBox()).value).toBe('int old;'));
+      expect(screen.getByText('Loaded from submission #2')).toBeTruthy();
+      expect(submissionsApi.create).not.toHaveBeenCalled();
+      expect(screen.getByText('Code replaced with submission #2')).toBeTruthy();
+      await userEvent.click(screen.getByRole('button', { name: 'Undo' }));
+      await waitFor(async () => expect((await editorBox()).value).toBe('my own code'));
+      expect(screen.queryByText('Loaded from submission #2')).toBeNull();
+    });
+
+    it('does not offer Replace for a language the problem no longer accepts', async () => {
+      list();
+      problemsApi.get.mockResolvedValue(makeProblem({ allowed_languages: ['python'] }));
+      renderInApp(<SolveView />);
+      const bestRegion = await openSubmissions();
+      expect((within(bestRegion).getByRole('button', { name: 'Replace code' }) as HTMLButtonElement).disabled).toBe(
+        true
+      );
+    });
+
+    it('lists more of them on request', async () => {
+      const many = Array.from({ length: 10 }, (_, index) => ({ ...newer, id: `n${index}`, number: 12 - index }));
+      submissionsApi.list.mockImplementation(async (_target, query: { page: number }) =>
+        query.page === 1
+          ? { items: many, best: null, page: 1, page_size: 10, total: 12 }
+          : {
+              items: [
+                { ...newer, id: 'older', number: 2 },
+                { ...newer, id: 'oldest', number: 1 },
+              ],
+              best: null,
+              page: 2,
+              page_size: 10,
+              total: 12,
+            }
+      );
+      renderInApp(<SolveView />);
+      await userEvent.click(await screen.findByRole('tab', { name: /Submissions/ }));
+      await userEvent.click(await screen.findByRole('button', { name: 'Show more' }));
+      await waitFor(() => expect(screen.queryByRole('button', { name: 'Show more' })).toBeNull());
+      expect(within(screen.getByRole('region', { name: 'All submissions' })).getAllByRole('listitem')).toHaveLength(12);
+    });
+
+    it('says so when there are no submissions yet', async () => {
+      renderInApp(<SolveView />);
+      await userEvent.click(await screen.findByRole('tab', { name: /Submissions/ }));
+      expect(await screen.findByText('No submissions yet')).toBeTruthy();
+    });
   });
 
   describe('when Core refuses', () => {
@@ -297,9 +454,8 @@ describe('the problem page (GRD-48)', () => {
     renderInApp(<SolveView />, { space: makeSpace('solver') });
     await screen.findByRole('heading', { name: 'Sum of two numbers' });
     expect(screen.queryByRole('link', { name: 'Edit problem' })).toBeNull();
-    expect(screen.getByRole('link', { name: 'Your submissions' }).getAttribute('href')).toBe(
-      '/spaces/team/problems/sum/submissions'
-    );
+    // Their submissions live in the Submissions tab of this page, not behind a link.
+    expect(screen.queryByRole('link', { name: 'Your submissions' })).toBeNull();
   });
 
   it('shows a clear message when the problem does not exist, and a retry when loading fails', async () => {

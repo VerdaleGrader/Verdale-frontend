@@ -8,7 +8,9 @@ import { CodeEditor } from '@/components/code/code-editor';
 import { PageContainer, PageHeader } from '@/components/layout/page';
 import { SubmissionTable } from '@/components/grader/submission-table';
 import { EmptyState, ErrorState, Loading } from '@/components/states/states';
-import { buttonVariants } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useToast } from '@/components/ui/toast';
 import { useAuth } from '@/features/auth/hooks/auth-provider';
 import { problemsApi, type ProblemTarget } from '@/features/problems/api/problems.api';
 import { ProblemReader } from '@/features/problems/components/problem-reader';
@@ -20,8 +22,10 @@ import { useApiQuery } from '@/lib/use-api-query';
 import { useMediaQuery } from '@/lib/use-media-query';
 import { submissionsApi, type Submission, type SubmissionSummary } from '../api/submissions.api';
 import { STARTER_CODE, codeStorageKey, languageStorageKey } from '../code-templates';
+import { useMySubmissions } from '../hooks/use-my-submissions';
 import { useSubmissionLive } from '../hooks/use-submission-live';
-import { LiveStatus } from './live-status';
+import { ResultPanel } from './result-panel';
+import { SubmissionsTab } from './submissions-tab';
 import { toRow } from './submission-history';
 
 /** A summary (what creating or listing returns) in the shape the live view works with. */
@@ -158,9 +162,6 @@ function ProblemPage({ problem, target }: { problem: Problem; target: ProblemTar
                 Edit problem
               </Link>
             )}
-            <Link href={`${base}/submissions`} className="vd-link">
-              Your submissions
-            </Link>
           </span>
         )}
       </nav>
@@ -231,6 +232,10 @@ function SolvePanel({ problem, target }: { problem: Problem; target: ProblemTarg
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [current, setCurrent] = useState<Submission | undefined>();
+  const [tab, setTab] = useState<'code' | 'submissions'>('code');
+  // The submission whose code was loaded into the editor, while the editor still holds exactly that code.
+  const [loadedFrom, setLoadedFrom] = useState<{ number: number; source: string } | null>(null);
+  const showToast = useToast();
   const loggedIn = auth.status === 'authenticated';
   const open = problem.accepts_submissions;
 
@@ -250,24 +255,16 @@ function SolvePanel({ problem, target }: { problem: Problem; target: ProblemTarg
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [code, language]);
 
-  // The latest submission of mine, so a refresh does not lose the result.
-  useEffect(() => {
-    if (!loggedIn) return;
-    let cancelled = false;
-    submissionsApi.list(target, { scope: 'mine', page: 1, pageSize: 1 }).then(
-      (page) => {
-        const latestOne = page.items[0];
-        if (!cancelled && latestOne) setCurrent((existing) => existing ?? fromSummary(latestOne));
-      },
-      () => undefined
-    );
-    return () => {
-      cancelled = true;
-    };
-  }, [loggedIn, target]);
-
   const live = useSubmissionLive(current?.id ?? null, current);
   const submission = live.submission ?? current;
+  // My submissions follow the latest one: a new submission, then its result, start the list again.
+  const mine = useMySubmissions(target, loggedIn, `${submission?.id ?? 'none'}-${submission?.status ?? 'none'}`);
+  // So a refresh does not lose the result: the latest of mine is the one under the editor.
+  useEffect(() => {
+    const latestOne = mine.items[0];
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- adopts the list's latest once it has loaded
+    if (latestOne) setCurrent((existing) => existing ?? fromSummary(latestOne));
+  }, [mine.items]);
   // The button is the same in every state except while a submission is on its way or being judged.
   const waiting = submission !== undefined && submission.status !== 'completed';
 
@@ -294,6 +291,7 @@ function SolvePanel({ problem, target }: { problem: Problem; target: ProblemTarg
     }
     setSubmitting(true);
     setError(null);
+    setLoadedFrom(null);
     try {
       const created = await submissionsApi.create(target, { language, source: latest.current.code });
       setCurrent(fromSummary(created));
@@ -309,9 +307,47 @@ function SolvePanel({ problem, target }: { problem: Problem; target: ProblemTarg
     }
   }, [loggedIn, open, submitting, waiting, problem, space.archived_at, target, language, router, pathname, expire]);
 
+  /** Puts an earlier submission's code in the editor; nothing is submitted. The toast can undo it. */
+  const replaceCode = useCallback(
+    async (summary: SubmissionSummary) => {
+      try {
+        const full = await submissionsApi.get(summary.id);
+        if (full.source === undefined) throw new Error('The code of this submission is not available.');
+        const before = { ...latest.current, loadedFrom };
+        if (full.language !== latest.current.language) changeLanguage(full.language);
+        editCode(full.source);
+        setLoadedFrom({ number: summary.number, source: full.source });
+        setError(null);
+        setTab('code');
+        showToast({
+          tone: 'success',
+          title: `Code replaced with submission #${summary.number}`,
+          description: 'Your previous code is kept until you leave this page.',
+          action: (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                if (before.language !== latest.current.language) changeLanguage(before.language);
+                editCode(before.code);
+                setLoadedFrom(before.loadedFrom);
+              }}
+            >
+              Undo
+            </Button>
+          ),
+        });
+      } catch (caught) {
+        setError(errorMessage(caught));
+        setTab('code');
+      }
+    },
+    [changeLanguage, editCode, loadedFrom, showToast]
+  );
+
   const base = `/spaces/${target.slug}/problems/${target.problemSlug}`;
-  return (
-    <div className="flex flex-col gap-3">
+  const codeTab = (
+    <div className="flex flex-col gap-4">
       <CodeEditorFrame
         languages={languages.map((value) => ({ value, label: LANGUAGE_LABELS[value] }))}
         language={language}
@@ -322,46 +358,77 @@ function SolvePanel({ problem, target }: { problem: Problem; target: ProblemTarg
           waiting ? 'Waiting for the result…' : loggedIn || auth.status === 'loading' ? 'Submit' : 'Log in to submit'
         }
         submitDisabled={waiting}
-        status={
-          <div className="flex flex-col gap-3">
-            {error && (
-              <p role="alert" className="bg-danger-soft text-danger text-small rounded-md p-3">
-                {error}
-              </p>
-            )}
-            {submission ? (
-              <LiveStatus
-                submission={submission}
-                connection={live.connection}
-                detailHref={`${base}/submissions/${submission.id}`}
-              />
-            ) : (
-              <p className="text-small text-text-muted">
-                {open
-                  ? loggedIn
-                    ? 'Submit your solution to see the result here.'
-                    : 'Log in to submit a solution. Your code is kept in this browser until then.'
-                  : 'Submissions are closed.'}
-              </p>
-            )}
-          </div>
-        }
       >
-        <CodeEditor
-          value={code}
-          onChange={editCode}
-          language={language}
-          label={`${LANGUAGE_LABELS[language]} source code`}
-          height={roomy ? 440 : 280}
-          plain={!roomy}
-          onSubmit={() => void submit()}
-        />
+        <div>
+          {loadedFrom !== null && code === loadedFrom.source && (
+            <div className="border-border bg-primary-soft flex flex-wrap items-center gap-2 border-b px-3 py-2 text-[13px] leading-[18px]">
+              <span className="font-medium">Loaded from submission #{loadedFrom.number}</span>
+              <span className="text-text-muted">Not submitted yet. Submit to judge this version again.</span>
+            </div>
+          )}
+          <CodeEditor
+            value={code}
+            onChange={editCode}
+            language={language}
+            label={`${LANGUAGE_LABELS[language]} source code`}
+            height={roomy ? 440 : 280}
+            plain={!roomy}
+            onSubmit={() => void submit()}
+          />
+        </div>
       </CodeEditorFrame>
       {!roomy && (
         <p className="text-small text-text-muted">
           Writing code is easier on a larger screen, but you can read the problem, submit and follow the result here.
         </p>
       )}
+      {error && (
+        <p role="alert" className="bg-danger-soft text-danger text-small rounded-md p-3">
+          {error}
+        </p>
+      )}
+      {loggedIn ? (
+        <ResultPanel
+          submission={submission}
+          connection={live.connection}
+          detailHref={`${base}/submissions/${submission?.id ?? ''}`}
+          samples={problem.samples}
+          closed={!open}
+        />
+      ) : (
+        <p className="text-small text-text-muted">
+          {open
+            ? 'Log in to submit a solution. Your code is kept in this browser until then.'
+            : 'Submissions are closed.'}
+        </p>
+      )}
     </div>
+  );
+
+  if (!loggedIn) return codeTab;
+  return (
+    <Tabs value={tab} onValueChange={(next) => setTab(next as 'code' | 'submissions')} className="flex flex-col gap-4">
+      <TabsList aria-label="Workspace">
+        <TabsTrigger value="code">Code</TabsTrigger>
+        <TabsTrigger value="submissions" count={mine.total}>
+          Submissions
+        </TabsTrigger>
+      </TabsList>
+      <TabsContent value="code">{codeTab}</TabsContent>
+      <TabsContent value="submissions">
+        <SubmissionsTab
+          best={mine.best}
+          items={mine.items}
+          total={mine.total}
+          loaded={mine.loaded}
+          error={mine.error}
+          loadingMore={mine.loadingMore}
+          onLoadMore={() => void mine.loadMore()}
+          onReplace={(summary) => void replaceCode(summary)}
+          canReplace={(language) => languages.includes(language)}
+          detailBase={`${base}/submissions`}
+        />
+      </TabsContent>
+    </Tabs>
   );
 }
