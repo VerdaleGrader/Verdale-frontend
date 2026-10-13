@@ -40,6 +40,7 @@ class FakeEventSource {
 
 const submission = (overrides: Partial<Submission> = {}): Submission => ({
   id: 's1',
+  number: 1,
   problem: { slug: 'sum', title: 'Sum' },
   space: { name: 'Team', slug: 'team' },
   author: { username: 'sol', display_name: 'Sol', avatar_url: null },
@@ -50,6 +51,7 @@ const submission = (overrides: Partial<Submission> = {}): Submission => ({
   memory_kb: null,
   tests_passed: null,
   tests_total: 2,
+  test_runs: [],
   created_at: '2026-10-11T00:00:00Z',
   judged_at: null,
   compile_message: null,

@@ -5,7 +5,7 @@ import { DiffView, firstDifference } from './diff-view';
 import { ProblemStatement } from './problem-statement';
 import { SampleIO } from './sample-io';
 import { SubmissionTable } from './submission-table';
-import { TestProgress, progressSummary } from './test-progress';
+import { MAX_CELLS, TestProgress, progressSummary, toCells } from './test-progress';
 import { TestResultList } from './test-result-list';
 import { VerdictBadge } from './verdict-badge';
 import { VerdictInfo } from './verdict-info';
@@ -75,6 +75,29 @@ describe('TestProgress', () => {
     expect(bar.getAttribute('aria-valuenow')).toBe('2');
     expect(within(bar).getAllByTitle(/^Testcase \d/)).toHaveLength(4);
     expect(screen.getByTitle('Testcase 3: Running')).toBeTruthy();
+  });
+});
+
+describe('TestProgress with many tests (GRD-112)', () => {
+  it('draws one cell per test up to the limit', () => {
+    expect(toCells(Array.from({ length: MAX_CELLS }, () => 'AC' as Verdict))).toHaveLength(MAX_CELLS);
+  });
+
+  it('groups neighbours above the limit, so a thousand tests stay a few rows', () => {
+    const results = Array.from({ length: 1000 }, () => 'AC' as Verdict);
+    results[503] = 'WA';
+    const cells = toCells(results);
+    expect(cells.length).toBeLessThanOrEqual(MAX_CELLS);
+    expect(cells.at(-1)!.to).toBe(1000);
+    expect(cells.find((cell) => cell.from <= 504 && cell.to >= 504)!.verdict).toBe('WA');
+    render(<TestProgress results={results} />);
+    expect(screen.getByRole('progressbar').querySelectorAll('.vd-cell').length).toBe(cells.length);
+    expect(screen.getByText('1000 / 1000')).toBeTruthy();
+  });
+
+  it('shows a running test in its group over a passed one', () => {
+    const results = [...Array.from({ length: 239 }, () => 'AC' as Verdict), 'RUNNING' as Verdict];
+    expect(toCells(results).at(-1)!.verdict).toBe('RUNNING');
   });
 });
 

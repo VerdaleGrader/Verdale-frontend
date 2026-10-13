@@ -10,10 +10,24 @@ export function displayVerdict(submission: Stateful): Verdict {
   return submission.status === 'running' ? 'RUNNING' : 'QUEUED';
 }
 
-/** One cell per test for the progress bar: the results when judged, otherwise nothing yet. */
-export function progressCells(submission: Pick<Submission, 'status' | 'results' | 'tests_total'>): Verdict[] {
+/** The runs Core sends ([{AC, 3}, {WA, 1}]) as one verdict per test. */
+export function expandRuns(runs: SubmissionSummary['test_runs'] | undefined): Verdict[] {
+  return (runs ?? []).flatMap((run) => Array.from({ length: run.count }, () => run.verdict as Verdict));
+}
+
+/**
+ * One cell per test for the progress bar: the results when judged, otherwise nothing yet. A summary
+ * (a list row, the latest submission on a fresh page) has no results but carries the runs.
+ */
+export function progressCells(
+  submission: Pick<Submission, 'status' | 'results' | 'tests_total'> & Partial<Pick<Submission, 'test_runs'>>
+): Verdict[] {
   // Judged: exactly the tests that were reported (none for a compilation or system error).
-  if (submission.status === 'completed') return submission.results.map((result) => result.verdict);
+  if (submission.status === 'completed') {
+    return submission.results.length > 0
+      ? submission.results.map((result) => result.verdict)
+      : expandRuns(submission.test_runs);
+  }
   return Array.from({ length: submission.tests_total ?? 0 }, () => 'QUEUED' as const);
 }
 

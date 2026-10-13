@@ -136,6 +136,7 @@ export function makeEditor(overrides: Partial<ProblemEditor> = {}): ProblemEdito
 export function makeSubmission(overrides: Partial<Submission> = {}): Submission {
   return {
     id: 's1',
+    number: 1,
     problem: { slug: 'sum', title: 'Sum of two numbers' },
     space: { name: 'Team', slug: 'team' },
     author: { username: 'sol', display_name: 'Sol', avatar_url: null },
@@ -146,6 +147,7 @@ export function makeSubmission(overrides: Partial<Submission> = {}): Submission 
     memory_kb: null,
     tests_passed: null,
     tests_total: 2,
+    test_runs: [],
     created_at: '2026-10-11T00:00:00Z',
     judged_at: null,
     compile_message: null,
@@ -162,6 +164,7 @@ export function makeSummary(overrides: Partial<SubmissionSummary> = {}): Submiss
   const full = makeSubmission();
   return {
     id: full.id,
+    number: full.number,
     problem: full.problem,
     space: full.space,
     author: full.author,
@@ -172,6 +175,7 @@ export function makeSummary(overrides: Partial<SubmissionSummary> = {}): Submiss
     memory_kb: full.memory_kb,
     tests_passed: full.tests_passed,
     tests_total: full.tests_total,
+    test_runs: full.test_runs,
     created_at: full.created_at,
     judged_at: full.judged_at,
     ...overrides,
