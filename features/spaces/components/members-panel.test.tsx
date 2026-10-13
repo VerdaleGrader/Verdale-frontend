@@ -55,6 +55,7 @@ function renderPanel(current: Space, members: Member[], me = 'ada') {
     display_name: me,
     avatar_url: null,
     created_at: '2026-10-11T00:00:00Z',
+    legal: { acceptance_required: false, current_versions: { terms: '2026-10-13', privacy: '2026-10-13' } },
   };
   return render(
     <AuthProvider initial={{ status: 'authenticated', user }}>

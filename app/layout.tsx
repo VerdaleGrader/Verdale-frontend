@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
 import { IBM_Plex_Mono, IBM_Plex_Sans, IBM_Plex_Sans_Thai } from 'next/font/google';
+import { LegalGate } from '@/features/legal/components/legal-gate';
 import { Providers } from '@/components/providers';
+import { SiteFooter } from '@/components/layout/site-footer';
 import { SiteHeader } from '@/components/layout/site-header';
 import { THEME_INIT_SCRIPT } from '@/components/layout/theme-toggle';
 import './globals.css';
@@ -26,7 +28,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         {/* Apply a stored theme before first paint; a static string, no user input. */}
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
       </head>
-      <body className="min-h-screen antialiased">
+      <body className="flex min-h-screen flex-col antialiased">
         <a
           href="#main"
           className="bg-surface text-text focus:border-border-strong sr-only rounded-md px-3 py-2 focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[70] focus:border"
@@ -34,8 +36,10 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           Skip to content
         </a>
         <Providers>
+          <LegalGate />
           <SiteHeader />
           {children}
+          <SiteFooter />
         </Providers>
       </body>
     </html>

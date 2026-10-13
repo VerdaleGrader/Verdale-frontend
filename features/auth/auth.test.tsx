@@ -66,4 +66,25 @@ describe('LoginCard', () => {
     render(<LoginCard />);
     expect(await screen.findByText(/No sign-in method is configured/)).toBeTruthy();
   });
+  it('says that signing in means accepting the Terms and the Privacy Policy, with links that open in a new tab (GRD-122)', async () => {
+    vi.resetModules();
+    vi.doMock('./api/auth.api', async (original) => ({
+      ...(await original<typeof import('./api/auth.api')>()),
+      authApi: { providers: async () => ['github'] },
+    }));
+    window.history.pushState({}, '', '/login');
+    const { LoginCard } = await import('./components/login-card');
+    const { container } = render(<LoginCard />);
+    await screen.findByRole('link', { name: 'Continue with GitHub' });
+    const note = container.querySelector('.vd-consent');
+    expect(note?.textContent).toBe('การล็อกอินถือว่าท่านยอมรับข้อกำหนดและนโยบายความเป็นส่วนตัว');
+    const terms = screen.getByRole('link', { name: 'ข้อกำหนด' });
+    const privacy = screen.getByRole('link', { name: 'นโยบายความเป็นส่วนตัว' });
+    expect(terms.getAttribute('href')).toBe('/terms');
+    expect(privacy.getAttribute('href')).toBe('/privacy');
+    for (const link of [terms, privacy]) {
+      expect(link.getAttribute('target')).toBe('_blank');
+      expect(link.getAttribute('rel')).toContain('noopener');
+    }
+  });
 });

@@ -32,6 +32,7 @@ export const USER = {
   display_name: 'Sol',
   avatar_url: null,
   created_at: '2026-10-11T00:00:00Z',
+  legal: { acceptance_required: false, current_versions: { terms: '2026-10-13', privacy: '2026-10-13' } },
 };
 
 export const AUTHENTICATED: AuthState = { status: 'authenticated', user: USER };

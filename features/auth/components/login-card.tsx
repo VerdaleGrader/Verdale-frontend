@@ -7,6 +7,7 @@ import { buttonVariants } from '@/components/ui/button';
 import { useApiQuery } from '@/lib/use-api-query';
 import { cn } from '@/lib/utils';
 import { authApi, safeNext, signInUrl, type OAuthProvider } from '../api/auth.api';
+import { ConsentNote } from './consent-note';
 
 const PROVIDER_LABELS: Record<OAuthProvider, string> = { github: 'GitHub', google: 'Google' };
 
@@ -63,6 +64,8 @@ function LoginCardContent() {
           ))}
         </div>
       )}
+
+      <ConsentNote />
     </section>
   );
 }
