@@ -12,9 +12,9 @@ export function ProgressBar({ progress, label }: { progress: Progress; label: st
         aria-valuemax={progress.total}
         aria-valuenow={progress.solved}
         aria-valuetext={progressText(progress)}
-        className="vd-progress"
+        className="vd-bar"
       >
-        <span className="vd-progress__fill" style={{ width: `${percent}%` }} />
+        <span className="vd-bar__fill" style={{ width: `${percent}%` }} />
       </span>
       <span className="text-small text-text-muted">{progressText(progress)}</span>
     </div>

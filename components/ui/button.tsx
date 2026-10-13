@@ -1,4 +1,5 @@
 import * as React from 'react';
+import Link from 'next/link';
 import { cva, type VariantProps } from 'class-variance-authority';
 import { Slot } from 'radix-ui';
 import { cn } from '@/lib/utils';
@@ -38,4 +39,14 @@ function Button({
   return <Component data-slot="button" className={cn(buttonVariants({ variant, size, className }))} {...props} />;
 }
 
-export { Button, buttonVariants };
+/** A link that looks like a Button: use it for navigation, so it is a real `a` and not a `button`. */
+function ButtonLink({
+  className,
+  variant,
+  size,
+  ...props
+}: React.ComponentProps<typeof Link> & VariantProps<typeof buttonVariants>) {
+  return <Link data-slot="button" className={cn(buttonVariants({ variant, size, className }))} {...props} />;
+}
+
+export { Button, ButtonLink, buttonVariants };

@@ -222,6 +222,22 @@
   color-scheme: light;
 }
 
+@utility text-display-xl {
+  font-family: var(--font-sans);
+  font-size: 56px;
+  line-height: 60px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+@utility text-display-lg {
+  font-family: var(--font-sans);
+  font-size: 36px;
+  line-height: 44px;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+}
+
 @utility text-display {
   font-family: var(--font-sans);
   font-size: 32px;
@@ -249,6 +265,13 @@
   font-size: 16px;
   line-height: 24px;
   font-weight: 600;
+}
+
+@utility text-lead {
+  font-family: var(--font-sans);
+  font-size: 18px;
+  line-height: 28px;
+  font-weight: 400;
 }
 
 @utility text-prose {

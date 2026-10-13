@@ -1981,7 +1981,7 @@
 }
 
 /* Progress bar (GRD-84): a track and a fill; the numbers are always written next to it, never colour alone. */
-.vd-progress {
+.vd-bar {
   display: block;
   width: 100%;
   height: 6px;
@@ -1990,7 +1990,7 @@
   background: var(--surface-sunken);
   border: 1px solid var(--border);
 }
-.vd-progress__fill {
+.vd-bar__fill {
   display: block;
   height: 100%;
   background: var(--primary);
