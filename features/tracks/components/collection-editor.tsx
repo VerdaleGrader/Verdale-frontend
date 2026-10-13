@@ -49,6 +49,10 @@ function Editor({ editable }: { editable: boolean }) {
   const everything = useApiQuery(() => problemsApi.listAll(space.slug), `all-problems-${space.slug}`);
   // A fresher copy than the query's, set after every change so the lists never wait for a reload.
   const [latest, setLatest] = useState<CollectionDetail | null>(null);
+  // Unsaved problem membership and order (ids). Null means "as saved"; nothing is sent until Save.
+  const [draftIds, setDraftIds] = useState<string[] | null>(null);
+  const [savingProblems, setSavingProblems] = useState(false);
+  const toast = useToast();
 
   if (collection.status === 'loading' || everything.status === 'loading')
     return <Loading label="Loading the Collection" />;
@@ -71,21 +75,48 @@ function Editor({ editable }: { editable: boolean }) {
   if (everything.status === 'error') return <ErrorState error={everything.error} onRetry={everything.reload} />;
 
   const data = latest && latest.id === collection.data.id ? latest : collection.data;
-  const inside = new Set(data.problems.map((problem) => problem.id));
-  const selected: ProblemItem[] = data.problems.map((problem) => ({
-    id: problem.id,
-    slug: problem.slug,
-    title: problem.title,
-    status: problem.status,
-  }));
+  const savedIds = data.problems.map((problem) => problem.id);
+  const currentIds = draftIds ?? savedIds;
+  const everyProblem = new Map<string, ProblemItem>();
+  for (const problem of [...everything.data, ...data.problems]) {
+    everyProblem.set(problem.id, { id: problem.id, slug: problem.slug, title: problem.title, status: problem.status });
+  }
+  const inside = new Set(currentIds);
+  const selected: ProblemItem[] = currentIds.flatMap((id) => {
+    const found = everyProblem.get(id);
+    return found ? [found] : [];
+  });
   const available: ProblemItem[] = everything.data
     .filter((problem) => !inside.has(problem.id))
-    .map((problem) => ({ id: problem.id, slug: problem.slug, title: problem.title, status: problem.status }));
-  const slugOf = (ids: string[]) =>
-    ids.flatMap((id) => {
-      const found = [...available, ...selected].find((problem) => problem.id === id);
-      return found ? [found.slug] : [];
-    });
+    .map((problem) => everyProblem.get(problem.id)!);
+  const dirty = draftIds !== null && draftIds.join('|') !== savedIds.join('|');
+
+  async function saveProblems() {
+    if (!draftIds) return;
+    const savedSet = new Set(savedIds);
+    const draftSet = new Set(draftIds);
+    const removedSlugs = savedIds.filter((id) => !draftSet.has(id)).map((id) => everyProblem.get(id)!.slug);
+    const addedSlugs = draftIds.filter((id) => !savedSet.has(id)).map((id) => everyProblem.get(id)!.slug);
+    // What the server will hold once the removals and additions land: kept problems in their old order, then the new ones.
+    const afterMembership = [...savedIds.filter((id) => draftSet.has(id)), ...draftIds.filter((id) => !savedSet.has(id))];
+    setSavingProblems(true);
+    try {
+      let result: CollectionDetail = data;
+      if (removedSlugs.length > 0) result = await tracksApi.removeProblems(space.slug, data.slug, removedSlugs);
+      if (addedSlugs.length > 0) result = await tracksApi.addProblems(space.slug, data.slug, addedSlugs);
+      if (draftIds.join('|') !== afterMembership.join('|'))
+        result = await tracksApi.reorderProblems(space.slug, data.slug, draftIds);
+      setLatest(result);
+      setDraftIds(null);
+      toast({ tone: 'success', title: 'Problems saved' });
+    } catch (caught) {
+      // Some steps may have gone through; reload so the lists show the truth and the draft is kept for a retry.
+      collection.reload();
+      toast({ tone: 'danger', title: 'Could not save the problems', description: errorMessage(caught) });
+    } finally {
+      setSavingProblems(false);
+    }
+  }
 
   return (
     <div className="flex flex-col gap-8">
@@ -133,7 +164,7 @@ function Editor({ editable }: { editable: boolean }) {
           selected={selected}
           availableLabel="Not in this Collection"
           selectedLabel="In this Collection"
-          disabled={!editable}
+          disabled={!editable || savingProblems}
           itemLabel={(problem) => problem.title}
           searchText={(problem) => `${problem.title} ${problem.slug}`}
           renderItem={(problem) => (
@@ -147,10 +178,23 @@ function Editor({ editable }: { editable: boolean }) {
               )}
             </span>
           )}
-          onAdd={async (ids) => setLatest(await tracksApi.addProblems(space.slug, data.slug, slugOf(ids)))}
-          onRemove={async (ids) => setLatest(await tracksApi.removeProblems(space.slug, data.slug, slugOf(ids)))}
-          onReorder={async (ids) => setLatest(await tracksApi.reorderProblems(space.slug, data.slug, ids))}
+          onAdd={async (ids) => setDraftIds([...currentIds, ...ids.filter((id) => !inside.has(id))])}
+          onRemove={async (ids) => setDraftIds(currentIds.filter((id) => !ids.includes(id)))}
+          onReorder={async (ids) => setDraftIds(ids)}
         />
+        {editable && (
+          <div className="flex flex-wrap items-center gap-2">
+            <Button variant="primary" disabled={!dirty || savingProblems} onClick={() => void saveProblems()}>
+              {savingProblems ? 'Saving…' : 'Save problems'}
+            </Button>
+            {dirty && (
+              <Button disabled={savingProblems} onClick={() => setDraftIds(null)}>
+                Discard changes
+              </Button>
+            )}
+            {dirty && <span className="text-small text-text-muted">Unsaved changes</span>}
+          </div>
+        )}
       </section>
     </div>
   );
