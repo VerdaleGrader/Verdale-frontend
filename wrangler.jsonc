@@ -9,5 +9,5 @@
     "binding": "ASSETS",
   },
   "observability": { "enabled": true },
-  "vars": { "CORE_API_URL": "https://api-verdale.kanonkc.com" }
+  "vars": { "CORE_API_URL": "https://api-verdale.kanonkc.com" },
 }
