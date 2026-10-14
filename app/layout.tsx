@@ -1,4 +1,6 @@
 import type { Metadata } from 'next';
+import { NextIntlClientProvider } from 'next-intl';
+import { getLocale, getTranslations } from 'next-intl/server';
 import { IBM_Plex_Mono, IBM_Plex_Sans, IBM_Plex_Sans_Thai } from 'next/font/google';
 import { LegalGate } from '@/features/legal/components/legal-gate';
 import { Providers } from '@/components/providers';
@@ -12,15 +14,16 @@ const plexSans = IBM_Plex_Sans({ subsets: ['latin'], weight: ['400', '500', '600
 const plexThai = IBM_Plex_Sans_Thai({ subsets: ['thai'], weight: ['400', '500', '600'], variable: '--font-plex-thai' });
 const plexMono = IBM_Plex_Mono({ subsets: ['latin'], weight: ['400', '500'], variable: '--font-plex-mono' });
 
-export const metadata: Metadata = {
-  title: 'Verdale',
-  description: 'Write a problem, prove it with a reference solution, and let others solve it.',
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations('Meta');
+  return { title: 'Verdale', description: t('description') };
+}
 
-export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+  const [locale, t] = await Promise.all([getLocale(), getTranslations('Layout')]);
   return (
     <html
-      lang="en"
+      lang={locale}
       className={`${plexSans.variable} ${plexThai.variable} ${plexMono.variable}`}
       suppressHydrationWarning
     >
@@ -33,14 +36,16 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           href="#main"
           className="bg-surface text-text focus:border-border-strong sr-only rounded-md px-3 py-2 focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[70] focus:border"
         >
-          Skip to content
+          {t('skipToContent')}
         </a>
-        <Providers>
-          <LegalGate />
-          <SiteHeader />
-          {children}
-          <SiteFooter />
-        </Providers>
+        <NextIntlClientProvider>
+          <Providers>
+            <LegalGate />
+            <SiteHeader />
+            {children}
+            <SiteFooter />
+          </Providers>
+        </NextIntlClientProvider>
       </body>
     </html>
   );

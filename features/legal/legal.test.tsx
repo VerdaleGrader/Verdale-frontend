@@ -2,6 +2,7 @@ import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AuthProvider, type AuthState } from '@/features/auth/hooks/auth-provider';
+import { testLocale } from '@/i18n/testing';
 import { ApiError } from '@/lib/api';
 import { LEGAL_VERSIONS } from '@/lib/legal';
 import { USER } from '../test-support';
@@ -84,17 +85,36 @@ describe('AcceptTermsCard', () => {
       </AuthProvider>
     );
 
-  it('shows both documents with their dates, opening in a new tab', () => {
-    renderCard(stale(true));
-    expect(screen.getByRole('heading', { name: 'Terms and Privacy Policy updated' })).toBeTruthy();
-    const terms = screen.getByRole('link', { name: 'ข้อกำหนดและเงื่อนไขการใช้บริการ' });
-    const privacy = screen.getByRole('link', { name: 'นโยบายความเป็นส่วนตัว' });
-    expect(terms.getAttribute('href')).toBe('/terms');
-    expect(privacy.getAttribute('href')).toBe('/privacy');
-    expect(terms.getAttribute('target')).toBe('_blank');
-    expect(privacy.getAttribute('target')).toBe('_blank');
-    expect(screen.getAllByText('มีผลใช้บังคับตั้งแต่วันที่ 13 ตุลาคม 2569')).toHaveLength(2);
-  });
+  it.each([
+    [
+      'en',
+      'Terms and Privacy Policy updated',
+      'Terms and Conditions of Use',
+      'Privacy Policy',
+      'Effective as of 13 October 2026',
+    ],
+    [
+      'th',
+      'ข้อกำหนดและนโยบายความเป็นส่วนตัวมีการปรับปรุง',
+      'ข้อกำหนดและเงื่อนไขการใช้บริการ',
+      'นโยบายความเป็นส่วนตัว',
+      'มีผลใช้บังคับตั้งแต่วันที่ 13 ตุลาคม 2569',
+    ],
+  ] as const)(
+    'shows both documents with their dates in %s, opening in a new tab',
+    (locale, title, termsName, privacyName, date) => {
+      testLocale.current = locale;
+      renderCard(stale(true));
+      expect(screen.getByRole('heading', { name: title })).toBeTruthy();
+      const terms = screen.getByRole('link', { name: termsName });
+      const privacy = screen.getByRole('link', { name: privacyName });
+      expect(terms.getAttribute('href')).toBe('/terms');
+      expect(privacy.getAttribute('href')).toBe('/privacy');
+      expect(terms.getAttribute('target')).toBe('_blank');
+      expect(privacy.getAttribute('target')).toBe('_blank');
+      expect(screen.getAllByText(date)).toHaveLength(2);
+    }
+  );
 
   it('accepting records the versions shown, reloads the account and goes where the person was going', async () => {
     nav.search = '?next=%2Fspaces%2Fteam';

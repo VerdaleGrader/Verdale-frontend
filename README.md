@@ -107,7 +107,7 @@ Reordering uses `@dnd-kit/core` 6, `@dnd-kit/sortable` 10 and `@dnd-kit/utilitie
 - One primary button per view. Borders separate surfaces; `shadow-overlay` is only for things that float.
 - A verdict or status is never colour alone: icon + code + label.
 - Light theme first; dark follows `prefers-color-scheme` or `data-theme="dark"` on `<html>`.
-- Interface copy is English, sentence case, no exclamation marks. Fonts: IBM Plex Sans (+ Sans Thai for problem content), IBM Plex Mono.
+- Interface copy is English (source) and Thai, sentence case, no exclamation marks. See `docs/i18n.md`. Fonts: IBM Plex Sans (+ Sans Thai for problem content), IBM Plex Mono.
 
 ## Problems and solving (M3)
 

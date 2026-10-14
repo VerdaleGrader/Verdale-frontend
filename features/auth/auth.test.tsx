@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
+import { testLocale } from '@/i18n/testing';
 import { safeNext, signInUrl } from './api/auth.api';
 
 describe('sign-in links', () => {
@@ -66,25 +67,43 @@ describe('LoginCard', () => {
     render(<LoginCard />);
     expect(await screen.findByText(/No sign-in method is configured/)).toBeTruthy();
   });
-  it('says that signing in means accepting the Terms and the Privacy Policy, with links that open in a new tab (GRD-122)', async () => {
-    vi.resetModules();
-    vi.doMock('./api/auth.api', async (original) => ({
-      ...(await original<typeof import('./api/auth.api')>()),
-      authApi: { providers: async () => ['github'] },
-    }));
-    window.history.pushState({}, '', '/login');
-    const { LoginCard } = await import('./components/login-card');
-    const { container } = render(<LoginCard />);
-    await screen.findByRole('link', { name: 'Continue with GitHub' });
-    const note = container.querySelector('.vd-consent');
-    expect(note?.textContent).toBe('การล็อกอินถือว่าท่านยอมรับข้อกำหนดและนโยบายความเป็นส่วนตัว');
-    const terms = screen.getByRole('link', { name: 'ข้อกำหนด' });
-    const privacy = screen.getByRole('link', { name: 'นโยบายความเป็นส่วนตัว' });
-    expect(terms.getAttribute('href')).toBe('/terms');
-    expect(privacy.getAttribute('href')).toBe('/privacy');
-    for (const link of [terms, privacy]) {
-      expect(link.getAttribute('target')).toBe('_blank');
-      expect(link.getAttribute('rel')).toContain('noopener');
+  it.each([
+    [
+      'en',
+      'Continue with GitHub',
+      'Signing in means you accept the Terms and the Privacy Policy.',
+      'Terms',
+      'Privacy Policy',
+    ],
+    [
+      'th',
+      'ดำเนินการต่อด้วย GitHub',
+      'การล็อกอินถือว่าท่านยอมรับข้อกำหนดและนโยบายความเป็นส่วนตัว',
+      'ข้อกำหนด',
+      'นโยบายความเป็นส่วนตัว',
+    ],
+  ] as const)(
+    'says in %s that signing in means accepting the Terms and the Privacy Policy, with links that open in a new tab (GRD-122)',
+    async (locale, button, sentence, termsName, privacyName) => {
+      vi.resetModules();
+      vi.doMock('./api/auth.api', async (original) => ({
+        ...(await original<typeof import('./api/auth.api')>()),
+        authApi: { providers: async () => ['github'] },
+      }));
+      testLocale.current = locale;
+      window.history.pushState({}, '', '/login');
+      const { LoginCard } = await import('./components/login-card');
+      const { container } = render(<LoginCard />);
+      await screen.findByRole('link', { name: button });
+      expect(container.querySelector('.vd-consent')?.textContent).toBe(sentence);
+      const terms = screen.getByRole('link', { name: termsName });
+      const privacy = screen.getByRole('link', { name: privacyName });
+      expect(terms.getAttribute('href')).toBe('/terms');
+      expect(privacy.getAttribute('href')).toBe('/privacy');
+      for (const link of [terms, privacy]) {
+        expect(link.getAttribute('target')).toBe('_blank');
+        expect(link.getAttribute('rel')).toContain('noopener');
+      }
     }
-  });
+  );
 });

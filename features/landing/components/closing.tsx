@@ -1,3 +1,4 @@
+import { useTranslations } from 'next-intl';
 import { BrandLogo } from '@/components/brand-logo';
 import { LandingActions } from './landing-actions';
 
@@ -37,17 +38,15 @@ function Mark() {
 }
 
 export function ClosingCta() {
+  const t = useTranslations('Landing.closing');
   return (
     <section aria-labelledby="cta-title" className="border-border border-t">
       <div className="mx-auto flex w-full max-w-[1200px] flex-wrap items-center justify-between gap-12 px-6 py-16 md:px-8 md:py-24">
         <div className="flex min-w-0 flex-[1_1_440px] flex-col gap-5">
           <h2 id="cta-title" className="text-display md:text-display-lg">
-            Start with one problem.
+            {t('title')}
           </h2>
-          <p className="text-prose text-text-muted max-w-[52ch]">
-            Sign in, create a Space and publish when your solution passes. The people you invite can start solving right
-            away.
-          </p>
+          <p className="text-prose text-text-muted max-w-[52ch]">{t('text')}</p>
           <div className="pt-1">
             <LandingActions />
           </div>
@@ -62,12 +61,13 @@ export function ClosingCta() {
 
 // Terms, Privacy and Contact are left out until those pages exist.
 export function LandingFooter() {
+  const t = useTranslations('Landing.closing');
   return (
     <footer className="border-border bg-surface border-t">
       <div className="mx-auto flex w-full max-w-[1200px] flex-wrap items-center justify-between gap-4 px-6 py-8 md:px-8">
         <div className="flex flex-col gap-1">
           <BrandLogo className="!text-body-strong !font-semibold" />
-          <span className="text-small text-text-muted">Write a problem. Prove it. Let anyone solve it.</span>
+          <span className="text-small text-text-muted">{t('tagline')}</span>
         </div>
         <span className="text-small text-text-muted">© 2026 Verdale</span>
       </div>
