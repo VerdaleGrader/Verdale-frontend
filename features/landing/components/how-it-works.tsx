@@ -1,3 +1,4 @@
+import { useTranslations } from 'next-intl';
 import { Badge } from '@/components/ui/badge';
 import { TestProgress } from '@/components/grader/test-progress';
 import { VerdictBadge } from '@/components/grader/verdict-badge';
@@ -6,12 +7,13 @@ import { Section, SectionHeading } from './section';
 
 const ALL_AC: Verdict[] = Array.from({ length: 12 }, () => 'AC');
 
+// Labels are keys of messages "Landing.how.limits"; the figures only illustrate the page.
 const LIMITS = [
-  ['Time limit', '1 s'],
-  ['Memory', '256 MB'],
-  ['Testcases', '12'],
-  ['Visible', '2'],
-];
+  ['time', '1 s'],
+  ['memory', '256 MB'],
+  ['testcases', '12'],
+  ['visible', '2'],
+] as const;
 
 function Step({
   number,
@@ -35,55 +37,36 @@ function Step({
 }
 
 export function HowItWorks() {
+  const t = useTranslations('Landing.how');
   return (
     <Section id="how" titleId="how-title">
-      <SectionHeading
-        eyebrow="How it works"
-        titleId="how-title"
-        title="From a blank page to a judged submission in four steps."
-      />
+      <SectionHeading eyebrow={t('eyebrow')} titleId="how-title" title={t('title')} />
       <ol className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-        <Step
-          number="01"
-          title="Write it"
-          text="Write the statement in Markdown with math, set time and memory limits, and add your testcases."
-        >
+        <Step number="01" title={t('write.title')} text={t('write.text')}>
           <dl className="text-mono-label grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5">
             {LIMITS.map(([name, value]) => (
               <div key={name} className="contents">
-                <dt className="text-text-muted">{name}</dt>
+                <dt className="text-text-muted">{t(`limits.${name}`)}</dt>
                 <dd className="text-right">{value}</dd>
               </div>
             ))}
           </dl>
         </Step>
-        <Step
-          number="02"
-          title="Prove it"
-          text="Attach a reference solution. The problem can only be published once it passes every one of your tests."
-        >
+        <Step number="02" title={t('prove.title')} text={t('prove.text')}>
           <TestProgress results={ALL_AC} />
         </Step>
-        <Step
-          number="03"
-          title="Publish it"
-          text="Put the problem in a Collection, add it to a Track, and invite people by name or with a link."
-        >
+        <Step number="03" title={t('publish.title')} text={t('publish.text')}>
           <div className="flex flex-col gap-2">
             <div className="flex items-center justify-between gap-2">
               <span className="text-body-strong">Pairs with sum K</span>
-              <Badge tone="brand">Published</Badge>
+              <Badge tone="brand">{t('publish.badge')}</Badge>
             </div>
             <span className="text-caption text-text-muted">Week 2 · Hashing / Warm-up</span>
           </div>
         </Step>
-        <Step
-          number="04"
-          title="Solve it"
-          text="Solvers submit code and get a verdict for every test, with the time and memory it used."
-        >
+        <Step number="04" title={t('solve.title')} text={t('solve.text')}>
           <div className="flex flex-col items-start gap-2">
-            <VerdictBadge verdict="WA" detail="Wrong answer on test 4" />
+            <VerdictBadge verdict="WA" detail={t('solve.wrongAnswer')} />
             <VerdictBadge verdict="AC" />
           </div>
         </Step>

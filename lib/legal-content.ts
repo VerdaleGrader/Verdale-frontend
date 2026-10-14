@@ -1,11 +1,11 @@
-import { readFileSync } from 'node:fs';
-import path from 'node:path';
-import { LEGAL_DOCUMENTS, type LegalDocumentKey } from '@/lib/legal';
+import type { Locale } from '@/i18n/config';
+import type { LegalDocumentKey } from '@/lib/legal';
+import { LEGAL_SOURCES } from '@/lib/legal-bundle.gen';
 
 export interface LegalSection {
   /** Anchor id: "section-4". */
   id: string;
-  /** Heading as printed: "4. วัตถุประสงค์และฐานทางกฎหมาย". */
+  /** Heading as printed: "4. Purposes and legal bases". */
   title: string;
 }
 
@@ -41,10 +41,9 @@ export function parseLegalMarkdown(markdown: string): LegalContent {
 }
 
 /**
- * Reads content/legal/<document>.md. Server only, and only at build time: the
- * pages are static, so nothing reads the disk while serving (Cloudflare).
+ * The text of a document in a language. It comes from content/legal/<locale>/<document>.md through
+ * lib/legal-bundle.gen.ts, because a Worker cannot read files while serving.
  */
-export function loadLegalContent(key: LegalDocumentKey): LegalContent {
-  const file = path.join(process.cwd(), 'content', 'legal', LEGAL_DOCUMENTS[key].file);
-  return parseLegalMarkdown(readFileSync(file, 'utf8'));
+export function loadLegalContent(key: LegalDocumentKey, locale: Locale): LegalContent {
+  return parseLegalMarkdown(LEGAL_SOURCES[locale][key]);
 }

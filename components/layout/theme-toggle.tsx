@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Monitor, Moon, Sun } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { Tooltip } from '@/components/ui/tooltip';
 
@@ -9,7 +10,6 @@ type Preference = 'system' | 'light' | 'dark';
 const ORDER: Preference[] = ['system', 'light', 'dark'];
 const STORAGE_KEY = 'verdale-theme';
 const ICONS = { system: Monitor, light: Sun, dark: Moon };
-const LABELS = { system: 'Theme: follow system', light: 'Theme: light', dark: 'Theme: dark' };
 
 function apply(preference: Preference) {
   // "system" removes the attribute so tokens.css follows prefers-color-scheme.
@@ -21,6 +21,7 @@ function apply(preference: Preference) {
 export const THEME_INIT_SCRIPT = `try{var t=localStorage.getItem('${STORAGE_KEY}');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t)}catch(e){}`;
 
 export function ThemeToggle() {
+  const t = useTranslations('Theme');
   const [preference, setPreference] = useState<Preference>('system');
 
   useEffect(() => {
@@ -35,12 +36,13 @@ export function ThemeToggle() {
   }, []);
 
   const Icon = ICONS[preference];
+  const label = t(preference);
   return (
-    <Tooltip label={LABELS[preference]} side="bottom">
+    <Tooltip label={label} side="bottom">
       <Button
         variant="ghost"
         size="icon"
-        aria-label={LABELS[preference]}
+        aria-label={label}
         onClick={() => {
           const next = ORDER[(ORDER.indexOf(preference) + 1) % ORDER.length]!;
           setPreference(next);

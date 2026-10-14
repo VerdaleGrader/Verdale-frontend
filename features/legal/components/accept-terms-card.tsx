@@ -1,9 +1,11 @@
 'use client';
 
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useLocale, useTranslations } from 'next-intl';
 import { Suspense, useEffect, useState } from 'react';
 import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
+import type { Locale } from '@/i18n/config';
 import { useAuth } from '@/features/auth/hooks/auth-provider';
 import { errorMessage } from '@/lib/api';
 import { effectiveLine, LEGAL_DOCUMENTS, LEGAL_VERSIONS, safeInternalPath, type LegalDocumentKey } from '@/lib/legal';
@@ -12,6 +14,9 @@ import { legalApi } from '../api/legal.api';
 const KEYS: LegalDocumentKey[] = ['terms', 'privacy'];
 
 function AcceptTermsContent() {
+  const t = useTranslations('AcceptTerms');
+  const names = useTranslations('Legal.names');
+  const locale = useLocale() as Locale;
   const { auth, refresh, logout } = useAuth();
   const router = useRouter();
   const next = safeInternalPath(useSearchParams().get('next'));
@@ -27,12 +32,12 @@ function AcceptTermsContent() {
   }, [auth.status, nothingToAccept, next, router]);
 
   if (auth.status === 'loading' || auth.status === 'anonymous' || nothingToAccept) {
-    return <p className="text-small text-text-muted">Loading…</p>;
+    return <p className="text-small text-text-muted">{t('loading')}</p>;
   }
   if (auth.status === 'unavailable') {
     return (
       <p role="alert" className="text-small text-danger">
-        Could not reach the server. Reload the page to try again.
+        {t('unavailable')}
       </p>
     );
   }
@@ -57,14 +62,12 @@ function AcceptTermsContent() {
     >
       <header className="flex flex-col gap-1">
         <h1 id="accept-terms-title" className="text-h2">
-          Terms and Privacy Policy updated
+          {t('title')}
         </h1>
-        <p className="text-small text-text-muted">
-          Read the documents below, then accept them to keep using Verdale. You can also log out.
-        </p>
+        <p className="text-small text-text-muted">{t('intro')}</p>
       </header>
 
-      <ul className="flex flex-col gap-2" lang="th">
+      <ul className="flex flex-col gap-2">
         {KEYS.map((key) => (
           <li key={key} className="border-border bg-surface-sunken flex flex-col gap-0.5 rounded-md border px-3 py-2">
             <a
@@ -73,27 +76,24 @@ function AcceptTermsContent() {
               rel="noopener noreferrer"
               className="text-brand-text text-body-strong underline underline-offset-2"
             >
-              {LEGAL_DOCUMENTS[key].name}
+              {names(key)}
             </a>
-            <span className="text-small text-text-muted">{effectiveLine(LEGAL_VERSIONS[key])}</span>
+            <span className="text-small text-text-muted">{effectiveLine(LEGAL_VERSIONS[key], locale)}</span>
           </li>
         ))}
       </ul>
 
-      <p className="vd-consent" lang="th">
-        การกดยอมรับถือว่าท่านได้อ่านและยอมรับ{LEGAL_DOCUMENTS.terms.name}และ{LEGAL_DOCUMENTS.privacy.name}
-        ฉบับข้างต้น
-      </p>
+      <p className="vd-consent">{t('consent', { terms: names('terms'), privacy: names('privacy') })}</p>
 
       {error && (
-        <Banner tone="danger" title="Could not record your answer">
+        <Banner tone="danger" title={t('errorTitle')}>
           {error}
         </Banner>
       )}
 
       <div className="flex flex-wrap gap-2">
         <Button variant="primary" size="lg" onClick={accept} disabled={busy} aria-busy={busy}>
-          Accept and continue
+          {t('accept')}
         </Button>
         <Button
           variant="secondary"
@@ -104,7 +104,7 @@ function AcceptTermsContent() {
             router.push('/');
           }}
         >
-          Log out
+          {t('logOut')}
         </Button>
       </div>
     </section>

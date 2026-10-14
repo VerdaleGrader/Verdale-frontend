@@ -1,8 +1,11 @@
 import type { Metadata } from 'next';
+import { getTranslations } from 'next-intl/server';
 import { PageContainer } from '@/components/layout/page';
 import { AcceptTermsCard } from '@/features/legal/components/accept-terms-card';
 
-export const metadata: Metadata = { title: 'Accept the updated terms · Verdale', robots: { index: false } };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getTranslations('Meta'))('acceptTerms'), robots: { index: false } };
+}
 
 export default function AcceptTermsPage() {
   return (

@@ -1,0 +1,221 @@
+{
+  "Meta": {
+    "description": "Write a problem, prove it with a reference solution, and let others solve it.",
+    "terms": "Terms · Verdale",
+    "privacy": "Privacy · Verdale",
+    "login": "Log in · Verdale",
+    "acceptTerms": "Accept the updated terms · Verdale",
+    "notFound": "Page not found · Verdale"
+  },
+  "Layout": {
+    "skipToContent": "Skip to content",
+    "homeLabel": "Verdale home",
+    "mainNav": "Main",
+    "mySpaces": "My Spaces",
+    "explore": "Explore",
+    "legalNav": "Legal",
+    "terms": "Terms",
+    "privacy": "Privacy"
+  },
+  "Theme": {
+    "system": "Theme: follow system",
+    "light": "Theme: light",
+    "dark": "Theme: dark"
+  },
+  "Language": {
+    "switchTo": "Switch language to {language}",
+    "targetName": "ไทย",
+    "targetCode": "th"
+  },
+  "UserMenu": {
+    "logIn": "Log in",
+    "profileSettings": "Profile settings for {name}",
+    "logOut": "Log out"
+  },
+  "Login": {
+    "title": "Log in or sign up",
+    "intro": "Use your GitHub or Google account. A new account is created the first time you sign in.",
+    "errors": {
+      "access_denied": "Sign-in was cancelled. Choose a provider to try again.",
+      "bad_request": "The sign-in attempt did not complete. Try again; if it keeps failing, check that your e-mail address is verified at the provider.",
+      "not_found": "That sign-in method is not available.",
+      "other": "Sign-in failed. Try again."
+    },
+    "loadingProviders": "Loading sign-in options…",
+    "providersError": "Could not load sign-in options. Reload the page to try again.",
+    "noProviders": "No sign-in method is configured on this server yet.",
+    "continueWith": "Continue with {provider}",
+    "consent": "Signing in means you accept the <terms>Terms</terms> and the <privacy>Privacy Policy</privacy>."
+  },
+  "Legal": {
+    "names": {
+      "terms": "Terms and Conditions of Use",
+      "privacy": "Privacy Policy"
+    },
+    "contents": "Contents",
+    "translationNotice": "This is an English translation of the Thai original, provided for convenience."
+  },
+  "AcceptTerms": {
+    "loading": "Loading…",
+    "unavailable": "Could not reach the server. Reload the page to try again.",
+    "title": "Terms and Privacy Policy updated",
+    "intro": "Read the documents below, then accept them to keep using Verdale. You can also log out.",
+    "consent": "By accepting, you confirm that you have read and accept the {terms} and the {privacy} above.",
+    "errorTitle": "Could not record your answer",
+    "accept": "Accept and continue",
+    "logOut": "Log out"
+  },
+  "Errors": {
+    "notFoundTitle": "Page not found",
+    "notFoundText": "The address may be mistyped, or the page may be private or removed.",
+    "notFoundAction": "Go to the home page",
+    "errorTitle": "This page could not be shown",
+    "errorText": "An unexpected error occurred. Try again, and if it keeps happening, tell us what you were doing.",
+    "reference": "Reference: {digest}"
+  },
+  "Landing": {
+    "actions": {
+      "getStarted": "Get started",
+      "goToSpaces": "Go to my Spaces",
+      "explore": "Explore public Spaces"
+    },
+    "hero": {
+      "eyebrow": "Online judge · Multiple languages",
+      "title": "Write a problem. Prove it. Let anyone solve it.",
+      "lead": "Verdale is an online judge where the problems come from you. Publish one when your own solution passes every test, group problems into Tracks, and invite anyone to solve them.",
+      "signInHint": "Sign in with your GitHub or Google account.",
+      "previewLabel": "A Verdale solve page: C++ code in the editor and twelve tests judged one by one until the submission is Accepted.",
+      "max": "Max {time} · {memory}"
+    },
+    "sides": {
+      "eyebrow": "Two sides of one judge",
+      "title": "Built for the person who writes the problem and the person who solves it.",
+      "madeFor": "Made for",
+      "writers": {
+        "title": "For people who write problems",
+        "who": {
+          "teachers": "Teachers",
+          "organizers": "Contest organizers",
+          "leaders": "Club and camp leaders"
+        },
+        "points": {
+          "statements": "Statements in Markdown with math, or a PDF up to 10 pages",
+          "testcases": "Upload testcases and generate expected output from your own solution",
+          "publish": "Publish only when your reference solution passes every test",
+          "edit": "Edit after publishing: each change becomes a new version that is checked again"
+        }
+      },
+      "solvers": {
+        "title": "For people who solve them",
+        "who": {
+          "students": "Students",
+          "beginners": "Beginners learning to code",
+          "participants": "Contest participants"
+        },
+        "points": {
+          "statements": "Clear statements with samples you can copy in one click",
+          "samples": "Run the samples before you submit",
+          "failures": "See which test failed, with time and memory for each one",
+          "progress": "Follow your progress through every Track you join"
+        }
+      }
+    },
+    "how": {
+      "eyebrow": "How it works",
+      "title": "From a blank page to a judged submission in four steps.",
+      "limits": {
+        "time": "Time limit",
+        "memory": "Memory",
+        "testcases": "Testcases",
+        "visible": "Visible"
+      },
+      "write": {
+        "title": "Write it",
+        "text": "Write the statement in Markdown with math, set time and memory limits, and add your testcases."
+      },
+      "prove": {
+        "title": "Prove it",
+        "text": "Attach a reference solution. The problem can only be published once it passes every one of your tests."
+      },
+      "publish": {
+        "title": "Publish it",
+        "text": "Put the problem in a Collection, add it to a Track, and invite people by name or with a link.",
+        "badge": "Published"
+      },
+      "solve": {
+        "title": "Solve it",
+        "text": "Solvers submit code and get a verdict for every test, with the time and memory it used.",
+        "wrongAnswer": "Wrong answer on test 4"
+      }
+    },
+    "spaces": {
+      "eyebrow": "Spaces, Tracks and roles",
+      "title": "Run a class, a club or a camp from one Space.",
+      "lead": "A Space holds your problems and your people. Tracks are the paths solvers follow, Collections are ordered sets of problems inside them, and roles with permissions decide who can see and change what.",
+      "previewLabel": "Example Space Algorithms 101 with two Tracks. Week 2 Hashing holds the Collection Warm-up with three problems: one Accepted, one Wrong answer, one not tried.",
+      "space": "Space",
+      "track": "Track",
+      "collection": "Collection",
+      "private": "Private",
+      "week1Summary": "2 Collections · 7 problems",
+      "solvedCount": "{done} of {total} solved",
+      "notTried": "Not tried",
+      "note": "A Collection can sit in several Tracks, and a problem in several Collections. Solvers see only the Tracks they belong to.",
+      "accessTitle": "The right access for everyone",
+      "roles": {
+        "roles": {
+          "name": "Roles",
+          "text": "Each member of a Space has a role, from managing the whole Space to only solving problems."
+        },
+        "permissions": {
+          "name": "Permissions",
+          "text": "A role sets what someone can change, such as members, problems and testcases, and what they can see."
+        },
+        "trackAccess": {
+          "name": "Track access",
+          "text": "Solvers see only the Tracks they belong to, and hidden testcases stay hidden from them."
+        }
+      },
+      "invite": "Invite people one by one or with a link that expires. Revoke a link at any time."
+    },
+    "judge": {
+      "eyebrow": "Judge and safety",
+      "title": "A judge you can trust with hidden tests.",
+      "lead": "Every submission and every reference solution runs in the same isolated sandbox, so a verdict means the same thing for everyone.",
+      "features": {
+        "languages": {
+          "title": "Multiple languages",
+          "text": "Solve in the language you prefer. Every language is compiled and run by the same judge."
+        },
+        "sandbox": {
+          "title": "Sandboxed runs",
+          "text": "Every run is isolated, with no network and hard limits on time, memory and processes."
+        },
+        "hidden": {
+          "title": "Hidden tests stay hidden",
+          "text": "Solvers see the visible samples. The other testcases never leave the server."
+        },
+        "oneJudge": {
+          "title": "One judge for both sides",
+          "text": "Your reference solution runs in the same sandbox as every submission."
+        },
+        "results": {
+          "title": "Results for every test",
+          "text": "Watch each test finish as it is judged, then see its time and memory."
+        },
+        "limits": {
+          "title": "Fair use limits",
+          "text": "Submissions are rate limited per person, so one busy solver cannot hold up the queue."
+        }
+      },
+      "verdictsTitle": "Eight verdicts, always in words",
+      "verdictsText": "Every result carries its name and an icon, never colour alone.",
+      "verdictsInfo": "What each verdict means"
+    },
+    "closing": {
+      "title": "Start with one problem.",
+      "text": "Sign in, create a Space and publish when your solution passes. The people you invite can start solving right away.",
+      "tagline": "Write a problem. Prove it. Let anyone solve it."
+    }
+  }
+}

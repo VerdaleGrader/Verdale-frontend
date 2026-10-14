@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useSyncExternalStore } from 'react';
+import { useTranslations } from 'next-intl';
 import { CodeEditorFrame } from '@/components/grader/code-editor-frame';
 import { TestProgress } from '@/components/grader/test-progress';
 import { VerdictBadge } from '@/components/grader/verdict-badge';
@@ -39,6 +40,7 @@ function useJudgingStep() {
 
 /** The sample data is made up: a problem name and figures that only illustrate the page. */
 function SolvePreview() {
+  const t = useTranslations('Landing.hero');
   const step = useJudgingStep();
   const done = step >= TOTAL;
   const results: Verdict[] = Array.from({ length: TOTAL }, (_, index) =>
@@ -48,7 +50,7 @@ function SolvePreview() {
   return (
     <div
       role="img"
-      aria-label="A Verdale solve page: C++ code in the editor and twelve tests judged one by one until the submission is Accepted."
+      aria-label={t('previewLabel')}
       className="bg-surface border-border overflow-hidden rounded-lg border"
     >
       {/* Presentation only: nothing inside takes focus or is read out separately. */}
@@ -111,7 +113,9 @@ function SolvePreview() {
           <TestProgress results={results} />
           <div className="flex min-h-7 flex-wrap items-center justify-between gap-3">
             <VerdictBadge verdict={verdict} />
-            {done && <span className="text-mono-label text-text-muted">Max 124 ms · 15.2 MB</span>}
+            {done && (
+              <span className="text-mono-label text-text-muted">{t('max', { time: '124 ms', memory: '15.2 MB' })}</span>
+            )}
           </div>
         </div>
       </div>
@@ -120,24 +124,22 @@ function SolvePreview() {
 }
 
 export function Hero() {
+  const t = useTranslations('Landing.hero');
   return (
     <section
       aria-labelledby="hero-title"
       className="mx-auto flex w-full max-w-[1200px] flex-wrap items-center gap-12 px-6 pt-16 pb-24 md:px-8"
     >
       <div className="flex min-w-0 flex-[1_1_440px] flex-col gap-6">
-        <p className="text-mono-label text-text-muted">Online judge · Multiple languages</p>
+        <p className="text-mono-label text-text-muted">{t('eyebrow')}</p>
         <h1 id="hero-title" className="text-display-lg lg:text-display-xl max-w-[14ch]">
-          Write a problem. Prove it. Let anyone solve it.
+          {t('title')}
         </h1>
-        <p className="text-lead text-text-muted max-w-[52ch]">
-          Verdale is an online judge where the problems come from you. Publish one when your own solution passes every
-          test, group problems into Tracks, and invite anyone to solve them.
-        </p>
+        <p className="text-lead text-text-muted max-w-[52ch]">{t('lead')}</p>
         <div className="pt-2">
           <LandingActions />
         </div>
-        <p className="text-small text-text-muted">Sign in with your GitHub or Google account.</p>
+        <p className="text-small text-text-muted">{t('signInHint')}</p>
       </div>
       <div className="min-w-0 flex-[1_1_520px]">
         <SolvePreview />

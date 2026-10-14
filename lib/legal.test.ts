@@ -1,15 +1,18 @@
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { LOCALES, type Locale } from '@/i18n/config';
 import {
   acceptTermsUrl,
+  effectiveDateTail,
   effectiveLine,
-  LEGAL_DOCUMENTS,
+  englishDate,
   LEGAL_VERSIONS,
   safeInternalPath,
   thaiDate,
   type LegalDocumentKey,
 } from './legal';
+import { LEGAL_SOURCES } from './legal-bundle.gen';
 import { loadLegalContent, parseLegalMarkdown, sectionId } from './legal-content';
 
 const KEYS: LegalDocumentKey[] = ['terms', 'privacy'];
@@ -30,11 +33,41 @@ describe('thaiDate', () => {
   });
 });
 
+describe('englishDate', () => {
+  it.each([
+    ['2026-10-13', '13 October 2026'],
+    ['2027-01-05', '5 January 2027'],
+  ])('%s -> %s', (version, expected) => {
+    expect(englishDate(version)).toBe(expected);
+  });
+
+  it('refuses anything that is not a version date', () => {
+    expect(() => englishDate('latest')).toThrow();
+  });
+});
+
+describe('the bundled text', () => {
+  it.each(LOCALES.flatMap((locale) => KEYS.map((key) => [locale, key] as const)))(
+    'lib/legal-bundle.gen.ts matches content/legal/%s/%s.md (run `npm run legal:generate`)',
+    (locale, key) => {
+      const file = readFileSync(path.join(root, 'content', 'legal', locale, `${key}.md`), 'utf8');
+      expect(LEGAL_SOURCES[locale][key]).toBe(file);
+    }
+  );
+});
+
 describe('the versions this build shows', () => {
-  it.each(KEYS)('%s is the effective date printed at the end of its document', (key) => {
-    const file = readFileSync(path.join(root, 'content', 'legal', LEGAL_DOCUMENTS[key].file), 'utf8').trimEnd();
-    expect(file.endsWith(`ตั้งแต่วันที่ ${thaiDate(LEGAL_VERSIONS[key])}`)).toBe(true);
-    expect(effectiveLine(LEGAL_VERSIONS[key])).toBe(`มีผลใช้บังคับตั้งแต่วันที่ ${thaiDate(LEGAL_VERSIONS[key])}`);
+  it.each(LOCALES.flatMap((locale) => KEYS.map((key) => [locale, key] as const)))(
+    '%s %s is the effective date printed at the end of its document',
+    (locale, key) => {
+      const file = readFileSync(path.join(root, 'content', 'legal', locale, `${key}.md`), 'utf8').trimEnd();
+      expect(file.endsWith(effectiveDateTail(LEGAL_VERSIONS[key], locale))).toBe(true);
+    }
+  );
+
+  it("the line under the title is in the reader's language", () => {
+    expect(effectiveLine('2026-10-13', 'th')).toBe('มีผลใช้บังคับตั้งแต่วันที่ 13 ตุลาคม 2569');
+    expect(effectiveLine('2026-10-13', 'en')).toBe('Effective as of 13 October 2026');
   });
 
   it('are ISO dates', () => {
@@ -42,10 +75,10 @@ describe('the versions this build shows', () => {
   });
 });
 
-describe('the documents', () => {
+describe.each(LOCALES)('the documents in %s', (locale: Locale) => {
   it('terms has 16 numbered sections and privacy 14, each with its own anchor', () => {
-    const terms = loadLegalContent('terms');
-    const privacy = loadLegalContent('privacy');
+    const terms = loadLegalContent('terms', locale);
+    const privacy = loadLegalContent('privacy', locale);
     expect(terms.sections).toHaveLength(16);
     expect(privacy.sections).toHaveLength(14);
     for (const content of [terms, privacy]) {
@@ -56,9 +89,31 @@ describe('the documents', () => {
     }
   });
 
+  it('say the same thing in both languages: same tables, same numbers, same contact', () => {
+    const own = loadLegalContent('privacy', locale).body;
+    const thai = loadLegalContent('privacy', 'th').body;
+    const rows = (text: string) => text.split('\n').filter((line) => line.startsWith('|')).length;
+    expect(rows(own)).toBe(rows(thai));
+    for (const key of KEYS) {
+      const body = loadLegalContent(key, locale).body;
+      expect(body).toContain('help@kanonkc.com');
+      expect(body).toMatch(/30/);
+    }
+    expect(loadLegalContent('terms', locale).body).toContain('verdale.kanonkc.com');
+  });
+
+  it('are kept as files that can be swapped for the final text: no placeholders left in them', () => {
+    for (const key of KEYS) {
+      const text = loadLegalContent(key, locale).body;
+      expect(text).not.toMatch(/TODO|\[\[|\]\]|XXX|lorem/i);
+    }
+  });
+});
+
+describe('the Thai documents', () => {
   it('state the facts the system keeps to', () => {
-    const terms = loadLegalContent('terms').body;
-    const privacy = loadLegalContent('privacy').body;
+    const terms = loadLegalContent('terms', 'th').body;
+    const privacy = loadLegalContent('privacy', 'th').body;
     expect(terms).toContain('verdale.kanonkc.com');
     expect(terms).toContain('กานน ชีวทรรศน์');
     expect(terms).toContain('help@kanonkc.com');
@@ -69,12 +124,18 @@ describe('the documents', () => {
     expect(privacy).toContain('ภายใน 30 วันหลังท่านลบบัญชี');
     expect(privacy).toContain('ไม่ใช้คุกกี้โฆษณาหรือเครื่องมือวิเคราะห์ของบุคคลที่สาม');
   });
+});
 
-  it('are kept as files that can be swapped for the final text: no placeholders left in them', () => {
-    for (const key of KEYS) {
-      const text = loadLegalContent(key).body;
-      expect(text).not.toMatch(/TODO|\[\[|\]\]|XXX|lorem/i);
-    }
+describe('the English documents', () => {
+  it('state the same facts', () => {
+    const terms = loadLegalContent('terms', 'en').body;
+    const privacy = loadLegalContent('privacy', 'en').body;
+    expect(terms).toContain('Google or GitHub account');
+    expect(privacy).toContain('session lifetime is 30 days');
+    expect(privacy).toMatch(/Technical logs \| 90 days/);
+    expect(privacy).toMatch(/Backups \| 30 days/);
+    expect(privacy).toContain('within 30 days after you delete your account');
+    expect(privacy).toContain('do not use advertising cookies or third-party analytics tools');
   });
 });
 
