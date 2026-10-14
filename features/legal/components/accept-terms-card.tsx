@@ -18,7 +18,7 @@ function AcceptTermsContent() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const required = auth.status === 'authenticated' && auth.user.legal.acceptance_required;
+  const required = auth.status === 'authenticated' && auth.user.legal?.acceptance_required === true;
   const nothingToAccept = auth.status === 'authenticated' && !required;
 
   useEffect(() => {

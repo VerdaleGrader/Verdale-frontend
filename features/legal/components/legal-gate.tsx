@@ -16,7 +16,7 @@ export function LegalGate() {
   const router = useRouter();
   const pathname = usePathname();
 
-  const required = auth.status === 'authenticated' && auth.user.legal.acceptance_required;
+  const required = auth.status === 'authenticated' && auth.user.legal?.acceptance_required === true;
   const exempt = LEGAL_EXEMPT_PATHS.includes(pathname);
 
   useEffect(() => {
