@@ -8,6 +8,7 @@ import { useApiQuery } from '@/lib/use-api-query';
 import { cn } from '@/lib/utils';
 import { authApi, safeNext, signInUrl, type OAuthProvider } from '../api/auth.api';
 import { ConsentNote } from './consent-note';
+import { ProviderIcon } from './provider-icons';
 
 const PROVIDER_LABELS: Record<OAuthProvider, string> = { github: 'GitHub', google: 'Google' };
 
@@ -52,13 +53,14 @@ function LoginCardContent() {
       )}
       {providers.status === 'success' && (
         <div className="flex flex-col gap-2">
-          {providers.data.map((provider, index) => (
+          {providers.data.map((provider) => (
             // A plain link: Core redirects the browser to the provider.
             <a
               key={provider}
               href={signInUrl(provider, next)}
-              className={cn(buttonVariants({ variant: index === 0 ? 'primary' : 'secondary', size: 'lg' }), 'w-full')}
+              className={cn(buttonVariants({ variant: 'secondary', size: 'lg' }), 'w-full')}
             >
+              <ProviderIcon provider={provider} className="size-5 shrink-0" />
               Continue with {PROVIDER_LABELS[provider]}
             </a>
           ))}
