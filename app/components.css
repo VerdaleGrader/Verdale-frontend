@@ -383,6 +383,10 @@
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-overlay);
   outline: none;
+  /* Taller than the screen: the body scrolls, the title and buttons stay in view. */
+  display: flex;
+  flex-direction: column;
+  max-height: 100%;
 }
 .vd-dialog--lg {
   max-width: 640px;
@@ -408,6 +412,16 @@
 }
 .vd-dialog__body {
   margin-top: var(--space-4);
+  min-height: 0;
+  overflow-y: auto;
+  /* room for focus rings, which overflow clipping would cut */
+  padding: 4px;
+  margin-inline: -4px;
+}
+.vd-dialog__head,
+.vd-dialog__desc,
+.vd-dialog__foot {
+  flex-shrink: 0;
 }
 .vd-dialog__foot {
   display: flex;
@@ -2748,8 +2762,6 @@ a.vd-trackcard:hover {
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
-  max-height: 360px;
-  overflow-y: auto;
 }
 .ai-draft {
   display: flex;
