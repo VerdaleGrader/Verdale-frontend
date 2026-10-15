@@ -15,6 +15,7 @@
     "format:check": "prettier --check .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "legal:generate": "node scripts/legal-content-generate.mjs && prettier --write lib/legal-content.gen.ts",
     "contracts:sync": "scripts/contracts.sh sync ../Verdale-core-service/contracts && npm run contracts:generate",
     "contracts:generate": "openapi-typescript contracts/core-public.openapi.yaml -o lib/contracts/core-public.gen.ts && prettier --write lib/contracts",
     "contracts:check": "scripts/contracts.sh verify && node scripts/contracts-check.mjs",

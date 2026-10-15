@@ -1,6 +1,5 @@
-import { readFileSync } from 'node:fs';
-import path from 'node:path';
-import { LEGAL_DOCUMENTS, type LegalDocumentKey } from '@/lib/legal';
+import type { LegalDocumentKey } from '@/lib/legal';
+import { LEGAL_MARKDOWN } from '@/lib/legal-content.gen';
 
 export interface LegalSection {
   /** Anchor id: "section-4". */
@@ -41,10 +40,9 @@ export function parseLegalMarkdown(markdown: string): LegalContent {
 }
 
 /**
- * Reads content/legal/<document>.md. Server only, and only at build time: the
- * pages are static, so nothing reads the disk while serving (Cloudflare).
+ * Parses content/legal/<document>.md, embedded by `npm run legal:generate`. Nothing
+ * reads the disk, so it also works on Cloudflare when a page renders at request time.
  */
 export function loadLegalContent(key: LegalDocumentKey): LegalContent {
-  const file = path.join(process.cwd(), 'content', 'legal', LEGAL_DOCUMENTS[key].file);
-  return parseLegalMarkdown(readFileSync(file, 'utf8'));
+  return parseLegalMarkdown(LEGAL_MARKDOWN[key]);
 }

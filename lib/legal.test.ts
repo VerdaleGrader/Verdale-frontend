@@ -10,6 +10,7 @@ import {
   thaiDate,
   type LegalDocumentKey,
 } from './legal';
+import { LEGAL_MARKDOWN } from './legal-content.gen';
 import { loadLegalContent, parseLegalMarkdown, sectionId } from './legal-content';
 
 const KEYS: LegalDocumentKey[] = ['terms', 'privacy'];
@@ -39,6 +40,13 @@ describe('the versions this build shows', () => {
 
   it('are ISO dates', () => {
     for (const key of KEYS) expect(LEGAL_VERSIONS[key]).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  });
+});
+
+describe('the embedded documents', () => {
+  it.each(KEYS)('%s matches content/legal (run `npm run legal:generate` if this fails)', (key) => {
+    const file = readFileSync(path.join(root, 'content', 'legal', LEGAL_DOCUMENTS[key].file), 'utf8');
+    expect(LEGAL_MARKDOWN[key]).toBe(file);
   });
 });
 
