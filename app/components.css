@@ -359,6 +359,7 @@
   inset: 0;
   display: grid;
   place-items: center;
+  grid-template-rows: minmax(0, 1fr);
   padding: var(--space-4);
   z-index: 50;
 }
@@ -386,7 +387,9 @@
   /* Taller than the screen: the body scrolls, the title and buttons stay in view. */
   display: flex;
   flex-direction: column;
-  max-height: 100%;
+  /* A percentage does not resolve inside the auto-sized grid row, so use the viewport. */
+  max-height: calc(100vh - 2 * var(--space-4));
+  max-height: calc(100dvh - 2 * var(--space-4));
 }
 .vd-dialog--lg {
   max-width: 640px;
