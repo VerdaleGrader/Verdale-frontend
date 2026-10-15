@@ -234,6 +234,34 @@ export const problemsApi = {
       })
     ),
 
+  // --- AI testcases (GRD-124) ----------------------------------------------------
+
+  /** Which providers the person has a key for (only the last four characters), and whether the server has the feature. */
+  aiCredentials: () => unwrap(coreApi.GET('/api/v1/me/ai-credentials')),
+
+  saveAiCredential: (provider: Schemas['AiProvider'], apiKey: string) =>
+    unwrap(
+      coreApi.PUT('/api/v1/me/ai-credentials/{provider}', {
+        params: { path: { provider } },
+        body: { api_key: apiKey },
+      })
+    ),
+
+  deleteAiCredential: (provider: Schemas['AiProvider']) =>
+    unwrap(coreApi.DELETE('/api/v1/me/ai-credentials/{provider}', { params: { path: { provider } } })),
+
+  startAiTests: (target: Target, body: Schemas['StartAiTestsRequest']) =>
+    unwrap(
+      coreApi.POST('/api/v1/spaces/{slug}/problems/{problemSlug}/ai-tests', { params: { path: path(target) }, body })
+    ),
+
+  aiTestJob: (target: Target, jobId: string) =>
+    unwrap(
+      coreApi.GET('/api/v1/spaces/{slug}/problems/{problemSlug}/ai-tests/{jobId}', {
+        params: { path: { ...path(target), jobId } },
+      })
+    ),
+
   // --- reference solutions -------------------------------------------------
 
   solutions: async (target: Target) =>
