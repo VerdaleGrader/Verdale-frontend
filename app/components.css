@@ -359,6 +359,7 @@
   inset: 0;
   display: grid;
   place-items: center;
+  grid-template-rows: minmax(0, 1fr);
   padding: var(--space-4);
   z-index: 50;
 }
@@ -383,6 +384,12 @@
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-overlay);
   outline: none;
+  /* Taller than the screen: the body scrolls, the title and buttons stay in view. */
+  display: flex;
+  flex-direction: column;
+  /* A percentage does not resolve inside the auto-sized grid row, so use the viewport. */
+  max-height: calc(100vh - 2 * var(--space-4));
+  max-height: calc(100dvh - 2 * var(--space-4));
 }
 .vd-dialog--lg {
   max-width: 640px;
@@ -408,6 +415,16 @@
 }
 .vd-dialog__body {
   margin-top: var(--space-4);
+  min-height: 0;
+  overflow-y: auto;
+  /* room for focus rings, which overflow clipping would cut */
+  padding: 4px;
+  margin-inline: -4px;
+}
+.vd-dialog__head,
+.vd-dialog__desc,
+.vd-dialog__foot {
+  flex-shrink: 0;
 }
 .vd-dialog__foot {
   display: flex;
@@ -2741,4 +2758,46 @@ a.vd-trackcard:hover {
     max-height: calc(100vh - 48px);
     overflow-y: auto;
   }
+}
+
+/* AI testcases (GRD-124): the drafts the person reviews before adding them. */
+.ai-drafts {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.ai-draft {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+.ai-draft__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+.ai-draft--skipped {
+  background: var(--surface-sunken);
+}
+.ai-key {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  background: var(--surface-sunken);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+.ai-key__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
 }

@@ -9,6 +9,7 @@ import {
   Info,
   LoaderCircle,
   Play,
+  Sparkles,
   Plus,
   Trash2,
   Undo2,
@@ -51,6 +52,7 @@ import {
 import { sourceOf } from '../test-file-source';
 import type { TestCaseList } from '../types';
 import { uploadFailureMessage } from '../upload-message';
+import { AiTestcaseDialog } from './ai-testcase-dialog';
 import { GenerateDialogs, type GenerateChoice } from './generate-dialogs';
 import { failureVerdict, GenerateOutcome, GenerateProgress } from './generate-status';
 import { PastePanel, ReplaceDialog, UploadPanel } from './testcase-add';
@@ -91,6 +93,7 @@ export function TestcasesEditor({ initial }: { initial: TestCaseList }) {
   const [saveError, setSaveError] = useState<string | null>(null);
   const [conflict, setConflict] = useState<TestCaseList | null>(null);
   const [choosing, setChoosing] = useState(false);
+  const [aiOpen, setAiOpen] = useState(false);
   const [reviewed, setReviewed] = useState(false);
   const keys = useRef(0);
 
@@ -282,6 +285,9 @@ export function TestcasesEditor({ initial }: { initial: TestCaseList }) {
               </MenuItem>
               <MenuItem icon={ClipboardPaste} onSelect={() => setPanel('paste')}>
                 Paste text
+              </MenuItem>
+              <MenuItem icon={Sparkles} onSelect={() => setAiOpen(true)}>
+                Generate with AI
               </MenuItem>
             </Menu>
           </div>
@@ -648,6 +654,17 @@ export function TestcasesEditor({ initial }: { initial: TestCaseList }) {
         onClose={() => setChoosing(false)}
         onChosen={(choice) => void startGenerate(choice)}
       />
+      {canEdit && (
+        <AiTestcaseDialog
+          open={aiOpen}
+          target={target}
+          baseHref={baseHref}
+          room={room}
+          makeKey={makeKey}
+          onClose={() => setAiOpen(false)}
+          onAdd={(added) => setTests((current) => [...current, ...added])}
+        />
+      )}
       <ReplaceDialog
         target={target}
         limits={base.limits}
