@@ -20,6 +20,7 @@ import { problemsApi, type ProblemTarget } from '../api/problems.api';
 import {
   AI_CATEGORIES,
   AI_MAX_COUNT,
+  AI_NOTE_MAX,
   AI_PROVIDERS,
   countProblem,
   draftsFromAi,
@@ -77,6 +78,7 @@ function AiSteps({ target, baseHref, room, makeKey, onClose, onAdd }: AiTestcase
   const [categories, setCategories] = useState<AiCategory[]>([]);
   const [solutionId, setSolutionId] = useState('');
   const [includeSolution, setIncludeSolution] = useState(false);
+  const [note, setNote] = useState('');
   const [starting, setStarting] = useState(false);
   const [startFailure, setStartFailure] = useState<string | null>(null);
 
@@ -107,7 +109,9 @@ function AiSteps({ target, baseHref, room, makeKey, onClose, onAdd }: AiTestcase
 
   const savedKey = credentials?.items.find((item) => item.provider === provider);
   const countError = countProblem(countText);
-  const ready = credentials?.enabled === true && !!savedKey && !!solutionId && countError === null;
+  const noteError = note.trim().length > AI_NOTE_MAX ? `Shorten the note to ${AI_NOTE_MAX} characters or fewer.` : null;
+  const ready =
+    credentials?.enabled === true && !!savedKey && !!solutionId && countError === null && noteError === null;
 
   async function begin() {
     setStarting(true);
@@ -119,6 +123,7 @@ function AiSteps({ target, baseHref, room, makeKey, onClose, onAdd }: AiTestcase
         categories: categories.length > 0 ? categories : undefined,
         solution_id: solutionId,
         include_solution: includeSolution,
+        note: note.trim() === '' ? undefined : note.trim(),
       });
     } catch (caught) {
       setStartFailure(errorMessage(caught));
@@ -288,6 +293,15 @@ function AiSteps({ target, baseHref, room, makeKey, onClose, onAdd }: AiTestcase
             />
           ))}
         </fieldset>
+        <TextField
+          label="Additional note to the AI (optional)"
+          multiline
+          rows={3}
+          value={note}
+          onChange={(event) => setNote(event.target.value)}
+          hint={`Anything the model should know, for example “keep n small enough to check by hand”. ${note.trim().length} of ${AI_NOTE_MAX} characters.`}
+          error={noteError ?? undefined}
+        />
         {solutionsFailure ? (
           <p role="alert" className="vd-hint vd-hint--error">
             Could not load the solutions. {solutionsFailure}

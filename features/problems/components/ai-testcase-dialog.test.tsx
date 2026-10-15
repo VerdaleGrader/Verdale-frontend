@@ -165,6 +165,26 @@ describe('Generate with AI: setup', () => {
     });
   });
 
+  it('sends the additional note, trimmed, and nothing when it is empty', async () => {
+    api.startAiTests.mockResolvedValue(job());
+    renderDialog();
+    await screen.findByText('WXYZ');
+    await userEvent.type(screen.getByLabelText(/Additional note to the AI/), '  Keep n small.  ');
+    await userEvent.click(screen.getByRole('button', { name: 'Generate testcases' }));
+    await waitFor(() => expect(api.startAiTests).toHaveBeenCalled());
+    expect(api.startAiTests.mock.calls[0]![1]).toMatchObject({ note: 'Keep n small.' });
+  });
+
+  it('does not send a note that is only spaces', async () => {
+    api.startAiTests.mockResolvedValue(job());
+    renderDialog();
+    await screen.findByText('WXYZ');
+    await userEvent.type(screen.getByLabelText(/Additional note to the AI/), '   ');
+    await userEvent.click(screen.getByRole('button', { name: 'Generate testcases' }));
+    await waitFor(() => expect(api.startAiTests).toHaveBeenCalled());
+    expect(api.startAiTests.mock.calls[0]![1].note).toBeUndefined();
+  });
+
   it('sends the categories the person ticked', async () => {
     api.startAiTests.mockResolvedValue(job());
     renderDialog();

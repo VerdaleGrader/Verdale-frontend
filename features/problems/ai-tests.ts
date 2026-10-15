@@ -4,6 +4,9 @@ import type { AiCategory, AiProvider, AiTestItem, AiTestJob } from './types';
 /** The most inputs one request may ask for (Core: `AI_TEST_LIMITS.max_count`). */
 export const AI_MAX_COUNT = 20;
 
+/** The longest additional note Core accepts (`AI_TEST_LIMITS.note_max_length`). */
+export const AI_NOTE_MAX = 1000;
+
 export const AI_PROVIDERS: Array<{ value: AiProvider; label: string; company: string; description: string }> = [
   { value: 'gemini', label: 'Gemini', company: 'Google', description: 'Uses your own Gemini API key from Google.' },
   {
