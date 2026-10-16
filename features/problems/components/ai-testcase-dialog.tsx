@@ -31,6 +31,7 @@ import {
   usableItems,
 } from '../ai-tests';
 import { useAiTests } from '../hooks/use-ai-tests';
+import { AiProviderIcon } from './ai-provider-icons';
 import type { DraftTest } from '../test-drafts';
 import {
   LANGUAGE_LABELS,
@@ -257,6 +258,7 @@ function AiSteps({ target, baseHref, room, makeKey, onClose, onAdd }: AiTestcase
               value: item.value,
               label: item.label,
               description: item.description,
+              icon: <AiProviderIcon provider={item.value} />,
             }))}
           />
         </fieldset>

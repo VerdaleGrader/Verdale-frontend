@@ -9,6 +9,8 @@ interface RadioOption {
   label: string;
   /** A second line explaining the choice. */
   description?: string;
+  /** A small mark before the label (decorative: the label names the choice). */
+  icon?: React.ReactNode;
   disabled?: boolean;
 }
 
@@ -32,7 +34,10 @@ function RadioGroup({
               <RadioGroupPrimitive.Indicator className="vd-radio__mark" />
             </RadioGroupPrimitive.Item>
             <span className="vd-check__text">
-              <span className="vd-check__label">{option.label}</span>
+              <span className="vd-check__label">
+                {option.icon && <span className="vd-check__icon">{option.icon}</span>}
+                {option.label}
+              </span>
               {option.description && <span className="vd-check__desc">{option.description}</span>}
             </span>
           </label>

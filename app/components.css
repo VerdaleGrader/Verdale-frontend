@@ -1111,7 +1111,18 @@
   flex-direction: column;
 }
 .vd-check__label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
   line-height: 20px;
+}
+.vd-check__icon {
+  display: inline-flex;
+  color: var(--text);
+}
+.vd-check__icon > svg {
+  width: 16px;
+  height: 16px;
 }
 .vd-check__desc {
   font-size: 13px;
