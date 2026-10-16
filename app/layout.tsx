@@ -1,7 +1,8 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { IBM_Plex_Mono, IBM_Plex_Sans, IBM_Plex_Sans_Thai } from 'next/font/google';
 import { LegalGate } from '@/features/legal/components/legal-gate';
 import { Providers } from '@/components/providers';
+import { SITE_DESCRIPTION, SITE_URL, THEME_COLOR } from '@/lib/site-metadata';
 import { SiteFooter } from '@/components/layout/site-footer';
 import { SiteHeader } from '@/components/layout/site-header';
 import { THEME_INIT_SCRIPT } from '@/components/layout/theme-toggle';
@@ -12,10 +13,14 @@ const plexSans = IBM_Plex_Sans({ subsets: ['latin'], weight: ['400', '500', '600
 const plexThai = IBM_Plex_Sans_Thai({ subsets: ['thai'], weight: ['400', '500', '600'], variable: '--font-plex-thai' });
 const plexMono = IBM_Plex_Mono({ subsets: ['latin'], weight: ['400', '500'], variable: '--font-plex-mono' });
 
+// Neutral defaults for every route; the home page adds its own Open Graph tags (app/page.tsx).
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
   title: 'Verdale',
-  description: 'Write a problem, prove it with a reference solution, and let others solve it.',
+  description: SITE_DESCRIPTION,
 };
+
+export const viewport: Viewport = { themeColor: THEME_COLOR };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
